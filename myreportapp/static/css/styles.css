@@ -1,0 +1,52 @@
+.nav-link,
+.navbar-brand {
+  color: #ffffff !important;
+  /* Cor padrão do link */
+}
+
+.nav-link:hover,
+.navbar-brand:hover {
+  color: #ffcc00 !important;
+  /* Cor ao passar o mouse */
+}
+
+body {
+  background-color: #303030;
+  color: #c0c0d0;
+}
+
+/* Estilos gerais para os inputs */
+.custom-input {
+  background-color: #303030;
+  /* Cor de fundo */
+  color: #c0c0d0;
+  /* Cor do texto */
+  border: 1px solid #A0A0A0;
+  /* Cor da borda */
+}
+
+/* Estado de foco */
+.custom-input:focus {
+  background-color: #303030;
+  /* Mantém a cor de fundo no foco */
+  color: #c0c0d0;
+  /* Mantém a cor do texto no foco */
+  border-color: #ffcc00;
+  /* Cor da borda ao focar */
+  outline: none;
+  /* Remove o contorno padrão */
+}
+
+/* Estado placeholder */
+.custom-input::placeholder {
+  color: #a0a0a0;
+  /* Cor do texto do placeholder */
+  opacity: 1;
+  /* Garantir que o placeholder seja visível */
+}
+
+/* Ao passar o mouse */
+.custom-input:hover {
+  background-color: #383838;
+  /* Levemente mais claro ao passar o mouse */
+}

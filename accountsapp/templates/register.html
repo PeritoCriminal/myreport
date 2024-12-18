@@ -1,0 +1,42 @@
+<!-- accountsapp/templates/register.html -->
+
+
+{% extends "base.html" %}
+
+{% load form_filters %}
+
+{% block center_content %}
+<div class="container mt-5">
+    <h1 class="text-center">Registro de Usuário</h1>
+    <p class="text-muted text-center">Escolha um nome de usuário, informe seu primeiro nome e o e-mail para iniciar o cadastro.</p>
+    
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field|add_class:"form-control custom-input" }}
+                
+                {% if field.errors %}
+                    <div class="text-danger">
+                        {% for error in field.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <div class="form-row">
+            <div class="col">
+                <button type="submit" class="btn btn-primary btn-block">Enviar</button>
+            </div>
+            <div class="col">
+                <a href="{% url 'home' %}" class="btn btn-secondary btn-block">Cancelar</a>
+            </div>
+        </div>
+        
+    </form>
+</div>
+{% endblock %}
