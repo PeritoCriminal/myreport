@@ -1,36 +1,44 @@
 from django.contrib import messages
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login
+from django.shortcuts import render, redirect
 from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth import get_user_model
-from accountsapp.forms import UserRegistrationForm
-# from accountsapp.views.decorators import login_forbidden
-from accountsapp.models import CustomUserModel
+from django.contrib.auth import get_user_model, authenticate, login
+from accountsapp.forms import UserRegistrationForm, UserLoginForm
+from django.contrib.auth.hashers import make_password
 
 
 User = get_user_model()
 
-# @login_forbidden
 def user_registration_view(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = False  # Desativa o usuário até a verificação de e-mail
-            user.save()
+            user = form.save(commit=False) 
+            password = form.cleaned_data['password']
+            user.password = make_password(password)
+            user.is_active = False  
+            user.save()  
             send_verification_email(user)
             messages.success(request, "Cadastro realizado com sucesso! Verifique seu e-mail para concluir a ativação.")
-            return redirect('home')
+            return redirect('confirmation_email') 
         else:
             messages.error(request, "Erro no cadastro. Verifique os campos e tente novamente.")
     else:
-        form = UserRegistrationForm()
+        form = UserRegistrationForm() 
+
     return render(request, 'register.html', {'form': form})
+
+
+
+def confirmation_email_view(request):
+    return render(request, 'confirmation_email.html')
+
+
+
 
 def send_verification_email(user):
     token = default_token_generator.make_token(user)
@@ -43,19 +51,24 @@ def send_verification_email(user):
     from_email = settings.DEFAULT_FROM_EMAIL
     recipient_list = [user.email]
 
-    send_mail(subject, message, from_email, recipient_list)
+    try:
+        send_mail(subject, message, from_email, recipient_list)
+    except Exception as e:
+        messages.error(user, f"Erro ao enviar o e-mail: {str(e)}")
 
 def verify_email(request, uidb64, token):
+    """
+    Verifica o e-mail do usuário e redireciona para a página de login.
+    """
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
 
         if default_token_generator.check_token(user, token):
-            user.is_active = True 
+            user.is_active = True
             user.save()
-            messages.success(request, "Seu e-mail foi verificado com sucesso! Você pode fazer login.")
-            # return redirect('login') 
-            return redirect('user')
+            messages.success(request, "Seu e-mail foi verificado com sucesso! Faça login para continuar.")
+            return redirect('login')  # Redireciona para a página de login
         else:
             messages.error(request, "O link de verificação é inválido ou expirou.")
             return redirect('home')
@@ -64,15 +77,29 @@ def verify_email(request, uidb64, token):
         return redirect('home')
 
 
-def confirm_email(request, token):
-    # Obtendo o usuário que corresponde ao token de confirmação
-    user = get_object_or_404(CustomUserModel, confirmation_token=token)
-    
-    # Ativa o usuário
-    user.is_active = True
-    user.save()
 
-    # Login automático após a confirmação
-    login(request, user)
 
-    return redirect('complete_registration_form')
+def user_login_view(request):
+    if request.method == 'POST':
+        form = UserLoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                next_url = request.GET.get('next', 'home')  # Verifica se existe um 'next' no URL
+                messages.success(request, "Login realizado com sucesso!")
+                return redirect(next_url)  # Redireciona para a página original ou 'home'
+            else:
+                messages.error(request, "Credenciais inválidas. Verifique seu nome de usuário e senha.")
+        else:
+            messages.error(request, "Erro ao validar o formulário. Por favor, corrija os campos destacados.")
+    else:
+        form = UserLoginForm()
+
+    context = {
+        'form': form,
+    }
+
+    return render(request, 'user_login.html', context)

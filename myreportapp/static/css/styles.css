@@ -50,3 +50,41 @@ body {
   background-color: #383838;
   /* Levemente mais claro ao passar o mouse */
 }
+
+/* Estilos para preenchimento automático */
+.custom-input:-webkit-autofill {
+  background-color: #303030 !important;
+  /* Cor de fundo personalizada */
+  color: #c0c0d0 !important;
+  /* Cor do texto personalizada */
+  border: 1px solid #A0A0A0 !important;
+  /* Cor da borda */
+  -webkit-box-shadow: 0 0 0px 1000px #303030 inset !important;
+  /* Corrige o fundo automático */
+  -webkit-text-fill-color: #c0c0d0 !important;
+  /* Define a cor do texto preenchido */
+  transition: background-color 5000s ease-in-out 0s;
+  /* Evita animação do autofill */
+}
+
+/* Para compatibilidade futura */
+.custom-input:-moz-autofill {
+  background-color: #303030 !important;
+  /* Cor de fundo personalizada */
+  color: #c0c0d0 !important;
+  /* Cor do texto personalizada */
+}
+
+.custom-input:-ms-autofill {
+  background-color: #303030 !important;
+  /* Cor de fundo personalizada */
+  color: #c0c0d0 !important;
+  /* Cor do texto personalizada */
+}
+
+/* Mantém o foco estilizado após autofill */
+.custom-input:-webkit-autofill:focus {
+  background-color: #303030 !important;
+  border-color: #ffcc00 !important;
+  -webkit-text-fill-color: #c0c0d0 !important;
+}

@@ -1,1 +1,1 @@
-from .user_registration_forms import UserRegistrationForm
+from .user_registration_forms import UserRegistrationForm, UserLoginForm
