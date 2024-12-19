@@ -2,8 +2,10 @@
 
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from django.db import models
 
 class CustomUserModel(AbstractUser):
+    email = models.EmailField(unique=True)
         
     def clean(self):
         super().clean()
