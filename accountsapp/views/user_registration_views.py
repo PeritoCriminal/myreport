@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
@@ -7,8 +7,9 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model, authenticate, login
-from accountsapp.forms import UserRegistrationForm, UserLoginForm
+from accountsapp.forms import UserRegistrationForm, UserLoginForm, CompleteRegistrationForm
 from django.contrib.auth.hashers import make_password
+from accountsapp.models import CustomUserModel
 
 
 User = get_user_model()
@@ -40,6 +41,28 @@ def confirmation_email_view(request):
 
 
 
+def complete_registration_view(request, id):
+    user = get_object_or_404(CustomUserModel, id=id)
+    
+    if request.method == 'POST':
+        form = CompleteRegistrationForm(request.POST, instance=user, user=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('home')
+    else:
+        form = CompleteRegistrationForm(instance=user, user=request.user)
+    
+    context = {
+        'form': form,
+        'user': user,
+        'welcome_message': f"Complete o cadastro de {user.username}.",
+    }
+    return render(request, 'complete_registration.html', context)
+
+
+
+
+
 def send_verification_email(user):
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -57,9 +80,6 @@ def send_verification_email(user):
         messages.error(user, f"Erro ao enviar o e-mail: {str(e)}")
 
 def verify_email(request, uidb64, token):
-    """
-    Verifica o e-mail do usuário e redireciona para a página de login.
-    """
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
@@ -68,7 +88,7 @@ def verify_email(request, uidb64, token):
             user.is_active = True
             user.save()
             messages.success(request, "Seu e-mail foi verificado com sucesso! Faça login para continuar.")
-            return redirect('login')  # Redireciona para a página de login
+            return redirect('login')
         else:
             messages.error(request, "O link de verificação é inválido ou expirou.")
             return redirect('home')

@@ -27,35 +27,80 @@
           <li class="nav-item">
             <a class="nav-link text-white" href="{% url 'home' %}">Home</a>
           </li>
-          <li class="nav-item dropdown">
-            {% if user.is_authenticated %}
-                <a 
-                    class="nav-link dropdown-toggle text-white" 
-                    href="#" 
-                    id="userDropdown" 
-                    role="button" 
-                    data-toggle="dropdown" 
-                    aria-haspopup="true" 
-                    aria-expanded="false"
-                >
-                    {{ user.username }}
-                </a>
-                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                    <form method="post" action="{% url 'logout' %}" style="margin: 0;">
-                        {% csrf_token %}
-                        <button type="submit" class="dropdown-item">Logout</button>
-                    </form>
-                </div>
-            {% else %}
-                <a class="nav-link text-white" href="{% url 'login' %}">Login</a>
-            {% endif %}
-          </li>
-          <li class="nav-item">
-            <a class="nav-link text-white" href="{% url 'register' %}">Register</a>
-          </li>
+    
+          {% if user.is_authenticated %}
+            <!-- Menu expansivo para 'Formulários' -->
+            <li class="nav-item dropdown">
+              <a 
+                class="nav-link dropdown-toggle text-white" 
+                href="#" 
+                id="formsDropdown" 
+                role="button" 
+                data-toggle="dropdown" 
+                aria-haspopup="true" 
+                aria-expanded="false"
+              >
+                Formulários
+              </a>
+              <div class="dropdown-menu" aria-labelledby="formsDropdown">
+                <a class="dropdown-item" href="#">Formulário 1</a>
+                <a class="dropdown-item" href="#">Formulário 2</a>
+              </div>
+            </li>
+    
+            <!-- Menu expansivo para 'Laudo' -->
+            <li class="nav-item dropdown">
+              <a 
+                class="nav-link dropdown-toggle text-white" 
+                href="#" 
+                id="reportDropdown" 
+                role="button" 
+                data-toggle="dropdown" 
+                aria-haspopup="true" 
+                aria-expanded="false"
+              >
+                Laudo
+              </a>
+              <div class="dropdown-menu" aria-labelledby="reportDropdown">
+                <a class="dropdown-item" href="#">Novo</a>
+                <a class="dropdown-item" href="#">Lista</a>
+              </div>
+            </li>
+    
+            <!-- Menu do usuário -->
+            <li class="nav-item dropdown">
+              <a 
+                class="nav-link dropdown-toggle text-white" 
+                href="#" 
+                id="userDropdown" 
+                role="button" 
+                data-toggle="dropdown" 
+                aria-haspopup="true" 
+                aria-expanded="false"
+              >
+                {{ user.username }}
+              </a>
+              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                <a class="dropdown-item" href="{% url 'complete_registration' user.id %}">Perfil</a>
+                <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item">Logout</button>
+                </form>
+              </div>
+            </li>
+          {% else %}
+            <!-- Links para Login e Registro -->
+            <li class="nav-item">
+              <a class="nav-link text-white" href="{% url 'login' %}">Login</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-white" href="{% url 'register' %}">Register</a>
+            </li>
+          {% endif %}
         </ul>
       </div>
     </nav>
+    
 
     <div class="container">
       <div class="row">

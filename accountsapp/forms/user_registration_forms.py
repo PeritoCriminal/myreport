@@ -1,7 +1,7 @@
 # accounts/forms/user_registration_forms.py
 
 from django import forms
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from accountsapp.models.custom_user_model import CustomUserModel
 
 
@@ -21,7 +21,7 @@ class UserRegistrationForm(forms.ModelForm):
 
     class Meta:
         model = CustomUserModel
-        fields = ['username', 'email']  # 'first_name' foi removido
+        fields = ['username', 'email']
 
     def clean(self):
         """
@@ -65,32 +65,33 @@ class UserRegistrationForm(forms.ModelForm):
 
 
 class CompleteRegistrationForm(forms.ModelForm):
-    
     """
-    Formulário para completar o cadastro do usuário após a confirmação do e-mail.
-    Inclui os campos adicionais necessários para o registro completo.
+    Formulário para completar o cadastro, validando a senha sem alterá-la.
     """
+    password = forms.CharField(
+        widget=forms.PasswordInput(),
+        label="Senha",
+        help_text="Insira sua senha atual para confirmar as alterações."
+    )
 
     class Meta:
         model = CustomUserModel
-        fields = ['last_name', 'username', 'password']  # Inclua outros campos necessários
+        fields = ['last_name', 'username']  # Inclua outros campos necessários
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)  # Recebe o usuário na inicialização
         super().__init__(*args, **kwargs)
-        self.fields['password'].widget = forms.PasswordInput()
 
     def clean_password(self):
         password = self.cleaned_data.get('password')
-        if len(password) < 8:
-            raise forms.ValidationError("A senha deve ter pelo menos 8 caracteres.")
+        if not self.user or not check_password(password, self.user.password):
+            raise forms.ValidationError("A senha está incorreta.")
         return password
 
     def save(self, commit=True):
-        user = super().save(commit=False)
-        user.set_password(self.cleaned_data['password'])
-        if commit:
-            user.save()
-        return user
+        # Salva os campos atualizados, sem alterar a senha
+        return super().save(commit=commit)
+
     
 
 
