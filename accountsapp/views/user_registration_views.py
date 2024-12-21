@@ -43,28 +43,27 @@ def confirmation_email_view(request):
 
 
 
-
-# NÃO ESTÁ SALVANDO A IMAGEM.
-
 def complete_registration_view(request, id):
     user = get_object_or_404(CustomUserModel, id=id)
     
     if request.method == 'POST':
-        # Passa request.FILES para garantir que o arquivo da imagem será processado
         form = CompleteRegistrationForm(request.POST, request.FILES, instance=user, user=request.user)
-        print(request.FILES)
         if form.is_valid():
             form.save()
             return redirect('home')
     else:
         form = CompleteRegistrationForm(instance=user, user=request.user)
     
+    user_img = user.profile_picture.url if user.profile_picture else '/media/profile_pics/usercommonimg.jpg'
+
     context = {
         'form': form,
         'user': user,
+        'user_img': user_img,
         'welcome_message': f"Complete o cadastro de {user.username}.",
     }
     return render(request, 'complete_registration.html', context)
+
 
 
 

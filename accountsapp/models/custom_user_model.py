@@ -48,18 +48,22 @@ class CustomUserModel(AbstractUser):
 
         super().save(*args, **kwargs)  # Salva o objeto normalmente
 
-        # Redimensiona a nova imagem para 500x500
+        # Redimensiona a nova imagem para no máximo 500x500, mantendo a proporção
         if self.profile_picture and self.profile_picture.path != 'profile_pics/usercommonimg.jpg':
             try:
                 image_path = self.profile_picture.path
                 img = Image.open(image_path)
-                img = img.resize((500, 500), Image.Resampling.LANCZOS)
+
+                # Redimensiona mantendo a proporção
+                img.thumbnail((2000, 2000), Image.Resampling.LANCZOS)
+
+                # Salva a imagem redimensionada
                 img.save(image_path)
             except FileNotFoundError:
                 # Se não encontrar a imagem, trata como uma nova imagem
                 pass
 
-        self._original_profile_picture = self.profile_picture  # Atualiza a referência da imagem atual
+                self._original_profile_picture = self.profile_picture  # Atualiza a referência da imagem atual
 
     def delete_old_image(self):
         """
