@@ -12,6 +12,7 @@
     
     <div class="text-center mb-4">
         <img 
+            id="profilePreview"
             src="{{ user_img }}" 
             alt="Imagem do Usuário" 
             class="rounded-circle" 
@@ -33,9 +34,42 @@
                 {% endif %}
             </div>
         {% endfor %}
-        <button type="submit" class="btn btn-primary btn-block">Enviar</button>
+        <div class="form-row">
+            <div class="col">
+                <button type="submit" class="btn btn-primary btn-block">Enviar</button>
+            </div>
+            <div class="col">
+                <a href="{% url 'home' %}" id="btncancel" class="btn btn-secondary btn-block">Cancelar</a>
+            </div>
+        </div>
     </form>
 </div>
 {% endblock %}
 
+{% block scripts %}
+<script>
+    // Cancelamento com confirmação
+    const btncancel = document.querySelector('#btncancel');
+    btncancel.addEventListener('click', function(event) {
+        event.preventDefault(); 
+        const confirmation = confirm("Tem certeza de que deseja cancelar a operação? As alterações não serão salvas.");   
+        if (confirmation) {
+            window.location.href = btncancel.href;
+        } else {
+            console.log("Usuário decidiu não cancelar a operação.");
+        }
+    });
 
+    // Pré-visualização de imagem
+    const fileInput = document.querySelector('#id_profile_picture'); // Input para selecionar a imagem
+    const profilePreview = document.querySelector('#profilePreview'); // Elemento <img> para exibir a pré-visualização
+
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0]; // Obtém o arquivo selecionado
+        if (file) {
+            const imageURL = URL.createObjectURL(file); // Cria um URL temporário
+            profilePreview.src = imageURL; // Define o src do elemento <img>
+        }
+    });
+</script>
+{% endblock scripts %}
