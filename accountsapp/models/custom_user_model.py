@@ -8,6 +8,18 @@ import os
 
 
 class CustomUserModel(AbstractUser):
+    display_name = models.CharField('Nome de Exibição', max_length=200, blank=True, default='')
+    gender = models.CharField(
+        'Gênero',
+        max_length=1,
+        choices=[('M', 'Masculino'), ('F', 'Feminino'), ('N', 'Não informar')],
+        blank=True
+    )
+    director = models.CharField('Diretor do Instituto de Criminalística', max_length=200, blank=True, default='')
+    state = models.CharField('Estado', max_length=200, blank=True, default='')
+    city = models.CharField('Cidade', max_length=200, blank=True, default='')
+    unit = models.CharField('Núcleo', max_length=200, blank=True, default='')
+    team = models.CharField('Equipe de Perícias Criminalísticas', max_length=200, blank=True, default='')    
     email = models.EmailField(unique=True)
     profile_picture = models.ImageField(
         upload_to='profile_pics/',
