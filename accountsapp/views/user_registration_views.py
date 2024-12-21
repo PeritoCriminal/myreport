@@ -1,3 +1,6 @@
+# accountsapp/views/user_registration.py
+
+
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.mail import send_mail
@@ -41,11 +44,15 @@ def confirmation_email_view(request):
 
 
 
+# NÃO ESTÁ SALVANDO A IMAGEM.
+
 def complete_registration_view(request, id):
     user = get_object_or_404(CustomUserModel, id=id)
     
     if request.method == 'POST':
-        form = CompleteRegistrationForm(request.POST, instance=user, user=request.user)
+        # Passa request.FILES para garantir que o arquivo da imagem será processado
+        form = CompleteRegistrationForm(request.POST, request.FILES, instance=user, user=request.user)
+        print(request.FILES)
         if form.is_valid():
             form.save()
             return redirect('home')

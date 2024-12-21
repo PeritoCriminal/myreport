@@ -1,4 +1,4 @@
-# accounts/forms/user_registration_forms.py
+# accountsapp/forms/user_registration_forms.py
 
 from django import forms
 from django.contrib.auth.hashers import make_password, check_password
@@ -64,6 +64,14 @@ class UserRegistrationForm(forms.ModelForm):
 
 
 
+# from django import forms
+# from django.contrib.auth.hashers import check_password
+# from .models import CustomUserModel
+
+from django import forms
+from django.contrib.auth.hashers import check_password
+from accountsapp.models import CustomUserModel
+
 class CompleteRegistrationForm(forms.ModelForm):
     """
     Formulário para completar o cadastro, validando a senha sem alterá-la.
@@ -73,24 +81,39 @@ class CompleteRegistrationForm(forms.ModelForm):
         label="Senha",
         help_text="Insira sua senha atual para confirmar as alterações."
     )
+    profile_picture = forms.ImageField(
+        required=False,
+        label="Foto de perfil",
+        help_text="Escolha uma imagem para o seu perfil (opcional)."
+    )
 
     class Meta:
         model = CustomUserModel
-        fields = ['last_name', 'username']  # Inclua outros campos necessários
+        fields = ['profile_picture', 'last_name', 'username']
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)  # Recebe o usuário na inicialização
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
     def clean_password(self):
+        """
+        Valida se a senha fornecida corresponde à senha atual do usuário.
+        """
         password = self.cleaned_data.get('password')
         if not self.user or not check_password(password, self.user.password):
             raise forms.ValidationError("A senha está incorreta.")
         return password
 
     def save(self, commit=True):
-        # Salva os campos atualizados, sem alterar a senha
-        return super().save(commit=commit)
+        """
+        Salva o formulário sem realizar exclusões de imagens, 
+        delegando essa lógica ao model.
+        """
+        user = super().save(commit=False)
+        if commit:
+            user.save()
+        return user
+
 
     
 

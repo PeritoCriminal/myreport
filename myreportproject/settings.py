@@ -1,5 +1,9 @@
+# myreportproject/settings.py
+
+
 from pathlib import Path
 from decouple import config
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,7 +17,7 @@ SECRET_KEY = 'django-insecure-^q8eswy$6%hmy@&-exvj2l0h1u%bdxmop4#-i7qjwoe1wg5f-p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -130,3 +134,6 @@ DEFAULT_FROM_EMAIL = 'webmaster@localhost'
 # Uncomment this for file-based email storage during development
 # EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 # EMAIL_FILE_PATH = '/tmp/app-messages'  # Directory to save emails
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
