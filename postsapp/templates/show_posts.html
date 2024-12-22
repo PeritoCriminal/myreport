@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block center_content %}
+    <section class="posts">
+        {% for post in posts %}
+            <article class="post ">
+                <h1 class="post-title">{{ post.title }}</h1>
+                <p><strong>{{ post }}</strong></p>
+                <p class="post-content">{{ post.content }}</p>
+                {% if post.image %}
+                    <img src="{{ post.image.url }}" alt="Imagem relacionada à postagem: {{ post.title }}" class="post-image">
+                {% else %}
+                    <p class="no-image">Essa postagem não possui uma imagem.</p>
+                {% endif %}
+                <hr class="post-divider">
+            </article>
+        {% empty %}
+            <p>Não há postagens disponíveis no momento.</p>
+        {% endfor %}
+    </section>
+{% endblock center_content %}

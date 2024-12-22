@@ -7,7 +7,7 @@ from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
 from accountsapp.models import CustomUserModel
-
+from django.utils import timezone
 
 class PostModel(models.Model):
     author = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE, related_name="posts")
@@ -17,7 +17,7 @@ class PostModel(models.Model):
         upload_to='posts/images/',
         null=True,
         blank=True,
-        delete_orphans=True,  # Remove imagens não usadas
+        delete_orphans=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -44,8 +44,21 @@ class PostModel(models.Model):
                 buffer.close()
         super().save(*args, **kwargs)
 
+    def format_date_to_post(self, date_field):
+        """
+        Retorna a data no formato dd-mm-aa.
+        Recebe como parâmetro 'created_at' ou 'updated_at'.
+        """
+        if isinstance(date_field, timezone.datetime):
+            return date_field.strftime('%d-%m-%y')
+        return None
+
+
     def __str__(self):
         updatedat = ''
-        if self.author.username != self.created_at:
-            updatedat = f' e atualizado em {self.updated_at}'
-        return f'Criado por {self.author.username} em {self.created_at}{updatedat}.'
+        if self.created_at != self.updated_at:
+            updatedat = f' e atualizado em {self.format_date_to_post(self.updated_at)}'
+        return f'Criado por {self.author.username} em {self.format_date_to_post(self.created_at)}{updatedat}.'
+    
+    class Meta:
+        ordering = ['-updated_at']

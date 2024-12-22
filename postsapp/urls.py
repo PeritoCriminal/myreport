@@ -2,9 +2,9 @@
 
 
 from django.urls import path
-from postsapp.views import create_post, teste_view
+from postsapp.views import create_post, show_posts_view
 
 urlpatterns = [
     path('teste', create_post, name='create_post'),
-    path('testando', teste_view, name='teste'),
+    path('show_post', show_posts_view, name='show_posts'),
 ]

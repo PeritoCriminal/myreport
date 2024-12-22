@@ -99,3 +99,39 @@ body {
   border-color: #ffcc00 !important;
   -webkit-text-fill-color: #c0c0d0 !important;
 }
+
+.posts {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+
+.post {
+  border: 1px solid #303030;
+  padding: 15px;
+  border-radius: 5px;
+  background-color: #303030;
+}
+
+.post-title {
+  font-size: 1.5rem;
+  color: #def;
+}
+
+.post-content {
+  font-size: 1rem;
+  color: #ddd;
+}
+
+.post-image {
+  max-width: 100%;
+  height: auto;
+  margin-top: 10px;
+  border-radius: 5px;
+}
+
+.no-image {
+  font-style: italic;
+  color: #999;
+}
