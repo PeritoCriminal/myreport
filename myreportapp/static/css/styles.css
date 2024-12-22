@@ -108,6 +108,10 @@ body {
 }
 
 .post {
+  display: flex;
+  flex-wrap: wrap; /* Garante que os elementos se ajustem conforme a tela */
+  align-items: center; /* Alinha a imagem e o título na mesma linha */
+  gap: 15px; /* Espaço entre a imagem e o título */
   border: 1px solid #303030;
   padding: 15px;
   border-radius: 5px;
@@ -115,6 +119,8 @@ body {
 }
 
 .post-title {
+  font-size: 1.5rem; /* Tamanho do título */
+  margin: 0; /* Remove o margin padrão do h1 */
   font-size: 1.5rem;
   color: #def;
 }
@@ -122,14 +128,26 @@ body {
 .post-content {
   font-size: 1rem;
   color: #ddd;
+  width: 100%; /* Faz o conteúdo e as imagens ocuparem toda a largura */
+  margin-top: 20px; /* Adiciona um pequeno espaçamento no topo */
 }
 
 .post-image {
-  max-width: 100%;
+  width: 100%; /* Faz o conteúdo e as imagens ocuparem toda a largura */
+  margin-top: 20px; /* Adiciona um pequeno espaçamento no topo */
   height: auto;
-  margin-top: 10px;
   border-radius: 5px;
 }
+
+.post-authorimg {
+  width: 80px;  /* Tamanho fixo da imagem */
+  height: 80px; /* Tamanho fixo da imagem */
+  object-fit: cover; /* Mantém a proporção da imagem sem distorcer */
+  border-radius: 50%;  /* Torna a imagem redonda */
+  border: 2px solid #ccc;  /* Borda suave */
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);  /* Sombra suave */
+}
+
 
 .no-image {
   font-style: italic;

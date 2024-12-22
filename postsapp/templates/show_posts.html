@@ -4,14 +4,18 @@
     <section class="posts">
         {% for post in posts %}
             <article class="post ">
+                <!-- Os dois de baixo na mesma linha-->
+                <img src="{{ post.author.profile_picture.url }}" class="post-authorimg" alt="">
                 <h1 class="post-title">{{ post.title }}</h1>
-                <p><strong>{{ post }}</strong></p>
+                <!--Agora um em cada linha até o fim-->
                 <p class="post-content">{{ post.content }}</p>
                 {% if post.image %}
                     <img src="{{ post.image.url }}" alt="Imagem relacionada à postagem: {{ post.title }}" class="post-image">
                 {% else %}
                     <p class="no-image">Essa postagem não possui uma imagem.</p>
                 {% endif %}
+                <p><strong>{{ post }}</strong></p>
+                <br/>
                 <hr class="post-divider">
             </article>
         {% empty %}
