@@ -4,32 +4,36 @@
 
 {% block center_content %}
 <div class="container mt-5">
-    <h2 class="mb-4">Criar Novo Post</h2>
+    <h2 class="mb-4 text-center">Criar Novo Post</h2>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         
         <!-- Campo de Título -->
         <div class="form-group">
             <label for="id_title">Título</label>
-            {{ form.title|add_class:"form-control" }}
+            {{ form.title|add_class:"form-control custom-input" }}
         </div>
 
-        <!-- Campo de Imagem -->
+        <!-- Campo de Imagem com Previsão -->
         <div class="form-group">
             <label for="id_image">Imagem</label>
             {{ form.image|add_class:"form-control-file" }}
             {% if form.image.help_text %}
                 <small class="form-text text-muted">{{ form.image.help_text }}</small>
             {% endif %}
+            <!-- Previsão da imagem -->
+            <div class="mt-3">
+                <img id="image-preview" src="#" alt="Pré-visualização da imagem" style="display: none; max-width: 100%; border: 1px solid #ddd; border-radius: 5px; padding: 5px;">
+            </div>
         </div>
 
         <!-- Campo de Conteúdo -->
         <div class="form-group">
             <label for="id_content">Conteúdo</label>
-            {{ form.content|add_class:"form-control" }}
+            {{ form.content|add_class:"form-control custom-input" }}
         </div>
 
-        <!-- Botões de Enviar e cancelar -->
+        <!-- Botões de Enviar e Cancelar -->
         <div class="form-row">
             <div class="col">
                 <button type="submit" class="btn btn-primary btn-block">Enviar</button>
@@ -40,4 +44,26 @@
         </div>
     </form>
 </div>
+
+<!-- Script para Pré-visualização de Imagem -->
+<script>
+    document.getElementById('id_image').addEventListener('change', function(event) {
+        const preview = document.getElementById('image-preview');
+        const file = event.target.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+
+            reader.readAsDataURL(file);
+        } else {
+            preview.src = "#";
+            preview.style.display = 'none';
+        }
+    });
+</script>
 {% endblock center_content %}
