@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% load form_filters %}
+
+{% block center_content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Criar Novo Post</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Campo de Título -->
+        <div class="form-group">
+            <label for="id_title">Título</label>
+            {{ form.title|add_class:"form-control" }}
+        </div>
+
+        <!-- Campo de Imagem -->
+        <div class="form-group">
+            <label for="id_image">Imagem</label>
+            {{ form.image|add_class:"form-control-file" }}
+            {% if form.image.help_text %}
+                <small class="form-text text-muted">{{ form.image.help_text }}</small>
+            {% endif %}
+        </div>
+
+        <!-- Campo de Conteúdo -->
+        <div class="form-group">
+            <label for="id_content">Conteúdo</label>
+            {{ form.content|add_class:"form-control" }}
+        </div>
+
+        <!-- Botões de Enviar e cancelar -->
+        <div class="form-row">
+            <div class="col">
+                <button type="submit" class="btn btn-primary btn-block">Enviar</button>
+            </div>
+            <div class="col">
+                <a href="{% url 'home' %}" class="btn btn-secondary btn-block">Cancelar</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock center_content %}

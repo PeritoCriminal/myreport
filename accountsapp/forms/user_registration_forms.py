@@ -64,20 +64,13 @@ class UserRegistrationForm(forms.ModelForm):
 
 
 
-# from django import forms
-# from django.contrib.auth.hashers import check_password
-# from .models import CustomUserModel
-
-from django import forms
-from django.contrib.auth.hashers import check_password
-from accountsapp.models import CustomUserModel
 
 class CompleteRegistrationForm(forms.ModelForm):
     """
     Formulário para completar o cadastro, validando a senha sem alterá-la.
     """
     password = forms.CharField(
-        widget=forms.PasswordInput(),
+        widget=forms.PasswordInput(attrs={'title': 'Insira sua senha atual para confirmar as alterações.'}),
         label="Senha",
         help_text="Insira sua senha atual para confirmar as alterações."
     )

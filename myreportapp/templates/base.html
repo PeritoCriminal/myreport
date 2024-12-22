@@ -40,6 +40,25 @@
                 aria-haspopup="true" 
                 aria-expanded="false"
               >
+                Posts
+              </a>
+              <div class="dropdown-menu" aria-labelledby="formsDropdown">
+                <a class="dropdown-item" href="{% url 'create_post' %}">Criar</a>
+                <a class="dropdown-item" href="#">Formulário 2</a>
+              </div>
+            </li>
+
+
+            <li class="nav-item dropdown">
+              <a 
+                class="nav-link dropdown-toggle text-white" 
+                href="#" 
+                id="formsDropdown" 
+                role="button" 
+                data-toggle="dropdown" 
+                aria-haspopup="true" 
+                aria-expanded="false"
+              >
                 Formulários
               </a>
               <div class="dropdown-menu" aria-labelledby="formsDropdown">
