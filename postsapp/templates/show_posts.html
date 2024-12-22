@@ -4,11 +4,22 @@
     <section class="posts">
         {% for post in posts %}
             <article class="post ">
-                <!-- Os dois de baixo na mesma linha-->
                 <img src="{{ post.author.profile_picture.url }}" class="post-authorimg" alt="">
                 <h1 class="post-title">{{ post.title }}</h1>
-                <!--Agora um em cada linha até o fim-->
-                <p class="post-content">{{ post.content }}</p>
+
+                {% if request.user == post.author %}
+                    <a href="{% url 'edit_post' post.id %}" class="create-post-link" title="Editar post">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{% url 'delete_post' post.id %}" 
+                        class="delete-post-link" 
+                        title="Deletar post" 
+                        onclick="return confirm('Tem certeza que deseja deletar esta postagem? Esta ação não pode ser desfeita.');">
+                        <i class="fas fa-trash-alt"></i>
+                    </a>
+                {% endif %}
+
+                <p class="post-content">{{ post.content | linebreaks }}</p>
                 {% if post.image %}
                     <img src="{{ post.image.url }}" alt="Imagem relacionada à postagem: {{ post.title }}" class="post-image">
                 {% else %}

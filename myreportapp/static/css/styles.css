@@ -5,6 +5,11 @@ body {
   color: #c0c0d0;
 }
 
+.fas{
+  cursor: pointer;
+  padding: 20px;
+}
+
 .navbar-light .navbar-toggler-icon {
   background-image: url("data:image/svg+xml;charset=UTF8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath stroke='rgba(200, 200, 200, 1)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
 }
@@ -112,10 +117,10 @@ body {
   flex-wrap: wrap; /* Garante que os elementos se ajustem conforme a tela */
   align-items: center; /* Alinha a imagem e o título na mesma linha */
   gap: 15px; /* Espaço entre a imagem e o título */
-  border: 1px solid #303030;
+  border: 1px solid #606060;
   padding: 15px;
   border-radius: 5px;
-  background-color: #303030;
+  background-color: #282828;
 }
 
 .post-title {
@@ -136,7 +141,10 @@ body {
   width: 100%; /* Faz o conteúdo e as imagens ocuparem toda a largura */
   margin-top: 20px; /* Adiciona um pequeno espaçamento no topo */
   height: auto;
-  border-radius: 5px;
+  border-radius: 8px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #505050;
 }
 
 .post-authorimg {
@@ -152,4 +160,20 @@ body {
 .no-image {
   font-style: italic;
   color: #999;
+}
+
+.create-post-link i{
+  color: #8040d0
+}
+
+.create-post-link i:hover{
+  color: #7030f0
+}
+
+.delete-post-link i {
+  color: #d08040 /* Muda a cor para vermelho */
+}
+
+.delete-post-link i:hover {
+  color: #f07030; /* Muda a cor para um vermelho mais escuro ao passar o mouse */
 }

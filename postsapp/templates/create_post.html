@@ -36,7 +36,13 @@
         <!-- Botões de Enviar e Cancelar -->
         <div class="form-row">
             <div class="col">
-                <button type="submit" class="btn btn-primary btn-block">Enviar</button>
+                <button type="submit" class="btn btn-primary btn-block">
+                    {% if post.id %}
+                        Atualizar
+                    {% else %}
+                        Criar
+                    {% endif %}
+                    </button>
             </div>
             <div class="col">
                 <a href="{% url 'home' %}" class="btn btn-secondary btn-block">Cancelar</a>
