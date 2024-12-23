@@ -17,7 +17,15 @@
                         onclick="return confirm('Tem certeza que deseja deletar esta postagem? Esta ação não pode ser desfeita.');">
                         <i class="fas fa-trash-alt"></i>
                     </a>
+                {% else %}
+                    <a href="{% url 'hide_post' post.id %}" 
+                        class="hide-post-link" 
+                        title="Ocultar post"
+                        onclick="return confirm('Tem certeza que deseja ocultar esta postagem?');">
+                        <i class="fas fa-eye-slash"></i>
+                    </a>
                 {% endif %}
+            
 
                 <p class="post-content">{{ post.content | linebreaks }}</p>
                 {% if post.image %}

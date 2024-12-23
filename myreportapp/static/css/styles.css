@@ -108,8 +108,8 @@ body {
 .posts {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px;
+  gap: 10px;
+  padding: 10px;
 }
 
 .post {
@@ -134,7 +134,7 @@ body {
   font-size: 1rem;
   color: #ddd;
   width: 100%; /* Faz o conteúdo e as imagens ocuparem toda a largura */
-  margin-top: 20px; /* Adiciona um pequeno espaçamento no topo */
+  margin-top: 10px; /* Adiciona um pequeno espaçamento no topo */
 }
 
 .post-image {

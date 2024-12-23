@@ -27,6 +27,11 @@ class CustomUserModel(AbstractUser):
         blank=True,
         default='profile_pics/usercommonimg.jpg'
     )
+    hidden_posts = models.ManyToManyField(
+        'postsapp.PostModel',  # Referência ao modelo por string
+        related_name='hidden_by_users',
+        blank=True
+    )
     _original_profile_picture = None  # Atributo interno para rastrear a imagem original
 
     def __init__(self, *args, **kwargs):
@@ -75,7 +80,7 @@ class CustomUserModel(AbstractUser):
                 # Se não encontrar a imagem, trata como uma nova imagem
                 pass
 
-                self._original_profile_picture = self.profile_picture  # Atualiza a referência da imagem atual
+        self._original_profile_picture = self.profile_picture  # Atualiza a referência da imagem atual
 
     def delete_old_image(self):
         """
