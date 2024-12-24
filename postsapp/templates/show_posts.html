@@ -6,18 +6,12 @@
             <article class="post ">
                 <img src="{{ post.author.profile_picture.url }}" class="post-authorimg" alt="">
                 <h1 class="post-title">{{ post.title }}</h1>
-                
-                
-                
-
                 <p class="post-content">{{ post.content | linebreaksbr }}</p>
                 {% if post.image %}
                     <img src="{{ post.image.url }}" alt="Imagem relacionada à postagem: {{ post.title }}" class="post-image">
                 {% else %}
                     <p class="no-image">Essa postagem não possui uma imagem.</p>
                 {% endif %}
-
-
                 <div class="container mb-0 mt-0 pt-0 pb-0">
                     <!-- Título do Post -->
                     <p>{{ post }}</p>
@@ -43,6 +37,14 @@
                                 <i class="fas fa-thumbs-up"></i>
                             </a>
                         {% endif %}
+
+                        <a href="#commentModal" 
+                            class="create-comment-link" 
+                            data-toggle="modal" 
+                            title="Comentar">
+                            <i class="fas fa-comment-dots"></i>
+                        </a>
+
                         {% if request.user == post.author %}
                             <a href="{% url 'edit_post' post.id %}" 
                             class="create-post-link" 
@@ -65,7 +67,7 @@
                         {% endif %}
                     </div>
                 </div>
-
+                {% include 'comment_modal.html' %}
                 <br/>
                 <hr class="post-divider">
             </article>

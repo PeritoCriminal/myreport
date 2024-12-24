@@ -1,4 +1,4 @@
-# postsapp/models/post_models.py
+# postsapp/models/comments_models.py
 
 
 from django.db import models
@@ -7,12 +7,22 @@ from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
 from accountsapp.models import CustomUserModel
+from postsapp.models import PostModel
 from django.utils import timezone
-# from .comments_models import CommentsModel
 
-class PostModel(models.Model):
-    author = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE, related_name="posts")
-    title = models.CharField('Título', max_length=200, blank=True, default='Imagem')
+class CommentsModel(models.Model):
+    author = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE, related_name="author")
+    post = models.ForeignKey(PostModel, on_delete=models.CASCADE, related_name="posts")
+    
+    # Relacionamento de um para muitos (comentários e respostas)
+    parent_comment = models.ForeignKey(
+        'self',  # Referência ao próprio modelo
+        on_delete=models.CASCADE,  # Quando o comentário pai for excluído, os filhos serão excluídos
+        null=True,  # Permitindo que um comentário não tenha pai (comentário de nível superior)
+        blank=True,  # Permitindo que o campo seja deixado em branco no formulário
+        related_name='responses',  # Nome para acessar as respostas a um comentário
+    )
+
     content = models.TextField()
     image = StdImageField(
         upload_to='posts/images/',
@@ -22,13 +32,11 @@ class PostModel(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    # comments = models.ForeignKey(CommentsModel, on_delete=models.CASCADE, related_name='comments', null=True, blank=True)
-
 
     def save(self, *args, **kwargs):
         # Importação local para evitar problemas de importação circular
-        from postsapp.models.comments_models import CommentsModel  
-        
+        from postsapp.models import PostModel  
+
         if self.image:
             # Abrir a imagem atual
             img = Image.open(self.image)
@@ -57,7 +65,6 @@ class PostModel(models.Model):
 
         super().save(*args, **kwargs)
 
-
     def format_date_to_post(self, date_field):
         """
         Retorna a data no formato dd-mm-aa.
@@ -75,4 +82,3 @@ class PostModel(models.Model):
 
     class Meta:
         ordering = ['-updated_at']
-

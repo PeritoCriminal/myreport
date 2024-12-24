@@ -38,11 +38,11 @@ class CustomUserModel(AbstractUser):
         related_name='liked_by_users',
         blank=True
     )
-    _original_profile_picture = None  # Atributo interno para rastrear a imagem original
+    _original_profile_picture = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._original_profile_picture = self.profile_picture  # Armazena a imagem atual no momento da instância
+        self._original_profile_picture = self.profile_picture 
 
     def clean(self):
         super().clean()
@@ -54,12 +54,13 @@ class CustomUserModel(AbstractUser):
         """
         valid_domains = [
             '@policiacientifica.sp.gov.br',
-            '@policiacivil.sp.gov.br',
+            # '@policiacivil.sp.gov.br',
+            # '@policiamilitar.sp.gov.br',
         ]
         if self.email and not any(self.email.endswith(domain) for domain in valid_domains):
             raise ValidationError({
                 'email': "O e-mail deve pertencer aos domínios: "
-                         "@policiacientifica.sp.gov.br ou @policiacivil.sp.gov.br."
+                         "@policiacientifica.sp.gov.br." # ,@policiacivil.sp.gov.br ou @policiamilitar.sp.gov.br.
             })
 
     def save(self, *args, **kwargs):
@@ -69,9 +70,9 @@ class CustomUserModel(AbstractUser):
         if self._original_profile_picture and self._original_profile_picture != self.profile_picture:
             self.delete_old_image()  # Deleta a imagem antiga
 
-        super().save(*args, **kwargs)  # Salva o objeto normalmente
+        super().save(*args, **kwargs)
 
-        # Redimensiona a nova imagem para no máximo 500x500, mantendo a proporção
+        # Imagem para no máximo 500x500, mantem a proporção.
         if self.profile_picture and self.profile_picture.path != 'profile_pics/usercommonimg.jpg':
             try:
                 image_path = self.profile_picture.path

@@ -38,13 +38,6 @@ def hide_post(request, post_id):
 
 
 
-
-
-# from django.http import JsonResponse
-# from django.shortcuts import get_object_or_404
-# from django.contrib.auth.decorators import login_required
-# from postsapp.models import PostModel
-
 @login_required
 def liked_post(request, post_id):
     """
