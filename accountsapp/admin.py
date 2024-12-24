@@ -19,11 +19,13 @@ class CustomUserAdmin(UserAdmin):
 
     # Define os campos no formulário de edição
     fieldsets = (
-        (None, {'fields': ('username', 'password')}),
-        ('Informações Pessoais', {'fields': ('first_name', 'last_name', 'email')}),
-        ('Permissões', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Datas Importantes', {'fields': ('last_login', 'date_joined')}),
+        (None, {'fields': ('username', 'password')}),  # Seção sem título, apenas para campos de login
+        ('Informações Pessoais', {'fields': ('first_name', 'last_name', 'email')}),  # Dados pessoais do usuário
+        ('Configurações', {'fields': ('dark_theme',)}),  # Configuração de tema (para o tema escuro)
+        ('Permissões', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),  # Controle de permissões
+        ('Datas Importantes', {'fields': ('last_login', 'date_joined')}),  # Informações sobre o login e a criação da conta
     )
+
 
     # Define os campos no formulário de criação
     add_fieldsets = (

@@ -1,0 +1,179 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    background-color: #1e1e1e; /* Fundo escuro */
+    color: #dcdcdc; /* Texto claro */
+  }
+  
+  .container {
+    margin-top: 60px;
+  }
+  
+  .container-fluid {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Garante que o contêiner ocupe toda a altura da janela */
+  }
+  
+  .row.flex-grow-1 {
+    flex: 1; /* Permite que o conteúdo central cresça e empurre o rodapé */
+  }
+  
+  .block-center {
+    background-color: #1e1e1e; /* Fundo levemente mais claro para destacar */
+    /* border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5); */
+  }
+  
+  .fas {
+    cursor: pointer;
+    padding-top: 2px;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-bottom: 10px;
+  }
+  
+  .navbar, .footer {
+    background-color: #2b2b2b; /* Fundo escuro para contraste */
+    border-color: #444; /* Borda levemente destacada */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5); /* Sombra mais forte */
+    color: #dcdcdc;
+  }
+  
+  .navbar-light .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml;charset=UTF8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath stroke='rgba(220, 220, 220, 1)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+  }
+  
+  .nav-link,
+  .navbar-brand {
+    color: #dcdcdc !important; /* Links claros */
+  }
+  
+  .nav-link:hover,
+  .navbar-brand:hover {
+    color: #53a8ff !important; /* Destaque em azul suave */
+  }
+  
+  .dropdown {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  
+  .custom-input {
+    background-color: #2b2b2b; /* Fundo escuro */
+    color: #dcdcdc; /* Texto claro */
+    border: 1px solid #444; /* Borda sutil */
+    border-radius: 4px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  
+  .custom-input:focus {
+    background-color: #3c3c3c; /* Fundo mais claro ao foco */
+    color: #dcdcdc;
+    border-color: #53a8ff; /* Destaque em azul suave */
+    outline: none;
+  }
+  
+  .custom-input::placeholder {
+    color: #888; /* Placeholder sutil */
+    opacity: 1;
+  }
+  
+  .custom-input:hover {
+    background-color: #3c3c3c; /* Fundo ao hover */
+  }
+  
+  .custom-input:-webkit-autofill {
+    background-color: #2b2b2b !important;
+    color: #dcdcdc !important;
+    border: 1px solid #444 !important;
+    -webkit-box-shadow: 0 0 0px 1000px #2b2b2b inset !important;
+    -webkit-text-fill-color: #dcdcdc !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+  
+  .custom-input:-webkit-autofill:focus {
+    background-color: #3c3c3c !important;
+    border-color: #53a8ff !important;
+    -webkit-text-fill-color: #dcdcdc !important;
+  }
+  
+  .posts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .post {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid #444; /* Borda sutil */
+    padding: 15px;
+    border-radius: 5px;
+    background-color: #2b2b2b; /* Fundo escuro */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5);
+  }
+  
+  .post-title {
+    font-size: 1.5rem;
+    margin: 0;
+    color: #dcdcdc; /* Títulos claros */
+  }
+  
+  .post-content {
+    font-size: 1rem;
+    color: #bbbbbb; /* Texto levemente mais escuro */
+    width: 100%;
+    margin-top: 10px;
+  }
+  
+  .post-image {
+    width: 100%;
+    margin-top: 20px;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid #444;
+  }
+  
+  .post-authorimg {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #444;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5);
+  }
+  
+  .no-image {
+    font-style: italic;
+    color: #777; /* Tom mais claro para texto sem imagem */
+  }
+  
+  .create-post-link i, .unliked i {
+    color: #007bff;
+  }
+  
+  .create-post-link i:hover, .unliked i:hover {
+    color: #0056b3;
+  }
+  
+  .delete-post-link i, .hide-post-link i {
+    color: #dc3545;
+  }
+  
+  .delete-post-link i:hover, .hide-post-link i:hover {
+    color: #bd2130;
+  } 
+
+  .liked i{
+    color: #505050
+  }
+
+  .liked i:hover{
+    color: #707070
+  }
+  

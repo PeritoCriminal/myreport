@@ -6,34 +6,66 @@
             <article class="post ">
                 <img src="{{ post.author.profile_picture.url }}" class="post-authorimg" alt="">
                 <h1 class="post-title">{{ post.title }}</h1>
+                
+                
+                
 
-                {% if request.user == post.author %}
-                    <a href="{% url 'edit_post' post.id %}" class="create-post-link" title="Editar post">
-                        <i class="fas fa-edit"></i>
-                    </a>
-                    <a href="{% url 'delete_post' post.id %}" 
-                        class="delete-post-link" 
-                        title="Deletar post" 
-                        onclick="return confirm('Tem certeza que deseja deletar esta postagem? Esta ação não pode ser desfeita.');">
-                        <i class="fas fa-trash-alt"></i>
-                    </a>
-                {% else %}
-                    <a href="{% url 'hide_post' post.id %}" 
-                        class="hide-post-link" 
-                        title="Ocultar post"
-                        onclick="return confirm('Tem certeza que deseja ocultar esta postagem?');">
-                        <i class="fas fa-eye-slash"></i>
-                    </a>
-                {% endif %}
-            
-
-                <p class="post-content">{{ post.content | linebreaks }}</p>
+                <p class="post-content">{{ post.content | linebreaksbr }}</p>
                 {% if post.image %}
                     <img src="{{ post.image.url }}" alt="Imagem relacionada à postagem: {{ post.title }}" class="post-image">
                 {% else %}
                     <p class="no-image">Essa postagem não possui uma imagem.</p>
                 {% endif %}
-                <p><strong>{{ post }}</strong></p>
+
+
+                <div class="container mb-0 mt-0 pt-0 pb-0">
+                    <!-- Título do Post -->
+                    <p>{{ post }}</p>
+                    <!-- Linha para Contador e Botões -->
+                    <div class="container mt-0 pt-0">
+                        <!-- Contador -->
+                        <span id="likes-count-{{ post.id }}">{{ post.liked_by_users.count }}</span>
+                        <!-- Botões -->
+                        {% if post not in user.liked_posts.all %}
+                            <a href="javascript:void(0);" 
+                                class="liked" 
+                                title="Curtir" 
+                                onclick="toggleLike({{ post.id }}, this)"
+                                data-url="{% url 'liked_post' post.id %}">
+                                <i class="fas fa-thumbs-up"></i>
+                            </a>
+                        {% else %}
+                            <a href="javascript:void(0);" 
+                                class="unliked" 
+                                title="Descurtir" 
+                                onclick="toggleLike({{ post.id }}, this)"
+                                data-url="{% url 'liked_post' post.id %}">
+                                <i class="fas fa-thumbs-up"></i>
+                            </a>
+                        {% endif %}
+                        {% if request.user == post.author %}
+                            <a href="{% url 'edit_post' post.id %}" 
+                            class="create-post-link" 
+                            title="Editar post">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'delete_post' post.id %}" 
+                            class="delete-post-link" 
+                            title="Deletar post" 
+                            onclick="return confirm('Tem certeza que deseja deletar esta postagem? Esta ação não pode ser desfeita.');">
+                                <i class="fas fa-trash-alt"></i>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'hide_post' post.id %}" 
+                            class="hide-post-link" 
+                            title="Ocultar post" 
+                            onclick="return confirm('Tem certeza que deseja ocultar esta postagem?');">
+                                <i class="fas fa-eye-slash"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <br/>
                 <hr class="post-divider">
             </article>
@@ -42,3 +74,63 @@
         {% endfor %}
     </section>
 {% endblock center_content %}
+
+
+{% block scripts %}
+    <script>
+        function toggleLike(postId, element) {
+            // Obtém a URL da requisição diretamente do atributo data-url do elemento
+            const url = element.getAttribute('data-url') || `/liked_post/${postId}/`;
+
+            // Envia a requisição AJAX para curtir/descurtir o post
+            fetch(url, {
+                method: 'POST', // Recomendado utilizar POST para ações como curtir/descurtir
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest', // Identifica que é uma requisição AJAX
+                    'Content-Type': 'application/json',  // Certifica que a requisição envia JSON
+                    'X-CSRFToken': getCSRFToken()       // Inclui o token CSRF necessário para POST
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro na requisição: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Atualiza o número de curtidas
+                const likesCount = data.likes_count;
+
+                // Alterar o título do ícone dependendo do status de curtido ou descurtido
+                if (element.classList.contains('liked')) {
+                    element.classList.remove('liked');
+                    element.classList.add('unliked');
+                    element.title = "Curtir";
+                    element.innerHTML = '<i class="fas fa-thumbs-up"></i>';
+                } else {
+                    element.classList.remove('unliked');
+                    element.classList.add('liked');
+                    element.title = "Descurtir";
+                    element.innerHTML = '<i class="fas fa-thumbs-up"></i>';
+                }
+
+                // Atualiza o contador de curtidas na interface
+                const likesCounter = document.querySelector('#likes-count-' + postId);
+                if (likesCounter) {
+                    likesCounter.innerText = likesCount;
+                }
+            })
+            .catch(error => console.error('Erro ao tentar curtir/descurtir o post:', error));
+        }
+
+        // Função para obter o token CSRF (requerido pelo Django para requisições POST)
+        function getCSRFToken() {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            return cookieValue || '';
+        }
+    </script>
+
+{% endblock scripts %}

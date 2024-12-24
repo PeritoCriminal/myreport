@@ -82,7 +82,7 @@ class CompleteRegistrationForm(forms.ModelForm):
 
     class Meta:
         model = CustomUserModel
-        fields = ['profile_picture', 'username', 'display_name', 'gender', 'director', 'state', 'city', 'unit', 'team']
+        fields = ['profile_picture', 'dark_theme', 'username', 'display_name', 'gender', 'director', 'state', 'city', 'unit', 'team']
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)

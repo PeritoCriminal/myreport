@@ -27,9 +27,15 @@ class CustomUserModel(AbstractUser):
         blank=True,
         default='profile_pics/usercommonimg.jpg'
     )
+    dark_theme = models.BooleanField('Tema escuro', default=True)
     hidden_posts = models.ManyToManyField(
-        'postsapp.PostModel',  # Referência ao modelo por string
+        'postsapp.PostModel',
         related_name='hidden_by_users',
+        blank=True
+    )
+    liked_posts = models.ManyToManyField(
+        'postsapp.PostModel',
+        related_name='liked_by_users',
         blank=True
     )
     _original_profile_picture = None  # Atributo interno para rastrear a imagem original
