@@ -5,6 +5,7 @@
         {% for post in posts %}
             <article class="post ">
                 <img src="{{ post.author.profile_picture.url }}" class="post-authorimg" alt="">
+                <input type="text" id="fk_post" value={{ post.id }}>
                 <h1 class="post-title">{{ post.title }}</h1>
                 <p class="post-content">{{ post.content | linebreaksbr }}</p>
                 {% if post.image %}
@@ -38,19 +39,22 @@
                             </a>
                         {% endif %}
 
-                        <a href="#commentModal" 
+                        <a href="#comment-section-{{ post.id }}" 
                             class="create-comment-link" 
-                            data-toggle="modal" 
-                            title="Comentar">
+                            title="Comentar" 
+                            id="show-comment-section-{{ post.id }}">
                             <i class="fas fa-comment-dots"></i>
                         </a>
+                        
 
                         {% if request.user == post.author %}
+
                             <a href="{% url 'edit_post' post.id %}" 
                             class="create-post-link" 
                             title="Editar post">
                                 <i class="fas fa-edit"></i>
                             </a>
+
                             <a href="{% url 'delete_post' post.id %}" 
                             class="delete-post-link" 
                             title="Deletar post" 
@@ -67,7 +71,48 @@
                         {% endif %}
                     </div>
                 </div>
-                {% include 'comment_modal.html' %}
+<!-- Espaço para Comentários -->
+
+<!-- Div de comentário oculta inicialmente -->
+<div class="container mt-0 ml-3" id="comment-section-{{ post.id }}" style="display: none;">
+    <!-- Campo de texto para o comentário -->
+    <textarea class="form-control custom-input" placeholder="Digite seu comentário...{{ post.id }}" rows="3"></textarea>
+
+    <!-- Imagem escolhida pelo usuário -->
+    <img id="selected-image-{{ post.id }}" src="" alt="Imagem escolhida" class="img-fluid mt-2" style="display: none;">
+
+    <!-- Botões de ação -->
+    <div class="d-flex justify-content-end align-items-center mt-2">
+        <!-- Botão para escolher imagem -->
+        <a href="#" class="choose-image-link" title="Escolher imagem">
+            <label for="image-input-{{ post.id }}" style="cursor: pointer;">
+                <i class="fas fa-image"></i>
+            </label>
+        </a>
+        <input type="file" id="image-input-{{ post.id }}" accept="image/*" style="display: none;">
+
+        <!-- Link para salvar -->
+        <a href="#" class="create-comment-link" title="Salvar comentário" data-post-id="{{ post.id }}">
+            <i class="fas fa-save"></i>
+        </a>
+
+        <!-- Link para cancelar -->
+        <a href="#" class="hide-post-link" title="Cancelar comentário" data-post-id="{{ post.id }}">
+            <i class="fas fa-times"></i>
+        </a>
+    </div>
+</div>
+
+
+
+
+
+
+<!--Fim do espeço para comentários-->
+
+                
+                
+                
                 <br/>
                 <hr class="post-divider">
             </article>
@@ -80,6 +125,34 @@
 
 {% block scripts %}
     <script>
+
+        document.addEventListener('click', function (event) {
+            // Verifica se o clique foi em um elemento com a classe 'hide-post-link'
+            if (event.target.closest('.hide-post-link')) {
+                event.preventDefault(); // Evita o comportamento padrão do link
+                
+                const postId = event.target.closest('.hide-post-link').dataset.postId; // Obtém o ID do post
+                const commentSection = document.getElementById(`comment-section-${postId}`);
+                
+                if (commentSection) {
+                    commentSection.style.display = 'none'; // Oculta a div
+                }
+            }
+        });
+        
+
+
+        document.querySelectorAll('.create-comment-link').forEach(link => {
+            link.addEventListener('click', function (event) {
+                event.preventDefault(); // Evita o comportamento padrão do link
+                const postId = this.id.split('-').pop(); // Extrai o ID do post
+                const commentSection = document.getElementById(`comment-section-${postId}`);
+                if (commentSection) {
+                    commentSection.style.display = 'block'; // Exibe a div
+                }
+            });
+        });
+
         function toggleLike(postId, element) {
             // Obtém a URL da requisição diretamente do atributo data-url do elemento
             const url = element.getAttribute('data-url') || `/liked_post/${postId}/`;
@@ -133,6 +206,31 @@
                 ?.split('=')[1];
             return cookieValue || '';
         }
+
+
+
+        document.querySelectorAll('[id^="image-input-"]').forEach(input => {
+            input.addEventListener('change', function (event) {
+                const postId = this.id.split('-').pop(); // Extrai o ID do post
+                const imgElement = document.getElementById(`selected-image-${postId}`);
+                const file = event.target.files[0];
+        
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        imgElement.src = e.target.result;
+                        imgElement.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+
+
+
+
+
+
     </script>
 
 {% endblock scripts %}

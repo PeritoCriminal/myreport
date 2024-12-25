@@ -153,15 +153,15 @@ html, body {
     color: #777; /* Tom mais claro para texto sem imagem */
   }
   
-  .create-post-link i, .unliked i {
+  .create-post-link i, .unliked i, .create-comment-link i {
     color: #007bff;
   }
   
-  .create-post-link i:hover, .unliked i:hover {
+  .create-post-link i:hover, .unliked i:hover, .create-comment-link i:hover{
     color: #0056b3;
   }
   
-  .delete-post-link i, .hide-post-link i {
+  .delete-post-link i, .hide-post-link i{
     color: #dc3545;
   }
   
@@ -177,3 +177,16 @@ html, body {
     color: #707070
   }
   
+  a.choose-image-link label {
+    display: inline-block; /* Força o label a se comportar como um elemento inline-block */
+    vertical-align: middle; /* Alinha o label verticalmente ao centro */
+    margin: 0; /* Remove margens extras */
+    padding: 0; /* Remove paddings extras */
+}
+
+a.choose-image-link i, 
+a.save-comment-link i, 
+a.cancel-comment-link i {
+    display: inline-block; /* Consistência entre todos os ícones */
+    vertical-align: middle; /* Alinhamento vertical uniforme */
+}

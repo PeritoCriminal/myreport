@@ -160,7 +160,7 @@ html, body {
   color: #0056b3;
 }
 
-.delete-post-link i, .hide-post-link i {
+.delete-post-link i, .hide-post-link i, .fa-times i {
   color: #dc3545;
 }
 
