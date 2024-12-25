@@ -9,7 +9,7 @@ from django.http import JsonResponse
 
 
 from django.shortcuts import render
-from postsapp.models import PostModel
+from postsapp.models import PostModel, CommentsModel
 
 def show_posts_view(request):
     user = request.user
@@ -17,11 +17,20 @@ def show_posts_view(request):
     # Filtrar postagens que o usuário não ocultou
     posts = PostModel.objects.exclude(hidden_by_users=user)
 
+    # Filtrar comentários de cada postagem
+    comments = {}
+    for post in posts:
+        # Filtrar os comentários de cada post
+        comments[post.id] = CommentsModel.objects.filter(post=post)
+
     context = {
         'posts': posts,
+        'comments': comments,
         'user': user,
     }
+
     return render(request, 'show_posts.html', context)
+
 
 
 

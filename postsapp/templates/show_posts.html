@@ -75,41 +75,59 @@
 
 <!-- Div de comentário oculta inicialmente -->
 <div class="container mt-0 ml-3" id="comment-section-{{ post.id }}" style="display: none;">
-    <!-- Campo de texto para o comentário -->
-    <textarea class="form-control custom-input" placeholder="Digite seu comentário...{{ post.id }}" rows="3"></textarea>
+    <!-- Formulário para enviar comentário -->
+    <form method="POST" action="{% url 'save_comment' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Campo oculto para o post -->
+        <input type="hidden" name="post" value="{{ post.id }}">
 
-    <!-- Imagem escolhida pelo usuário -->
-    <img id="selected-image-{{ post.id }}" src="" alt="Imagem escolhida" class="img-fluid mt-2" style="display: none;">
+        <!-- Campo oculto para o autor -->
+        <input type="hidden" name="author" value="{{ user.id }}">
 
-    <!-- Botões de ação -->
-    <div class="d-flex justify-content-end align-items-center mt-2">
-        <!-- Botão para escolher imagem -->
-        <a href="#" class="choose-image-link" title="Escolher imagem">
-            <label for="image-input-{{ post.id }}" style="cursor: pointer;">
-                <i class="fas fa-image"></i>
-            </label>
-        </a>
-        <input type="file" id="image-input-{{ post.id }}" accept="image/*" style="display: none;">
+        <!-- Campo de texto para o comentário -->
+        <textarea name="content" class="form-control custom-input" placeholder="Digite seu comentário..." rows="3" required></textarea>
 
-        <!-- Link para salvar -->
-        <a href="#" class="create-comment-link" title="Salvar comentário" data-post-id="{{ post.id }}">
-            <i class="fas fa-save"></i>
-        </a>
+        <!-- Imagem escolhida pelo usuário -->
+        <img id="selected-image-{{ post.id }}" src="" alt="Imagem escolhida" class="img-fluid mt-2" style="display: none;">
 
-        <!-- Link para cancelar -->
-        <a href="#" class="hide-post-link" title="Cancelar comentário" data-post-id="{{ post.id }}">
-            <i class="fas fa-times"></i>
-        </a>
-    </div>
+        <!-- Botões de ação -->
+        <div class="d-flex justify-content-end align-items-center mt-2">
+            <!-- Botão para escolher imagem -->
+            <a href="#" class="choose-image-link mr-3" title="Escolher imagem">
+                <label for="image-input-{{ post.id }}" style="cursor: pointer;">
+                    <i class="fas fa-image"></i>
+                </label>
+            </a>
+            <input type="file" id="image-input-{{ post.id }}" name="image" accept="image/*" style="display: none;">
+
+            <!-- Link para salvar -->
+            <a href="#" class="create-comment-link mr-3" title="Salvar comentário" onclick="this.closest('form').submit();">
+                <i class="fas fa-save text-primary"></i>
+            </a>
+
+            <!-- Link para cancelar -->
+            <a href="#" class="hide-post-link" title="Cancelar comentário" data-post-id="{{ post.id }}">
+                <i class="fas fa-times text-secondary"></i>
+            </a>
+        </div>
+    </form>
 </div>
-
-
-
 
 
 
 <!--Fim do espeço para comentários-->
 
+
+<!-- div para exibir os comentários-->
+         <!-- Exibir os comentários para o post -->
+         <div class="comments">
+            {% for comment in comments.post.id %}
+                <p>{{ comment.content }} - {{ comment.author.username }}</p>
+            {% empty %}
+                <p>Não há comentários ainda.</p>
+            {% endfor %}
+        </div>
                 
                 
                 
