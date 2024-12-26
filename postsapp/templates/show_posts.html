@@ -5,7 +5,6 @@
         {% for post in posts %}
             <article class="post ">
                 <img src="{{ post.author.profile_picture.url }}" class="post-authorimg" alt="">
-                <input type="text" id="fk_post" value={{ post.id }}>
                 <h1 class="post-title">{{ post.title }}</h1>
                 <p class="post-content">{{ post.content | linebreaksbr }}</p>
                 {% if post.image %}
@@ -122,12 +121,25 @@
 <!-- div para exibir os comentários-->
          <!-- Exibir os comentários para o post -->
          <div class="comments">
-            {% for comment in comments.post.id %}
-                <p>{{ comment.content }} - {{ comment.author.username }}</p>
+            {% for comment in comments %} 
+            {% if comment.post.id == post.id %}   
+                <div class="comment-box border-start ps-3 mb-3"> 
+                    <!--Essa imagem deve ficar a direita, mantenha a classe comment-authorimg-->
+                    <div class="ps-1 mb-3 d-flex">
+                        <img src="{{ comment.author.profile_picture.url }}" class="comment-authorimg mt-1" alt="", title="{{ comment.author.username }}">
+                        <p class="comment-content ml-3 ">{{ comment.content | linebreaksbr }}</p>
+                    </div>
+                    
+                    {% if comment.image %}
+                        <img src="{{ comment.image.url }}" class="img-fluid mt-2" alt="">
+                    {% endif %}
+                </div>
+            {% endif %}   
             {% empty %}
                 <p>Não há comentários ainda.</p>
             {% endfor %}
         </div>
+        
                 
                 
                 

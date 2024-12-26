@@ -18,10 +18,7 @@ def show_posts_view(request):
     posts = PostModel.objects.exclude(hidden_by_users=user)
 
     # Filtrar comentários de cada postagem
-    comments = {}
-    for post in posts:
-        # Filtrar os comentários de cada post
-        comments[post.id] = CommentsModel.objects.filter(post=post)
+    comments = CommentsModel.objects.all()
 
     context = {
         'posts': posts,
