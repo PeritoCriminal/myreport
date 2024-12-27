@@ -38,6 +38,11 @@ class CustomUserModel(AbstractUser):
         related_name='liked_by_users',
         blank=True
     )
+    liked_comments = models.ManyToManyField(
+        'postsapp.CommentsModel',
+        related_name='commented_liked_by_users',
+        blank=True
+    )
     _original_profile_picture = None
 
     def __init__(self, *args, **kwargs):

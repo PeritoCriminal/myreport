@@ -81,4 +81,4 @@ class CommentsModel(models.Model):
         return f'Criado por {self.author.username} em {self.format_date_to_post(self.created_at)}{updatedat}.'
 
     class Meta:
-        ordering = ['-updated_at']
+        ordering = ['updated_at']

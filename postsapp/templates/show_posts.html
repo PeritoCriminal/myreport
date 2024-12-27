@@ -22,7 +22,7 @@
                         <!-- Botões -->
                         {% if post not in user.liked_posts.all %}
                             <a href="javascript:void(0);" 
-                                class="liked" 
+                                class="unliked" 
                                 title="Curtir" 
                                 onclick="toggleLike({{ post.id }}, this)"
                                 data-url="{% url 'liked_post' post.id %}">
@@ -30,7 +30,7 @@
                             </a>
                         {% else %}
                             <a href="javascript:void(0);" 
-                                class="unliked" 
+                                class="liked" 
                                 title="Descurtir" 
                                 onclick="toggleLike({{ post.id }}, this)"
                                 data-url="{% url 'liked_post' post.id %}">
@@ -131,8 +131,47 @@
                     </div>
                     
                     {% if comment.image %}
-                        <img src="{{ comment.image.url }}" class="img-fluid mt-2" alt="">
+                        <img src="{{ comment.image.url }}" class="img-fluid mt-2 mb-1 ml-5 comment-image" alt="">
                     {% endif %}
+
+
+<!-- Botões dos comentários -->
+
+<div class="container mt-1 mb-2 pl-5">
+    <!-- Contador de curtidas -->
+<span id="commented-likes-count-{{ comment.id }}">
+    {{ comment.commented_liked_by_users.count }}
+</span>
+
+<!-- Botão de curtir/descurtir -->
+<a href="javascript:void(0);"
+    class="{% if comment in user.liked_comments.all %}liked{% else %}unliked{% endif %}"
+    title="{% if comment in user.liked_comments.all %}Descurtir{% else %}Curtir{% endif %} comentário {{ comment.id }}"
+    onclick="toggleLikeComment({{ comment.id }}, this)"
+    data-url="{% url 'liked_comment' comment.id %}">
+    <i class="fas fa-thumbs-up"></i>
+</a>
+  
+    
+    <!-- Aqui acrescentar um link com ícone para deletar o comentário.
+     somente estrá visivel para o autor do comentário ou o autor da postagem -->
+    <!-- Botão de exclusão -->
+    {% if comment.author == user or comment.post.author == user %}
+        <a href="javascript:void(0);" 
+            class="delete-comment-link" 
+            title="Deletar comentário" 
+            onclick="deleteComment({{ comment.id }}, this)"
+            data-url="{% url 'delete_comment' comment.id %}">
+            <i class="fas fa-trash text-danger"></i>
+        </a>
+    {% endif %}
+
+</div>
+
+
+<!-- fim dos botões dos comentários-->
+
+
                 </div>
             {% endif %}   
             {% empty %}
@@ -227,6 +266,83 @@
             })
             .catch(error => console.error('Erro ao tentar curtir/descurtir o post:', error));
         }
+
+        // Inverte a curtida do comentário
+
+        function toggleLikeComment(commentId, element) {
+            const url = element.getAttribute('data-url') || `/liked_comment/${commentId}/`;
+        
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro na requisição: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const likesCount = data.comment_likes_count;
+        
+                if (element.classList.contains('liked')) {
+                    element.classList.remove('liked');
+                    element.classList.add('unliked');
+                    element.title = "Curtir";
+                    element.innerHTML = '<i class="fas fa-thumbs-up"></i>';
+                } else {
+                    element.classList.remove('unliked');
+                    element.classList.add('liked');
+                    element.title = "Descurtir";
+                    element.innerHTML = '<i class="fas fa-thumbs-up"></i>';
+                }
+        
+                const likesCounter = document.querySelector('#commented-likes-count-' + commentId);
+                if (likesCounter) {
+                    likesCounter.innerText = likesCount;
+                }
+            })
+            .catch(error => console.error('Erro ao tentar curtir/descurtir o comentário:', error));
+        }
+        
+
+        // Fim Inverte a curtida do comentário
+
+
+        function deleteComment(commentId, element) {
+            const url = element.getAttribute('data-url');
+            if (confirm('Tem certeza que deseja deletar este comentário?')) {
+                fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCSRFToken(),
+                    },
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Remove o comentário do DOM
+                        const commentContainer = element.closest('.container');
+                        if (commentContainer) {
+                            commentContainer.remove();
+                        }
+                    } else {
+                        response.json().then(data => {
+                            alert(data.error || 'Erro ao deletar o comentário. Tente novamente.');
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro na requisição:', error);
+                    alert('Erro ao deletar o comentário. Tente novamente.');
+                });
+            }
+        }
+        
+
 
         // Função para obter o token CSRF (requerido pelo Django para requisições POST)
         function getCSRFToken() {
