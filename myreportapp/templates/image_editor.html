@@ -1,0 +1,21 @@
+
+
+{% extends 'base.html' %}
+
+{% block center_content %}
+    <h1>Editor de Imagens</h1>
+    <div>
+        <canvas id="display-image">
+
+        </canvas>
+    </div>
+
+{% endblock center_content %}
+
+{% block scripts %}
+    <script>
+        alert('teste');
+        const canvas = document.querySelector('#display-image');
+        const ctx = canvas.getContext('2d');
+    </script>
+{% endblock scripts %}
