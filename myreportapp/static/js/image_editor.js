@@ -5,129 +5,129 @@ export default class ImageEditor {
     constructor(canvasSelector, maxCanvasValue = 800) {
         this.canvas = document.querySelector(canvasSelector);
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+        this.virtualCanvas = document.createElement('canvas');
+        this.virtualCtx = this.virtualCanvas.getContext('2d', { willReadFrequently: true });
+        this.factorCanvas = 4;
         this.maxCanvasValue = maxCanvasValue;
         this.aspectRatio = 1;
+        this.zoom = 1;
         this.realImage = new Image();
+        this.tempCanvas = document.createElement('canvas');
+        this.tempCtx = this.tempCanvas.getContext('2d', { willReadFrequently: true });
+        this.action = 0;
+        this.actions = ['selecionar',
+                        'rotacionar horário',
+                        'rotacionar anti-horário',
+                        'zoom',
+                        'recortar',
+                        ]
         this.listOfCanvasImages = [];
-        this.listOfRealImages = [];
+        this.logOfChanges = [];
     }
 
-    selectImage(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.realImage.onload = () => {
-                this.aspectRatio = this.realImage.width / this.realImage.height;
-                this.adjustCanvasSize();
-                this.ctx.drawImage(this.realImage, 0, 0, this.canvas.width, this.canvas.height);
-                this.saveState();
-            };
-            this.realImage.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+
+    // LISTA DE AÇÕES E DADOS EXIBIDOS DURANTE A FASE DE PROJETO.
+    thisLogAction(){
+        console.log(`\nAção: ${this.actions[this.action]}`);
+        console.log(`Imagem Original ${this.realImage.width} x ${this.realImage.height}`);
+        console.log(`Imagem no canvas: ${this.canvas.width} x ${this.canvas.height}`);
+        console.log(`Imagem no canvas virutal: ${this.virtualCanvas.width} x ${this.virtualCanvas.height}`);
     }
 
-    adjustCanvasSize() {
-        if (this.realImage.width > this.realImage.height) {
+    
+    // AJUSTA AS DIMENSÕES DOS CANVAS, SE RETRATO OU PAISAGEM
+    adjustSize(image){
+        this.aspectRatio = image.width / image.height
+        if(image.width > image.height){
             this.canvas.width = this.maxCanvasValue;
             this.canvas.height = this.maxCanvasValue / this.aspectRatio;
-        } else {
+        }else{
             this.canvas.height = this.maxCanvasValue;
             this.canvas.width = this.maxCanvasValue * this.aspectRatio;
         }
-    }
-
-    saveState() {
-        // Remove os estados mais antigos se o limite for atingido
-        if (this.listOfCanvasImages.length >= 10) this.listOfCanvasImages.shift();
-        if (this.listOfRealImages.length >= 10) this.listOfRealImages.shift();
-
-        // Salva o estado atual do canvas como snapshot
-        const canvasSnapshot = this.canvas.toDataURL();
-        this.listOfCanvasImages.push(canvasSnapshot);
-
-        // Atualiza o realImage para refletir o estado atual do canvas
-        const realImageClone = new Image();
-        realImageClone.src = canvasSnapshot; // Usa o snapshot do canvas como origem da realImage
-        this.realImage = realImageClone;
-
-        // Também armazena a realImage clonada na lista de estados
-        this.listOfRealImages.push(realImageClone);
+        this.virtualCanvas.width = this.factorCanvas * this.canvas.width;
+        this.virtualCanvas.height = this.factorCanvas * this.canvas.height;
+        this.thisLogAction();
     }
 
 
-
-    // ROTACIONA A IMAGEM NO SENTIDO HORÁRIO
-    rotateClockwise() {
-        this.saveState();
-        console.log(`\nÍndice do canvas: ${this.listOfCanvasImages.length - 1} | Índice da Imagem: ${this.listOfRealImages.length - 1}`);
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = this.canvas.width;
-        tempCanvas.height = this.canvas.height;
-        tempCtx.drawImage(this.canvas, 0, 0);
-        const newWidth = this.canvas.height;
-        const newHeight = this.canvas.width;
-        this.canvas.width = newWidth;
-        this.canvas.height = newHeight;
-        this.ctx.clearRect(0, 0, newWidth, newHeight);
-        this.ctx.save();
-        this.ctx.translate(newWidth / 2, newHeight / 2);
-        this.ctx.rotate(Math.PI / 2);
-        this.ctx.drawImage(tempCanvas, -tempCanvas.width / 2, -tempCanvas.height / 2);
-        this.ctx.restore();
-    }
-
-    // ROTACIONA A IMAGEM NO SENTIDO ANTI-HORÁRIO
-    rotateCounterClockwise() {
-        this.saveState();
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = this.canvas.width;
-        tempCanvas.height = this.canvas.height;
-        tempCtx.drawImage(this.canvas, 0, 0);
-        const newWidth = this.canvas.height;
-        const newHeight = this.canvas.width;
-        this.canvas.width = newWidth;
-        this.canvas.height = newHeight;
-        this.ctx.clearRect(0, 0, newWidth, newHeight);
-        this.ctx.save();
-        this.ctx.translate(newWidth / 2, newHeight / 2);
-        this.ctx.rotate(-Math.PI / 2);
-        this.ctx.drawImage(tempCanvas, -tempCanvas.width / 2, -tempCanvas.height / 2);
-        this.ctx.restore();
-    }
-
-    undo() {        
-        if (this.listOfCanvasImages.length > 0) {
-            // Restaura o estado anterior
-            const previousCanvasImage = this.listOfCanvasImages[this.listOfCanvasImages.length - 1];
-            const previousRealImage = this.listOfRealImages[this.listOfRealImages.length - 1];
-
-            this.listOfCanvasImages.pop();
-            this.listOfRealImages.pop();
-
-            console.log(`\nÍndice do canvas: ${this.listOfCanvasImages.length - 1} | Índice da Imagem: ${this.listOfRealImages.length - 1}`);
-            console.log(`Imagem real - largura: ${this.realImage.width}, altura: ${this.realImage.height}.`);
-
-            // Atualiza a realImage com a anterior
-            this.realImage.src = previousRealImage.src;
-            this.realImage.onload = () => {
-                // Ajusta o tamanho do canvas
-                this.aspectRatio = this.realImage.width / this.realImage.height;
-                this.adjustCanvasSize();
-
-                // Desenha a imagem do canvas salvo
-                const tempImage = new Image();
-                tempImage.onload = () => {
-                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                    this.ctx.drawImage(tempImage, 0, 0, this.canvas.width, this.canvas.height);
+    // SELECIONA UMA IMAGEM NO EXPLORADOR, EXIBE NO CANVAS E ATRIBUI AO CANVAS VIRTUAL
+    selectImage() {
+        const input = document.createElement('input');
+        this.action = 0;
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.realImage.src = e.target.result;    
+                this.realImage.onload = () => {
+                    this.adjustSize(this.realImage);
+                    this.ctx.drawImage(
+                        this.realImage,
+                        0, 0,
+                        this.canvas.width,
+                        this.canvas.height
+                    );
+                    this.virtualCtx.drawImage(
+                        this.realImage,
+                        0, 0,
+                        this.virtualCanvas.width,
+                        this.virtualCanvas.height
+                    );
+                    this.listOfCanvasImages.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
+                    this.logOfChanges.push('Imagem carregada e ajustada.');
                 };
-                tempImage.src = previousCanvasImage;
             };
-        } else {
-            // Limpa o canvas se não houver mais estados para restaurar
-            alert('Não há mais ações a desfazer.');
-        }        
+            reader.readAsDataURL(file);
+        });
+        input.click();
+    }
+    
+
+    // ROTACIONA EM SENTIDO HORÁRIO
+    rotateClockwise() {
+        this.action = 1;
+        this.tempCanvas.width = this.canvas.width;
+        this.tempCanvas.height = this.canvas.height;
+        this.tempCtx.drawImage(this.canvas, 0, 0);
+        const newWidth = this.canvas.height;
+        const newHeight = this.canvas.width;
+        this.canvas.width = newWidth;
+        this.canvas.height = newHeight;
+        this.adjustSize(this.canvas);
+        this.ctx.clearRect(0, 0, newWidth, newHeight);
+        this.ctx.save();
+        this.ctx.translate(newWidth / 2, newHeight / 2);
+        this.ctx.rotate(Math.PI / 2); // Rotacionar 90 graus
+        this.ctx.drawImage(this.tempCanvas, -this.tempCanvas.width / 2, -this.tempCanvas.height / 2);
+        this.ctx.restore();
+    }
+    
+
+    // ROTACIONA EM SENTIDO ANTI-HORÁRIO
+    rotateCounterClockwise(){
+        this.action = 2
+        this.tempCanvas.width = this.canvas.width;
+        this.tempCanvas.height = this.canvas.height;
+        this.tempCtx.drawImage(this.canvas, 0, 0);
+        const newWidth = this.canvas.height;
+        const newHeight = this.canvas.width;
+        this.canvas.width = newWidth;
+        this.canvas.height = newHeight;
+        this.adjustSize(this.canvas);
+        this.ctx.clearRect(0, 0, newWidth, newHeight);
+        this.ctx.save();
+        this.ctx.translate(newWidth / 2, newHeight / 2);
+        this.ctx.rotate(-Math.PI / 2); // Rotacionar 90 graus
+        this.ctx.drawImage(this.tempCanvas, -this.tempCanvas.width / 2, -this.tempCanvas.height / 2);
+        this.ctx.restore();
+    }
+
+    undo(){
+        alert('desfazer');
     }
 
 }

@@ -47,15 +47,9 @@
     const editor = new ImageEditor('#display-image');
 
     document.querySelector('#newImageBtn').addEventListener('click', () => {
-        document.querySelector('#fileInput').click();
+        editor.selectImage();
     });
 
-    document.querySelector('#fileInput').addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            editor.selectImage(file);
-        }
-    });
 
     document.querySelector('#rotateClockwiseBtn').addEventListener('click', () => {
         editor.rotateClockwise();
