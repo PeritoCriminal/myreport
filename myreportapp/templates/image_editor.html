@@ -37,6 +37,12 @@
 <div class="canvas-container">
     <canvas id="display-image" width="800" height="600"></canvas>
 </div>
+
+<hr>
+
+<img id="optimizedImage" src="" alt="Imagem otimizada">
+
+
 {% endblock center_content %}
 
 {% block scripts %}
@@ -47,7 +53,7 @@
     const editor = new ImageEditor('#display-image');
 
     document.querySelector('#newImageBtn').addEventListener('click', () => {
-        editor.selectImage();
+        editor.selectImage(editor.canvas, editor.ctx);
     });
 
 
@@ -68,7 +74,14 @@
     });
 
     document.querySelector('#undoBtn').addEventListener('click', () => {
-        editor.undo();
+        //editor.undo();
+        teste();
     });
+
+    //  Para testes:#display-image
+    function teste(){
+        const imgElement = document.getElementById('optimizedImage');
+        imgElement.src = editor.virtualCanvas.toDataURL('image/jpeg', 0.9);
+    }
 </script>
 {% endblock scripts %}
