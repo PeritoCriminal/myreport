@@ -15,6 +15,8 @@ export default class ImageEditor {
         this.tempCanvas = document.createElement('canvas');
         this.tempCtx = this.tempCanvas.getContext('2d', { willReadFrequently: true });
         this.action = 0;
+        this.ableToCrop = false;
+        this.isCropping = false;
         this.actions = [
             'selecionar',
             'rotacionar horário',
@@ -130,10 +132,11 @@ export default class ImageEditor {
         image.src = imageDataURL;
         return image;
     }
-    
+
     // O código funciona quase perfeito, mas aplica um recorte nas imagens ao aplicar zoomIn, visto que
     // o usuário pode querer aplicar um zoomOut logo em seguida.
     zoom(factor) {
+        this.action = 3;
         // Atribuição da imagem do this.virtualCanvas porque a qualidade é melhor doque a do this.canvas.
         // transitionImage será aplicada primeiramente ao canvas virtual e depois ao canvas visível,
         // mantendo uma boa qualidade de impressão e visualização.
@@ -142,12 +145,12 @@ export default class ImageEditor {
 
             // Calcula as novas dimensões do canvas virtual
             let newWidth = this.virtualCanvas.width * factor;
-            let newHeight = this.virtualCanvas.height * factor;    
+            let newHeight = this.virtualCanvas.height * factor;
             // Calcula os deslocamentos para centralizar
             let left = (newWidth - this.virtualCanvas.width) / 2;
-            let top = (newHeight - this.virtualCanvas.height) / 2;    
+            let top = (newHeight - this.virtualCanvas.height) / 2;
             // Limpa o canvas
-            this.virtualCtx.clearRect(0, 0, this.virtualCanvas.width, this.virtualCanvas.height);    
+            this.virtualCtx.clearRect(0, 0, this.virtualCanvas.width, this.virtualCanvas.height);
             // Redesenha a imagem no canvas com as novas dimensões
             // Mas aqui a imgem é recortada pelas arestas do canvas.
             // Dessa forma, ao aplicar zoomout após essa operação, a imagem ficará truncada.
@@ -164,12 +167,12 @@ export default class ImageEditor {
             // O objetivo é que todas as alterações feitas no canvas virtual sejam visiveis
             // ao usuário na canvas que aparece na tela.
             newWidth = this.canvas.width * factor;
-            newHeight = this.canvas.height * factor;    
+            newHeight = this.canvas.height * factor;
             // Calcula os deslocamentos para centralizar
             left = (newWidth - this.canvas.width) / 2;
-            top = (newHeight - this.canvas.height) / 2;    
+            top = (newHeight - this.canvas.height) / 2;
             // Limpa o canvas
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);    
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             // Redesenha a imagem no canvas com as novas dimensões
             // mesmo problema do exposto acima no canvas virtual.
             this.ctx.drawImage(
@@ -179,57 +182,25 @@ export default class ImageEditor {
                 newWidth,             // Largura da imagem ajustada
                 newHeight             // Altura da imagem ajustada
             );
-    
+            this.saveState();
+            this.logAction();
             // Logs para depuração
-            console.log(`Tamanho do canvas: ${this.canvas.width} x ${this.canvas.height}`);
-            console.log(`Tamanho da imagem: ${this.transitionImage.width} x ${this.transitionImage.height}`); // Isso demonstra que a imgem está sendo recortada, o que não é esperado.
+            //console.log(`Tamanho do canvas: ${this.canvas.width} x ${this.canvas.height}`);
+            //console.log(`Tamanho da imagem: ${this.transitionImage.width} x ${this.transitionImage.height}`); // Isso demonstra que a imgem está sendo recortada, o que não é esperado.
         };
     };
-    
-    
-/*
-    zoom1(factor) {
-        this.zoomLevel += factor;
-        if (this.zoomLevel < 0.1) this.zoomLevel = 0.1;
-    
-        const canvasWidth = this.canvas.width;
-        const canvasHeight = this.canvas.height;
-    
-        const virtualWidth = this.virtualCanvas.width * this.zoomLevel;
-        const virtualHeight = this.virtualCanvas.height * this.zoomLevel;
-    
-        // Calcula o deslocamento
-        const offsetX = (virtualWidth - this.virtualCanvas.width) / 2;
-        const offsetY = (virtualHeight - this.virtualCanvas.height) / 2;
-    
-        this.ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        this.virtualCtx.clearRect(0, 0, this.virtualCanvas.width, this.virtualCanvas.height);
-    
-        // Aplica o deslocamento ao desenhar na virtualCanvas
-        this.virtualCtx.save();
-        this.virtualCtx.translate(-offsetX, -offsetY);
-        this.virtualCtx.scale(this.zoomLevel, this.zoomLevel);
-        this.virtualCtx.drawImage(this.realImage, 0, 0);
-        this.virtualCtx.restore();
-    
-        // Ajusta o deslocamento na canvas principal
-        this.ctx.drawImage(this.virtualCanvas, 0, 0, canvasWidth, canvasHeight);
-    
-        this.logAction();
-    }
 
-*/
-    zoomIn() {
-        this.action = 3;
-        this.zoom(0.1);
-    }
 
-    zoomOut() {
-        const factor = -0.1;
-        this.canvas.width *= factor;
-        this.canvas.height *= factor;
-        this.action = 4;
-        this.zoom(factor);
+    crop(clientX, clientY) { 
+        console.log('teste');
+        console.log('Posição do mouse - X:', clientX, 'Y:', clientY);
+        this.pos_x = clientX;
+        this.pos_y = clientY;
+        if (this.canvas) {
+            const ctx = this.canvas.getContext('2d');
+            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); 
+            ctx.strokeRect(this.pos_x, this.pos_y, 100, 100); //Isso preciso melhorar
+        }
     }
 
     saveState() {
