@@ -32,6 +32,10 @@
         <i class="fas fa-undo-alt"></i>
         <span>Desfazer</span>
     </button>
+    <button id="testBtn" title="Testar">
+        <i class="fas fa-vial"></i>
+        <span>Testar</span>
+    </button>
 </div>
 
 <div class="canvas-container">
@@ -58,13 +62,13 @@
 
 
     document.querySelector('#rotateClockwiseBtn').addEventListener('click', () => {
-        //editor.rotateClockwise();
-        alert('rotacionar horário')
+        editor.rotateClockwise();
+        //alert('rotacionar horário')
     });
 
     document.querySelector('#rotateCounterClockwiseBtn').addEventListener('click', () => {
-       // editor.rotateCounterClockwise();
-       alert('rotacionar anti-horário')
+       editor.rotateCounterClockwise();
+       //alert('rotacionar anti-horário')
     });
 
     document.querySelector('#zoomInBtn').addEventListener('click', () => {
@@ -99,10 +103,9 @@
     });
 
     //  Para testes:#display-image
-    function teste(){
-        const imgElement = document.querySelector('#optimizedImage');
-        imgElement.src = editor.virtualCanvas.toDataURL('image/jpeg', 0.9);
-        //imgElement.src = editor.transitionImage.src;
-    }
+    const optimizedImage = document.querySelector('#optimizedImage');
+    document.querySelector('#testBtn').addEventListener('click', () =>{
+        editor.showVirtualCanvas(optimizedImage);
+    });
 </script>
 {% endblock scripts %}

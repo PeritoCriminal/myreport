@@ -7,6 +7,8 @@ export default class ImageEditor{
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         this.virtualCanvas = document.createElement('canvas');
         this.virtualCtx = this.virtualCanvas.getContext('2d', { willReadFrequently: true });
+        this.tempCanvas = document.createElement('canvas');
+        this.tempCtx = this.tempCanvas.getContext('2d', { willReadFrequently: true });
         this.factorCanvas = 2;
         this.mouseInitialPositionX = 0;
         this.mouseInitialPositionY = 0;
@@ -20,6 +22,7 @@ export default class ImageEditor{
         this.isCropping = false; 
         this.listOfCanvasImages = [];
         this.listOfVirtualCanvasImages = [];
+        this.isTesting = true;
     }
 
     setAspectRatio(canvasElement){
@@ -84,13 +87,48 @@ export default class ImageEditor{
                     reducedQualityImage.onload = () =>{
                         this.virtualCtx.clearRect(0, 0, this.virtualCanvas.width, this.virtualCanvas.height);
                         this.virtualCtx.drawImage(reducedQualityImage, 0, 0, this.virtualCanvas.width, this.virtualCanvas.height);
+                        this.saveState();
                     }
-                    this.saveState();
                 }
             }
             reader.readAsDataURL(file);
         });
         input.click();
+        //this.saveState();
+    }
+
+    rotate(canvas, ctx, direction = 1) {
+        this.tempCanvas.width = canvas.width;
+        this.tempCanvas.height = canvas.height;
+        this.tempCtx.drawImage(canvas, 0, 0);
+
+        const newWidth = canvas.height;
+        const newHeight = canvas.width;
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+
+        ctx.clearRect(0, 0, newWidth, newHeight);
+        ctx.save();
+        ctx.translate(newWidth / 2, newHeight / 2);
+        ctx.rotate(direction * Math.PI / 2);
+        ctx.drawImage(this.tempCanvas, -this.tempCanvas.width / 2, -this.tempCanvas.height / 2);
+        ctx.restore();
+    }
+
+    rotateClockwise() {
+        //this.action = 1;
+        this.rotate(this.canvas, this.ctx);
+        this.rotate(this.virtualCanvas, this.virtualCtx);
+        this.saveState();
+        //this.logAction();
+    }
+
+    rotateCounterClockwise() {
+        //this.action = 2;
+        this.rotate(this.canvas, this.ctx, -1);
+        this.rotate(this.virtualCanvas, this.virtualCtx, -1);
+        this.saveState();
+        //this.logAction();
     }
 
     saveState() {
@@ -100,5 +138,19 @@ export default class ImageEditor{
         }
         this.listOfCanvasImages.push(this.canvas.toDataURL('image/jpeg', 0.9));
         this.listOfVirtualCanvasImages.push(this.virtualCanvas.toDataURL('image/jpeg', 0.9));
+        console.log(`\nlistas de alterções: ${this.listOfCanvasImages.length} x ${this.listOfVirtualCanvasImages.length}.`)
+        if(this.isTesting){
+        const imgElement = document.querySelector('#optimizedImage');            
+            this.showVirtualCanvas(imgElement);    // A imagem não é exibida como desejado        
+        }
+    }
+
+    showVirtualCanvas(imgElement){
+        if (imgElement) {
+            imgElement.src = this.virtualCanvas.toDataURL('image/jpeg', 0.9);
+            console.log(`imgElement existe.`)
+        } else {
+            console.error("Elemento '#optimizedImage' não encontrado no DOM.");
+        }
     }
 }
