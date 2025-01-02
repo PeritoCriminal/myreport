@@ -4,6 +4,10 @@ export default class ImageEditor {
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         this.virtualCanvas = document.createElement('canvas');
         this.virtualCtx = this.virtualCanvas.getContext('2d', { willReadFrequently: true });
+        this.startPosX = 0;
+        this.startPosY = 0;
+        this.endPosX = 0;
+        this.endPosY = 0;
         this.factorCanvas = 2;
         this.sizeInMb = 0;
         this.maxCanvasValue = maxCanvasValue;
@@ -132,6 +136,7 @@ export default class ImageEditor {
         image.src = imageDataURL;
         return image;
     }
+    
 
     // O código funciona quase perfeito, mas aplica um recorte nas imagens ao aplicar zoomIn, visto que
     // o usuário pode querer aplicar um zoomOut logo em seguida.
@@ -191,18 +196,92 @@ export default class ImageEditor {
     };
 
 
-    crop(clientX, clientY) { 
-        console.log('teste');
-        console.log('Posição do mouse - X:', clientX, 'Y:', clientY);
-        this.pos_x = clientX;
-        this.pos_y = clientY;
-        if (this.canvas) {
-            const ctx = this.canvas.getContext('2d');
-            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); 
-            ctx.strokeRect(this.pos_x, this.pos_y, 100, 100); //Isso preciso melhorar
+
+    crop(clientX, clientY) {
+        this.endPosX = clientX - this.startPosX;
+        this.endPosY = clientY - this.startPosY;
+
+        // Redesenhar a imagem original e o retângulo
+        if (this.canvas && this.transitionImage.complete) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.drawImage(this.transitionImage, 0, 0, this.canvas.width, this.canvas.height);
+
+            this.ctx.strokeStyle = 'red'; // Cor do retângulo
+            this.ctx.lineWidth = 2; // Largura da linha
+            this.ctx.strokeRect(this.startPosX, this.startPosY, this.endPosX, this.endPosY);
         }
     }
 
+    applyCrop() {
+        console.log(`\nAplicando crop...`);
+        const left = this.startPosX * this.factorCanvas;
+        const top = this.startPosY * this.factorCanvas;
+        const width = (this.endPosX - this.startPosX) * this.factorCanvas;
+        const height = (this.endPosY - this.startPosY) * this.factorCanvas;
+
+        // Coordenadas do recorte para o canvas real (sem o fatorCanvas)
+        const w_canvas = this.endPosX - this.startPosX;
+        const h_canvas = this.endPosY - this.startPosY;
+        const canvasToAdjust = document.createElement('canvas');
+        canvasToAdjust.width = w_canvas;
+        canvasToAdjust.height =  h_canvas;
+        
+        // Extrai a imagem do canvas virtual
+        this.transitionImage = this.extractImage(this.virtualCanvas);
+        
+        // Garante que a imagem seja carregada antes de prosseguir
+        this.transitionImage.onload = () => {
+            // this.adjustSize(this.transitionImage);
+            // Coordenadas do recorte para o canvas virtual
+            
+    
+            console.log(`Imagem canvas - left: ${this.startPosX}, top: ${this.startPosY}, width: ${w_canvas}, height: ${h_canvas}`);
+            console.log(`Imagem virtual - left: ${left}, top: ${top}, width: ${width}, height: ${height}`);
+    
+            // Limpa os canvas
+            this.virtualCtx.clearRect(0, 0, this.virtualCanvas.width, this.virtualCanvas.height);
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            
+            console.log(`Imagem de transição: ${this.transitionImage.width} x ${this.transitionImage.height}`)
+
+            this.adjustSize(canvasToAdjust);
+    
+            // Atualiza o canvas virtual com a imagem recortada
+            this.virtualCtx.drawImage(
+                this.transitionImage, // Imagem fonte
+                0,                 // Posição x da área de origem
+                0,                  // Posição y da área de origem
+                width + left,                // Largura da área de origem
+                height + top,               // Altura da área de origem
+                -left,                    // Posição x no destino
+                -top,                    // Posição y no destino
+                this.virtualCanvas.width + left, // Largura no destino (ajustada pelo fatorCanvas)
+                this.virtualCanvas.height + top // Altura no destino
+            );
+    
+            // Atualiza o canvas real com a imagem recortada
+            this.ctx.drawImage(
+                this.transitionImage, // Imagem fonte
+                0,       // Posição x da área de origem
+                0,       // Posição y da área de origem
+                width + left,             // Largura da área de origem
+                height + top,             // Altura da área de origem
+                -left,                    // Posição x no destino
+                -top,                    // Posição y no destino
+                this.canvas.width + left,    // Largura no destino
+                this.canvas.height + top   // Altura no destino
+            );
+        };
+    
+        // Caso a imagem já esteja carregada, força o evento onload
+        //if (this.transitionImage.complete) {
+        //    this.transitionImage.onload();
+        //}
+    }
+    
+    
+    
+    
     saveState() {
         if (this.listOfCanvasImages.length >= this.maxHistory) {
             this.listOfCanvasImages.shift();

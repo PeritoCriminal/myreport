@@ -66,27 +66,34 @@
     });
 
     document.querySelector('#zoomInBtn').addEventListener('click', () => {
-        editor.zoom(1.3);
+        editor.zoom(1.2);
     });
 
     document.querySelector('#cropBtn').addEventListener('click', () => {
         // Alterna o estado de 'ableToCrop'
         editor.ableToCrop = !editor.ableToCrop;
+        editor.transitionImage.src = editor.virtualCanvas.toDataURL();
         console.log('Able to crop:', editor.ableToCrop);
     });
     
     document.querySelector('#display-image').addEventListener('mousedown', (event) => {
         // Inicia o processo de recorte
         if (editor.ableToCrop) {
+            const { clientX, clientY } = event;
+            const rect = editor.canvas.getBoundingClientRect();
+            editor.startPosX = clientX - rect.left;
+            editor.startPosY = clientY - rect.top;
             editor.isCropping = true;
             console.log('Mouse down: Cropping started');
         }
     });
     
     document.querySelector('#display-image').addEventListener('mouseup', (event) => {
-        editor.isCropping = false;
-        editor.ableToCrop = false;
-        console.log('Mouse up: Cropping stopped');
+        if(editor.isCropping && editor.ableToCrop){
+            editor.applyCrop();
+            editor.isCropping = false;
+            editor.ableToCrop = false;
+        }
     });
     
     document.querySelector('#display-image').addEventListener('mousemove', (event) => {
@@ -95,7 +102,7 @@
             const rect = editor.canvas.getBoundingClientRect();
             const canvasX = clientX - rect.left; 
             const canvasY = clientY - rect.top;       
-            console.log(`Mouse move: X=${canvasX}, Y=${canvasY}`);
+            //console.log(`Mouse move: X=${canvasX}, Y=${canvasY}`);
             editor.crop(canvasX, canvasY);
         }
     });
@@ -112,6 +119,7 @@
     function teste(){
         const imgElement = document.getElementById('optimizedImage');
         imgElement.src = editor.virtualCanvas.toDataURL('image/jpeg', 0.9);
+        //imgElement.src = editor.transitionImage.src;
     }
 </script>
 {% endblock scripts %}

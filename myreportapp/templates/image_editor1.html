@@ -3,265 +3,106 @@
 
 {% extends 'base.html' %}
 
-{% block center_content %}
-     <!-- Barra de Ferramentas -->
-     <div class="toolbar">
-        <!-- Nova Imagem -->
-        <button id="newImageBtn">
-            <i class="fas fa-image"></i>
-            <span>Nova Imagem</span>
-        </button>
-        
-        <!-- Rotacionar Horário -->
-        <button id="rotateClockwiseBtn">
-            <i class="fas fa-redo"></i>
-            <span>Rotacionar Horário</span>
-        </button>
-        
-        <!-- Rotacionar Anti-Horário -->
-        <button id="rotateCounterClockwiseBtn">
-            <i class="fas fa-undo"></i>
-            <span>Rotacionar Anti-Horário</span>
-        </button>
-        
-        <!-- Zoom In -->
-        <button id="zoomInBtn">
-            <i class="fas fa-search-plus"></i>
-            <span>Zoom In</span>
-        </button>
-        
-        <!-- Zoom Out -->
-        <button id="zoomOutBtn">
-            <i class="fas fa-search-minus"></i>
-            <span>Zoom Out</span>
-        </button>
-        
-        <!-- Desfazer -->
-        <button id="undoBtn">
-            <i class="fas fa-undo-alt"></i>
-            <span>Desfazer</span>
-        </button>
-    </div>
+{% load static %}
 
-    <!-- Canvas para exibição da imagem -->
-    <div class="canvas-container">
-        <canvas id="display-image" width="800" height="600"></canvas>
-    </div>
-    
+{% block center_content %}
+<div class="toolbar">
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+    <button id="newImageBtn" title="Nova Imagem">
+        <i class="fas fa-image"></i>
+        <span>Nova Imagem</span>
+    </button>
+    <button id="rotateClockwiseBtn" title="Rotacionar Horário">
+        <i class="fas fa-redo"></i>
+        <span>Rotacionar Horário</span>
+    </button>
+    <button id="rotateCounterClockwiseBtn" title="Rotacionar Anti-Horário">
+        <i class="fas fa-undo"></i>
+        <span>Rotacionar Anti-Horário</span>
+    </button>
+    <button id="zoomInBtn" title="Zoom In">
+        <i class="fas fa-search-plus"></i>
+        <span>Zoom In</span>
+    </button>
+    <button id="cropBtn" title="Crop">
+        <i class="fas fa-crop"></i>
+        <span>Crop</span>
+    </button>
+    <button id="undoBtn" title="Desfazer">
+        <i class="fas fa-undo-alt"></i>
+        <span>Desfazer</span>
+    </button>
+</div>
+
+<div class="canvas-container">
+    <canvas id="display-image" width="800" height="600"></canvas>
+</div>
+
+<hr>
+
+<img id="optimizedImage" src="" alt="Imagem otimizada">
+
+
 {% endblock center_content %}
 
 {% block scripts %}
-<script>
-    const stateStack = [];
-    const maxStates = 10;
-    const canvas = document.querySelector('#display-image');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    
-    let selectedImage = new Image()
+<script type="module" src="{% static 'js/image_editor1.js' %}"></script>
+<script type="module">
+    import ImageEditor from "{% static 'js/image_editor1.js' %}";
 
+    const editor = new ImageEditor('#display-image');
 
-    // VERIFICA SE HÁ UMA IMAGEM NO CANVAS
-    function canvasIsNotEmpty() {
-        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        for (let i = 0; i < data.data.length; i += 4) {
-            if (data.data[i + 3] !== 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
-    // RENDERIZA IMAGEM SELECIONADA NO CANVAS
-    function selectAndRenderImage() {
-        selectImage()
-        .then((file) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                //const img = new Image();
-                selectedImage.onload = () => {
-                    saveState();
-                    setCanvasDimensions(selectedImage);
-                    adjustSize(selectedImage);
-                };
-                selectedImage.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        })
-        .catch((error) => {
-            alert(error);
-        });
-    }
-
-
-    function setCanvasDimensions(image) {
-        let aspectRatio = 0; // Alterado para let para permitir reatribuição
-        const maxValue = 800;
-        if (image.height > image.width) {
-            aspectRatio = image.width / image.height;
-            canvas.height = maxValue;
-            canvas.width = maxValue * aspectRatio;
-        } else {
-            aspectRatio = image.height / image.width;
-            canvas.width = maxValue;
-            canvas.height = maxValue * aspectRatio;
-        }
-    
-        console.log(`Dimensões ajustadas do canvas: ${canvas.width} x ${canvas.height}`);
-        console.log(`Dimensões originais da imagem: ${image.width} x ${image.height}`);
-    }
-    
-
-    // SELECIONA UMA IMAGEM NO EXPLORADOR DE ARQUIVOS
-    function selectImage() {
-        return new Promise((resolve, reject) => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*'; 
-            input.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    resolve(file);
-                } else {
-                    reject('Nenhuma imagem selecionada.');
-                }
-            });
-            input.click();
-        });
-    }
-
-
-    // SALVA O ESTADO ANTERIOR ÀS ALTERAÇÕES
-    function saveState() {
-        if (canvasIsNotEmpty()) {
-            if (stateStack.length >= maxStates) {
-                stateStack.shift();
-            }
-            stateStack.push(canvas.toDataURL());
-        }
-    }
-    
-
-    // DESFAZ A ÚLTIMA ALTERAÇÃO
-function undo() {
-    if (stateStack.length > 0) {
-        const previousState = stateStack.pop();
-        const img = new Image();        
-        img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-        };        
-        img.src = previousState;
-    } else {
-        alert('Nenhuma ação para desfazer.');
-    }
-}
-
-
-    // AJUSTA O TAMANHO DA IMAGEM
-    function adjustSize(img) {
-        const maxWidth = canvas.width;
-        if (canvas.width > canvas.height){
-            const maxWidth = canvas.height;  
-        }
-        const aspectRatio = img.height / img.width; 
-        canvas.width = maxWidth; 
-        canvas.height = maxWidth * aspectRatio; 
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    }
-
-
-    // ROTACIONA A IMAGEM NO SENTIDO HORÁRIO
-    function rotateClockwise() {
-        saveState();
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');        
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;        
-        tempCtx.drawImage(canvas, 0, 0);        
-        const newWidth = canvas.height;
-        const newHeight = canvas.width;
-        canvas.width = newWidth;
-        canvas.height = newHeight;        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(Math.PI / 2); 
-        ctx.drawImage(tempCanvas, -tempCanvas.width / 2, -tempCanvas.height / 2); 
-        ctx.restore();
-    }
-
-    
-    // ROTACIONA A IMAGEM NO SENTIDO ANTI-HORÁRIO
-    function rotateCounterclockwise() {
-        saveState();
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
-        tempCtx.drawImage(canvas, 0, 0);
-        const newWidth = canvas.height;
-        const newHeight = canvas.width;
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.drawImage(tempCanvas, -tempCanvas.width / 2, -tempCanvas.height / 2);
-        ctx.restore();
-    }
-
-
-    // APLICA ZOOM PARA AUMENTAR A IMAGEM
-    function zoomIn() {
-        alert('zoomin');
-    }
-    
-
-
-    // APLICA ZOOM PARA REDUZIR IMAGEM
-    function zoomOut() {
-        alert('zoomOut')
-    }
-
-    
-
-    // ADICONA EVENTOS AOS BOTÕES
-    document.querySelector('#newImageBtn').addEventListener('click', selectAndRenderImage);
-    document.querySelector('#rotateClockwiseBtn').addEventListener('click', rotateClockwise);
-    document.querySelector('#rotateCounterClockwiseBtn').addEventListener('click', rotateCounterclockwise);
-    document.querySelector('#zoomInBtn').addEventListener("mousedown", function() {
-        isZoomingIn = true;
-        function zoomInRepeatedly() {
-            if (isZoomingIn) {
-                zoomIn();
-                requestAnimationFrame(zoomInRepeatedly);
-            }
-        }
-        zoomInRepeatedly();
-    });
-    document.querySelector('#zoomInBtn').addEventListener("mouseup", function() {
-        isZoomingIn = false;  // Para o zoom in quando o botão for liberado
+    document.querySelector('#newImageBtn').addEventListener('click', () => {
+        editor.selectImage(editor.canvas, editor.ctx);
     });
 
-    document.querySelector('#zoomOutBtn').addEventListener("mousedown", function() {
-        isZoomingOut = true;
-        function zoomOutRepeatedly() {
-            if (isZoomingOut) {
-                zoomOut();  // Executa o zoom out
-                requestAnimationFrame(zoomOutRepeatedly);  // Continua o zoom enquanto o botão estiver pressionado
-            }
-        }
-        zoomOutRepeatedly();  // Começa o zoom out
-    });
-    
-    document.querySelector('#zoomOutBtn').addEventListener("mouseup", function() {
-        isZoomingOut = false;  // Para o zoom out quando o botão for liberado
+
+    document.querySelector('#rotateClockwiseBtn').addEventListener('click', () => {
+        //editor.rotateClockwise();
+        alert('rotacionar horário')
     });
 
-    document.querySelector("#undoBtn").addEventListener('click', undo);
+    document.querySelector('#rotateCounterClockwiseBtn').addEventListener('click', () => {
+       // editor.rotateCounterClockwise();
+       alert('rotacionar anti-horário')
+    });
+
+    document.querySelector('#zoomInBtn').addEventListener('click', () => {
+        //editor.zoom(1.2);
+        alert('zoom')
+    });
+
+    document.querySelector('#cropBtn').addEventListener('click', () => {
+        // Alterna o estado de 'ableToCrop'
+       // editor.ableToCrop = !editor.ableToCrop;
+       // editor.transitionImage.src = editor.virtualCanvas.toDataURL();
+       // console.log('Able to crop:', editor.ableToCrop);
+        alert('crop');
+    });
+    
+    document.querySelector('#display-image').addEventListener('mousedown', (event) => {
+        editor.onMouseDown();        
+    });
+    
+    document.querySelector('#display-image').addEventListener('mouseup', (event) => {
+        editor.onMouseUp();
+    });
+    
+    document.querySelector('#display-image').addEventListener('mousemove', (event) => {
+        editor.onMouseMove();
+    });   
+    
+
+    document.querySelector('#undoBtn').addEventListener('click', () => {
+        //editor.undo();
+        alert('desfazer');
+    });
+
+    //  Para testes:#display-image
+    function teste(){
+        const imgElement = document.querySelector('#optimizedImage');
+        imgElement.src = editor.virtualCanvas.toDataURL('image/jpeg', 0.9);
+        //imgElement.src = editor.transitionImage.src;
+    }
 </script>
 {% endblock scripts %}
