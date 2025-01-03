@@ -1,7 +1,7 @@
 
 
-export default class ImageEditor{
-    constructor(canvasSelector, maxCanvasSideValue = 800){
+export default class ImageEditor {
+    constructor(canvasSelector, maxCanvasSideValue = 800) {
         this.maxCanvasSideValue = maxCanvasSideValue;
         this.canvas = document.querySelector(canvasSelector);
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
@@ -10,6 +10,9 @@ export default class ImageEditor{
         this.tempCanvas = document.createElement('canvas');
         this.tempCtx = this.tempCanvas.getContext('2d', { willReadFrequently: true });
         this.factorCanvas = 2;
+        this.currentScale = 1;
+        this.mouseCoordinates = { x: 0, y: 0 };
+        this.listCoordinates = [];
         this.mouseInitialPositionX = 0;
         this.mouseInitialPositionY = 0;
         this.mouseEndPositionX = 0;
@@ -17,24 +20,39 @@ export default class ImageEditor{
         this.maxHistory = 15;
         this.aspectRatio = 1;
         this.originalImage = new Image();
+        this.transitionImage = new Image();
         this.isMouseDragging = false;
-        this.isZooming = false;
-        this.isCropping = false; 
+        //this.isZooming = false;
+        this.isCropping = false;
+        this.zoomInterval = null;
         this.listOfCanvasImages = [];
         this.listOfVirtualCanvasImages = [];
         this.isTesting = true;
+        this.imgLeft = 0;
+        this.imgTop = 0;
+        this.imgWidth = 1;
+        this.imgHeight = 1;
+        this.imgCenter = {x: 1, y: 1}
     }
 
-    setAspectRatio(canvasElement){
+    setAspectRatio(canvasElement) {
         this.aspectRatio = canvasElement.width / canvasElement.height;
     }
 
-    adjusteSizes(canvasElement){
+    getCoordinates() {
+        this.canvas.addEventListener('mousemove', (event) => {
+            const rect = this.canvas.getBoundingClientRect();
+            this.mouseCoordinates.x = event.clientX - rect.left;
+            this.mouseCoordinates.y = event.clientY - rect.top;
+        });
+    }
+
+    adjusteSizes(canvasElement) {
         this.setAspectRatio(canvasElement);
-        if(this.aspectRatio < 1){
+        if (this.aspectRatio < 1) {
             this.canvas.height = this.maxCanvasSideValue;
             this.canvas.width = this.aspectRatio * this.canvas.height
-        }else{
+        } else {
             this.canvas.width = this.maxCanvasSideValue;
             this.canvas.height = this.canvas.width / this.aspectRatio;
         }
@@ -42,49 +60,63 @@ export default class ImageEditor{
         this.virtualCanvas.height = this.canvas.height * this.factorCanvas;
     }
 
-    onMouseDown(){
+    imgLimits(elementIMG, elementCanvas) {
+        const scaledWidth = elementIMG.width * this.currentScale;
+        const scaledHeight = elementIMG.height * this.currentScale;
+        return scaledWidth <= elementCanvas.width && scaledHeight <= elementCanvas.height;
+    }
+
+    onMouseDown() {
         console.log('botão do mouse abaixado');
         this.isMouseDragging = true;
+        this.getCoordinates;
+        this.mouseInitialPositionX = this.mouseCoordinates.x;
+        this.mouseInitialPositionY = this.mouseCoordinates.y;
     }
 
-    onMouseUp(){
+    onMouseUp() {
+        this.clearOperations();
         console.log('botão do mouse levantado');
-        this.isMouseDragging = false;
+        this.getCoordinates;
+        this.mouseEndPositionX = this.mouseCoordinates.x;
+        this.mouseEndPositionY = this.mouseCoordinates.y;
     }
 
-    onMouseMove(){
-        if(!this.isMouseDragging){
+    onMouseMove() {
+        if (!this.isMouseDragging) {
             console.log('Não arrastando.');
             return;
         }
+        this.getCoordinates();
         console.log('arratando');
-        if(this.isZooming){
-            this.zoom();
-        }
-        if(this.isCropping){
+        //if (this.isZooming) {
+        //    this.zoom();
+        //}
+        if (this.isCropping) {
             this.crop();
         }
+        console.log(`Inicial: x = ${this.mouseInitialPositionX}, y = ${this.mouseInitialPositionY}\nFinal: x = ${this.mouseCoordinates.x}, y = ${this.mouseCoordinates.y}`)
     }
 
-    clearOperations(){
+    clearOperations() {
         this.isMouseDragging = false;
         this.isCropping = false;
-        this.isZooming = false;
+        //this.isZooming = false;
         console.log('Todoas as operação desabilitadas.')
     }
 
-    selectImage(){
+    selectImage() {
         const input = document.createElement('input');
-        input.type='file';
+        input.type = 'file';
         input.accept = 'image/*';
-        input.addEventListener('change', (event)=>{
+        input.addEventListener('change', (event) => {
             const file = event.target.files[0];
-            if(!file){
+            if (!file) {
                 console.log('O arquivo escolhido não é um arquivo de imagem.')
                 return;
             }
             const reader = new FileReader();
-            reader.onload = (e)=>{
+            reader.onload = (e) => {
                 this.originalImage.src = e.target.result;
                 this.originalImage.onload = () => {
                     this.adjusteSizes(this.originalImage);
@@ -94,7 +126,7 @@ export default class ImageEditor{
                     const resucedQualityImageURL = this.virtualCanvas.toDataURL('image/jpeg', 0.95);
                     const reducedQualityImage = new Image();
                     reducedQualityImage.src = resucedQualityImageURL;
-                    reducedQualityImage.onload = () =>{
+                    reducedQualityImage.onload = () => {
                         this.virtualCtx.clearRect(0, 0, this.virtualCanvas.width, this.virtualCanvas.height);
                         this.virtualCtx.drawImage(reducedQualityImage, 0, 0, this.virtualCanvas.width, this.virtualCanvas.height);
                         this.saveState();
@@ -136,17 +168,47 @@ export default class ImageEditor{
         this.saveState();
     }
 
-    zoom(){
-        //Vou desenvolver depois.
-        console.log('Aplicando zoom');
+    zoom(factor = 1.2) {
+        const factorZoom = factor;
+        this.transitionImage.src = this.virtualCanvas.toDataURL('image/*jpeg', 0.95);
+        this.transitionImage.onload = () =>{
+            let newWidth = this.virtualCanvas.width * factorZoom;
+            let newHeight = this.virtualCanvas.height * factorZoom;
+            // Calcula os deslocamentos para centralizar
+            let left = (newWidth - this.virtualCanvas.width) / 2;
+            let top = (newHeight - this.virtualCanvas.height) / 2;
+            // Limpa o canvas
+            this.virtualCtx.clearRect(0, 0, this.virtualCanvas.width, this.virtualCanvas.height);
+            this.virtualCtx.drawImage(
+                this.transitionImage, // Imagem a ser desenhada
+                -left,                // Coordenada X de início
+                -top,                 // Coordenada Y de início
+                newWidth,             // Largura da imagem ajustada
+                newHeight             // Altura da imagem ajustada
+            );
+            newWidth = this.canvas.width * factor;
+            newHeight = this.canvas.height * factor;
+            left = (newWidth - this.canvas.width) / 2;
+            top = (newHeight - this.canvas.height) / 2;
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.drawImage(
+                this.transitionImage, // Imagem a ser desenhada
+                -left,                // Coordenada X de início
+                -top,                 // Coordenada Y de início
+                newWidth,             // Largura da imagem ajustada
+                newHeight             // Altura da imagem ajustada
+            );
+            this.saveState();
+        }
     }
 
-    crop(){
+
+    crop() {
         //Vou desenvolver depois.
         console.log('Aplicando crop.');
     }
 
-    undo(){
+    undo() {
         //Vou desenvolver depois .
         console.log('desfazer última operação.')
     }
@@ -159,13 +221,13 @@ export default class ImageEditor{
         this.listOfCanvasImages.push(this.canvas.toDataURL('image/jpeg', 0.9));
         this.listOfVirtualCanvasImages.push(this.virtualCanvas.toDataURL('image/jpeg', 0.9));
         console.log(`\nlistas de alterções: ${this.listOfCanvasImages.length} x ${this.listOfVirtualCanvasImages.length}.`)
-        if(this.isTesting){
-        const imgElement = document.querySelector('#optimizedImage');            
+        if (this.isTesting) {
+            const imgElement = document.querySelector('#optimizedImage');
             this.showVirtualCanvas(imgElement);    // A imagem não é exibida como desejado        
         }
     }
 
-    showVirtualCanvas(imgElement){
+    showVirtualCanvas(imgElement) {
         if (imgElement) {
             imgElement.src = this.virtualCanvas.toDataURL('image/jpeg', 0.9);
             console.log(`imgElement existe.`)

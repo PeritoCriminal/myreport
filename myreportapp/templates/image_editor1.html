@@ -69,7 +69,22 @@
     });
 
     document.querySelector('#zoomInBtn').addEventListener('click', () => {
-        editor.isZooming = true;
+        //editor.isZooming = true;
+        editor.zoom();
+    });
+
+    document.querySelector('#zoomInBtn').addEventListener('mousedown', (event) => {
+        editor.zoomInterval = setInterval(() => {
+            editor.zoom(1.05); // Incrementa o zoom em 5%
+        }, 50);
+    });
+
+    document.querySelector('#zoomInBtn').addEventListener('mouseup', (event) => {
+        clearInterval(editor.zoomInterval);
+    });
+
+    document.querySelector('#zoomInBtn').addEventListener('mouseleave', (event) => {
+        clearInterval(editor.zoomInterval);
     });
 
     document.querySelector('#cropBtn').addEventListener('click', () => {
