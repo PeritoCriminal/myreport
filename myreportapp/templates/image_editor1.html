@@ -60,28 +60,20 @@
         editor.selectImage(editor.canvas, editor.ctx);
     });
 
-
     document.querySelector('#rotateClockwiseBtn').addEventListener('click', () => {
         editor.rotateClockwise();
-        //alert('rotacionar horário')
     });
 
     document.querySelector('#rotateCounterClockwiseBtn').addEventListener('click', () => {
        editor.rotateCounterClockwise();
-       //alert('rotacionar anti-horário')
     });
 
     document.querySelector('#zoomInBtn').addEventListener('click', () => {
-        //editor.zoom(1.2);
-        alert('zoom')
+        editor.isZooming = true;
     });
 
     document.querySelector('#cropBtn').addEventListener('click', () => {
-        // Alterna o estado de 'ableToCrop'
-       // editor.ableToCrop = !editor.ableToCrop;
-       // editor.transitionImage.src = editor.virtualCanvas.toDataURL();
-       // console.log('Able to crop:', editor.ableToCrop);
-        alert('crop');
+        editor.isCropping = true;
     });
     
     document.querySelector('#display-image').addEventListener('mousedown', (event) => {
@@ -89,7 +81,7 @@
     });
     
     document.querySelector('#display-image').addEventListener('mouseup', (event) => {
-        editor.onMouseUp();
+        editor.clearOperations();
     });
     
     document.querySelector('#display-image').addEventListener('mousemove', (event) => {
@@ -98,8 +90,7 @@
     
 
     document.querySelector('#undoBtn').addEventListener('click', () => {
-        //editor.undo();
-        alert('desfazer');
+        editor.undo();
     });
 
     //  Para testes:#display-image

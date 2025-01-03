@@ -17,7 +17,7 @@ export default class ImageEditor{
         this.maxHistory = 15;
         this.aspectRatio = 1;
         this.originalImage = new Image();
-        this.isDraggin = false;
+        this.isMouseDragging = false;
         this.isZooming = false;
         this.isCropping = false; 
         this.listOfCanvasImages = [];
@@ -44,23 +44,33 @@ export default class ImageEditor{
 
     onMouseDown(){
         console.log('botão do mouse abaixado');
-        this.isDraggin = true;
+        this.isMouseDragging = true;
     }
 
     onMouseUp(){
         console.log('botão do mouse levantado');
-        this.isDraggin = false;
+        this.isMouseDragging = false;
     }
 
     onMouseMove(){
-        if(this.isDraggin){
-            console.log('Arrastando ...')
+        if(!this.isMouseDragging){
+            console.log('Não arrastando.');
+            return;
+        }
+        console.log('arratando');
+        if(this.isZooming){
+            this.zoom();
+        }
+        if(this.isCropping){
+            this.crop();
         }
     }
 
     clearOperations(){
+        this.isMouseDragging = false;
         this.isCropping = false;
         this.isZooming = false;
+        console.log('Todoas as operação desabilitadas.')
     }
 
     selectImage(){
@@ -94,7 +104,6 @@ export default class ImageEditor{
             reader.readAsDataURL(file);
         });
         input.click();
-        //this.saveState();
     }
 
     rotate(canvas, ctx, direction = 1) {
@@ -116,19 +125,30 @@ export default class ImageEditor{
     }
 
     rotateClockwise() {
-        //this.action = 1;
         this.rotate(this.canvas, this.ctx);
         this.rotate(this.virtualCanvas, this.virtualCtx);
         this.saveState();
-        //this.logAction();
     }
 
     rotateCounterClockwise() {
-        //this.action = 2;
         this.rotate(this.canvas, this.ctx, -1);
         this.rotate(this.virtualCanvas, this.virtualCtx, -1);
         this.saveState();
-        //this.logAction();
+    }
+
+    zoom(){
+        //Vou desenvolver depois.
+        console.log('Aplicando zoom');
+    }
+
+    crop(){
+        //Vou desenvolver depois.
+        console.log('Aplicando crop.');
+    }
+
+    undo(){
+        //Vou desenvolver depois .
+        console.log('desfazer última operação.')
     }
 
     saveState() {
