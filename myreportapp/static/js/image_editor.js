@@ -17,6 +17,7 @@ export default class ImageEditor {
         this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+        this.canvas.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
     }
 
     handleMouseDown(event) {
@@ -38,12 +39,14 @@ export default class ImageEditor {
         this.lastCoordinates.push({x: dx, y: dy})
         console.log(`últimas coordenadas: ${this.lastCoordinates[0].x}/${this.lastCoordinates[0].y} - ${this.lastCoordinates[2].x}/${this.lastCoordinates[2].y}.`)
         if(this.isZooming){
-            if(this.lastCoordinates[2].y < this.lastCoordinates[0].y){
-                if(this.realImageClient.width > this.realImage.width/15){
+            if(this.lastCoordinates[2].y < this.lastCoordinates[1].y){
+                if(this.realImageClient.width >= this.realImage.width/15){
                     this.zoom(0.98);
                 };
-            }else if(this.lastCoordinates[2].y > this.lastCoordinates[0].y){
-                if(this.realImageClient.width < this.realImage.width){
+            }else if(this.lastCoordinates[2].y > this.lastCoordinates[1].y){
+                if(this.realImageClient.width > this.realImage.width - 50 || this.realImageClient.height > this.realImage.height - 50){
+                    return;
+                }else{
                     this.zoom(1.02);
                 };
             }else{
@@ -64,7 +67,15 @@ export default class ImageEditor {
         const dy = event.offsetY;
         console.log(`botão do mouse levantado em ${dx} / ${dy}.`)
         this.clearOperations();
-        this.adjustSizes();
+        //this.adjustSizes();
+    }
+
+    handleMouseLeave(event){
+        const dx = event.offsetX;
+        const dy = event.offsetY;
+        console.log(`Saiu da área do canvas ... ${dx} / ${dy}.`)
+        this.clearOperations();
+        //this.adjustSizes();
     }
 
     clearOperations(){
@@ -117,18 +128,7 @@ export default class ImageEditor {
 
 
     adjustSizes() {
-        const dx = 0;
-        const dy = 0;
-        const sx = this.realImageClient.left;
-        const sy = this.realImageClient.top;
-        const sWidth = this.realImageClient.width;
-        const sHeight = this.realImageClient.height;
-        const dWidth = this.realImage.width;
-        const dHeight = this.realImage.height;
         const ratio = this.realImageClient.width / this.realImageClient.height;
-        console.log(`-------------\nTamanho da imagem real: ${dx}:${dWidth} x ${dy}:${dHeight}`);
-        console.log(`\nTamanho do recorte: ${sx}:${sWidth} x ${sy}:${sHeight}`);
-        console.log(`\ntacha = ${ratio}\n---------------`)
         //console.log(`Bloquado para movimento e zoom: ${this.lockZoomAndPan()}`)
         if (ratio > 1) {
             this.canvas.width = this.maxSideVisibleCanvas;
@@ -137,12 +137,27 @@ export default class ImageEditor {
             this.canvas.height = this.maxSideVisibleCanvas;
             this.canvas.width = this.canvas.height * ratio;
         }
-        this.ctx.drawImage(this.realImage, sx, sy, sWidth, sHeight, dx, dy, this.canvas.width, this.canvas.height);
+        const imgX = 0;
+        const imgY = 0;
+        const clientX = this.realImageClient.left;
+        const clientY = this.realImageClient.top;
+        const clientW = this.realImageClient.width;
+        const clientH = this.realImageClient.height;
+        const imgW = this.realImage.width;
+        const imgH = this.realImage.height;
+        console.log(`-------------\nTamanho da imagem real: x = ${imgX}, y = ${imgY}, W = ${imgW}, H = ${imgH}`);
+        console.log(`\nTamanho do recorte: x = ${clientX}, y = ${clientY}, W = ${clientW}, H =${clientH}`);
+        console.log(`\ntacha = ${ratio}\n---------------`)
+        this.ctx.drawImage(this.realImage, clientX, clientY, clientW, clientH, imgX, imgY, this.canvas.width, this.canvas.height);
         //this.ctx.drawImage(this.realImage, 0, 0, this.canvas.width, this.canvas.height);
         this.showRealImage();
     }
 
     rotate(direction) {
+        //console.log(`\n\n-------------------\nImagem rotacionada ...`);
+        //console.log(`Imagem: x = ${this.realImage.left}, y = ${this.realImage.top}, w = ${this.realImage.width}, h = ${this.realImage.height}`);
+        //console.log(`Recorte: x = ${this.realImageClient.left}, y = ${this.realImageClient.top}, w = ${this.realImageClient.width}, h = ${this.realImageClient.height}`);
+        
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = this.realImage.height;
@@ -157,11 +172,18 @@ export default class ImageEditor {
         const rotatedImage = new Image();
         rotatedImage.src = canvas.toDataURL();
         this.realImage = rotatedImage;
+        const { left, top, width, height } = this.realImageClient;
+        this.realImageClient = {
+            left: (canvas.width - height) / 2,
+            top: (canvas.height - width) / 2,
+            width: height,
+            height: width,
+        };
         this.realImage.onload = () => {
-            this.realImageClient = { left: 0, top: 0, width: this.realImage.width, height: this.realImage.height };
             this.adjustSizes();
         };
     }
+    
 
     zoom(factor) {
         console.log(`Aplicando Zoom ...`);
