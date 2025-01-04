@@ -5,6 +5,7 @@ export default class ImageEditor {
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         this.realImage = new Image();
         this.realImageClient = {left:0, top:0, width:800, height:600};
+        this.realImageFactor = 2;
     }
 
     selectImage() {
@@ -26,7 +27,7 @@ export default class ImageEditor {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     const ratio = img.width / img.height;    
-                    canvas.width = 2000;
+                    canvas.width = this.maxSideVisibleCanvas * this.realImageFactor;
                     canvas.height = canvas.width / ratio;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     const compressedDataURL = canvas.toDataURL('image/jpeg', 0.9);
@@ -35,6 +36,7 @@ export default class ImageEditor {
                     this.realImage.onload = () => {
                         this.adjustSizes();
                         console.log('Orientação do canvas ajustada.');
+                        this.realImageClient = {left:0, top:0, width: this.realImage.width, height: this.realImage.height};
                     }
                 };
                 img.onerror = () => {
@@ -58,8 +60,28 @@ export default class ImageEditor {
             this.canvas.width = this.canvas.height * ratio;
         }
         this.ctx.drawImage(this.realImage, 0, 0, this.canvas.width, this.canvas.height);
-        //this.showRealImage();
+        this.showRealImage();
     }
+
+    rotate(direction) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = this.realImage.height;
+        canvas.height = this.realImage.width;
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(direction * Math.PI / 2);
+        ctx.drawImage(
+            this.realImage, 
+            -this.realImage.width / 2, 
+            -this.realImage.height / 2
+        );
+        const rotatedImage = new Image();
+        rotatedImage.src = canvas.toDataURL();
+        this.realImage = rotatedImage;
+        this.realImage.onload = () =>{
+            this.adjustSizes();
+        };        
+    }    
 
     showRealImage(){
         const img = document.querySelector('#optimizedImage');

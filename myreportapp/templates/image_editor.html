@@ -56,6 +56,14 @@
         editor.selectImage();
     });
 
+    document.querySelector('#rotateClockwiseBtn').addEventListener('click', (event)=>{
+        editor.rotate(1);
+    });
+
+    document.querySelector('#rotateCounterClockwiseBtn').addEventListener('click', (event)=>{
+        editor.rotate(-1);
+    });
+
     
 </script>
 {% endblock scripts %}
