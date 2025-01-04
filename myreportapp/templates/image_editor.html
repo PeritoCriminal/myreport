@@ -7,7 +7,6 @@
 
 {% block center_content %}
 <div class="toolbar">
-    <input type="file" id="fileInput" accept="image/*" style="display: none;">
     <button id="newImageBtn" title="Nova Imagem">
         <i class="fas fa-image"></i>
         <span>Nova Imagem</span>
@@ -48,78 +47,15 @@
 {% block scripts %}
 <script type="module" src="{% static 'js/image_editor.js' %}"></script>
 <script type="module">
+    const display_image = document.querySelector('#display-image');
     import ImageEditor from "{% static 'js/image_editor.js' %}";
 
-    const editor = new ImageEditor('#display-image');
+    const editor = new ImageEditor(display_image);
 
-    document.querySelector('#newImageBtn').addEventListener('click', () => {
-        editor.selectImage(editor.canvas, editor.ctx);
-    });
-
-
-    document.querySelector('#rotateClockwiseBtn').addEventListener('click', () => {
-        editor.rotateClockwise();
-    });
-
-    document.querySelector('#rotateCounterClockwiseBtn').addEventListener('click', () => {
-        editor.rotateCounterClockwise();
-    });
-
-    document.querySelector('#zoomInBtn').addEventListener('click', () => {
-        editor.zoom(1.2);
-    });
-
-    document.querySelector('#cropBtn').addEventListener('click', () => {
-        // Alterna o estado de 'ableToCrop'
-        editor.ableToCrop = !editor.ableToCrop;
-        editor.transitionImage.src = editor.virtualCanvas.toDataURL();
-        console.log('Able to crop:', editor.ableToCrop);
-    });
-    
-    document.querySelector('#display-image').addEventListener('mousedown', (event) => {
-        // Inicia o processo de recorte
-        if (editor.ableToCrop) {
-            const { clientX, clientY } = event;
-            const rect = editor.canvas.getBoundingClientRect();
-            editor.startPosX = clientX - rect.left;
-            editor.startPosY = clientY - rect.top;
-            editor.isCropping = true;
-            console.log('Mouse down: Cropping started');
-        }
-    });
-    
-    document.querySelector('#display-image').addEventListener('mouseup', (event) => {
-        if(editor.isCropping && editor.ableToCrop){
-            editor.applyCrop();
-            editor.isCropping = false;
-            editor.ableToCrop = false;
-        }
-    });
-    
-    document.querySelector('#display-image').addEventListener('mousemove', (event) => {
-        if (editor.isCropping && editor.ableToCrop) {
-            const { clientX, clientY } = event;
-            const rect = editor.canvas.getBoundingClientRect();
-            const canvasX = clientX - rect.left; 
-            const canvasY = clientY - rect.top;       
-            //console.log(`Mouse move: X=${canvasX}, Y=${canvasY}`);
-            editor.crop(canvasX, canvasY);
-        }
+    document.querySelector('#newImageBtn').addEventListener('click', (event)=>{
+        editor.selectImage();
     });
 
     
-    
-
-    document.querySelector('#undoBtn').addEventListener('click', () => {
-        //editor.undo();
-        teste();
-    });
-
-    //  Para testes:#display-image
-    function teste(){
-        const imgElement = document.getElementById('optimizedImage');
-        imgElement.src = editor.virtualCanvas.toDataURL('image/jpeg', 0.9);
-        //imgElement.src = editor.transitionImage.src;
-    }
 </script>
 {% endblock scripts %}
