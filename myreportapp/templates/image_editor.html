@@ -23,6 +23,10 @@
         <i class="fas fa-search-plus"></i>
         <span>Zoom In</span>
     </button>
+    <button id="panBtn" title="Pan">
+        <i class="fas fa-arrows-alt"></i>
+        <span>Mover</span>
+    </button>
     <button id="cropBtn" title="Crop">
         <i class="fas fa-crop"></i>
         <span>Crop</span>
@@ -54,6 +58,18 @@
 
     document.querySelector('#newImageBtn').addEventListener('click', (event)=>{
         editor.selectImage();
+    });
+
+    document.querySelector('#zoomInBtn').addEventListener('click', (event)=>{
+        editor.isZooming = true;
+    });
+
+    document.querySelector('#panBtn').addEventListener('click', (event)=>{
+        editor.isDragging = true;
+    });
+
+    document.querySelector('#cropBtn').addEventListener('click', (event)=>{
+        editor.isCropping = true;
     });
 
     document.querySelector('#rotateClockwiseBtn').addEventListener('click', (event)=>{
