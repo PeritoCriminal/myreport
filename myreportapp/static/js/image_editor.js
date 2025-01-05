@@ -7,7 +7,7 @@ export default class ImageEditor {
         this.realImageClient = { left: 0, top: 0, width: 800, height: 600 };
         this.realImageFactor = 2;
 
-        this.lastCoordinates = [{x:0, y:0}, {x:0, y:0}, {x:0, y:0}];
+        this.lastCoordinates = [];
 
         this.isMouseDown = false;
         this.isDragging = false;
@@ -28,41 +28,45 @@ export default class ImageEditor {
     }
 
     handleMouseMove(event) {
-        if(!this.isMouseDown){
+        if (!this.isMouseDown) {
             return;
         }
         const dx = event.offsetX;
         const dy = event.offsetY;
-        if(this.lastCoordinates.length > 2){
+        if (this.lastCoordinates.length > 2) {
             this.lastCoordinates.shift();
         }
-        this.lastCoordinates.push({x: dx, y: dy})
-        console.log(`últimas coordenadas: ${this.lastCoordinates[0].x}/${this.lastCoordinates[0].y} - ${this.lastCoordinates[2].x}/${this.lastCoordinates[2].y}.`)
-        if(this.isZooming){
-            if(this.lastCoordinates[2].y < this.lastCoordinates[1].y){
-                if(this.realImageClient.width >= this.realImage.width/15){
+        this.lastCoordinates.push({ x: dx, y: dy })
+        //console.log(`últimas coordenadas: ${this.lastCoordinates[0].x}/${this.lastCoordinates[0].y} - ${this.lastCoordinates[2].x}/${this.lastCoordinates[2].y}.`)
+        if (this.isZooming) {
+            if (this.lastCoordinates[2].y < this.lastCoordinates[1].y) {
+                if (this.realImageClient.width >= this.realImage.width / 15) {
                     this.zoom(0.98);
                 };
-            }else if(this.lastCoordinates[2].y > this.lastCoordinates[1].y){
-                if(this.realImageClient.width > this.realImage.width - 50 || this.realImageClient.height > this.realImage.height - 50){
+            } else if (this.lastCoordinates[2].y > this.lastCoordinates[1].y) {
+                if (this.realImageClient.width > this.realImage.width - 50 || this.realImageClient.height > this.realImage.height - 50) {
                     return;
-                }else{
+                } else {
                     this.zoom(1.02);
                 };
-            }else{
+            } else {
                 return;
             }
         };
 
-        if(this.isCropping){
+        if (this.isDragging) {
+                this.pan();
+        };
+
+        if (this.isCropping) {
             this.crop();
         }
-        if(this.isDragging){
+        if (this.isDragging) {
             this.pan();
         }
     }
 
-    handleMouseUp(event){
+    handleMouseUp(event) {
         const dx = event.offsetX;
         const dy = event.offsetY;
         console.log(`botão do mouse levantado em ${dx} / ${dy}.`)
@@ -70,7 +74,7 @@ export default class ImageEditor {
         //this.adjustSizes();
     }
 
-    handleMouseLeave(event){
+    handleMouseLeave(event) {
         const dx = event.offsetX;
         const dy = event.offsetY;
         console.log(`Saiu da área do canvas ... ${dx} / ${dy}.`)
@@ -78,7 +82,7 @@ export default class ImageEditor {
         //this.adjustSizes();
     }
 
-    clearOperations(){
+    clearOperations() {
         this.isMouseDown = false;
         this.isDragging = false;
         this.isZooming = false;
@@ -157,7 +161,7 @@ export default class ImageEditor {
         //console.log(`\n\n-------------------\nImagem rotacionada ...`);
         //console.log(`Imagem: x = ${this.realImage.left}, y = ${this.realImage.top}, w = ${this.realImage.width}, h = ${this.realImage.height}`);
         //console.log(`Recorte: x = ${this.realImageClient.left}, y = ${this.realImageClient.top}, w = ${this.realImageClient.width}, h = ${this.realImageClient.height}`);
-        
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = this.realImage.height;
@@ -183,7 +187,7 @@ export default class ImageEditor {
             this.adjustSizes();
         };
     }
-    
+
 
     zoom(factor) {
         console.log(`Aplicando Zoom ...`);
@@ -198,12 +202,21 @@ export default class ImageEditor {
         this.adjustSizes();
     }
 
-    crop(){
+    crop() {
         console.log(`Recortando ... `)
     }
 
     pan() {
-        console.log(`Arrastando ...`);
+        if(this.lastCoordinates.length<2){
+            console.log(' sem pan ')
+            return;
+        }
+        console.log('panngggggg')
+        const x_direction = this.lastCoordinates[1].x - this.lastCoordinates[0].x;
+        const y_direction = this.lastCoordinates[1].y - this.lastCoordinates[0].y;
+        this.realImageClient.left -= x_direction;  
+        this.realImageClient.top -= y_direction;   
+        this.adjustSizes();
     }
 
     showRealImage() {
