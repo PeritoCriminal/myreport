@@ -24,6 +24,8 @@ export default class ImageEditor {
         const dx = event.offsetX;
         const dy = event.offsetY;
         console.log(`botão do mouse abaixado em ${dx} / ${dy}.`)
+        this.lastCoordinates.length = 0;
+        this.lastCoordinates.push({ x: dx, y: dy },{ x: dx, y: dy },{ x: dx, y: dy });
         this.isMouseDown = true;
     }
 
@@ -154,7 +156,7 @@ export default class ImageEditor {
         console.log(`\ntacha = ${ratio}\n---------------`)
         this.ctx.drawImage(this.realImage, clientX, clientY, clientW, clientH, imgX, imgY, this.canvas.width, this.canvas.height);
         //this.ctx.drawImage(this.realImage, 0, 0, this.canvas.width, this.canvas.height);
-        this.showRealImage();
+        //this.showRealImage();
     }
 
     rotate(direction) {
@@ -213,9 +215,32 @@ export default class ImageEditor {
         }
         console.log('panngggggg')
         const x_direction = this.lastCoordinates[1].x - this.lastCoordinates[0].x;
+        const x_ratio = Math.abs(x_direction * (this.realImageClient.width / this.realImage.width));
         const y_direction = this.lastCoordinates[1].y - this.lastCoordinates[0].y;
-        this.realImageClient.left -= x_direction;  
-        this.realImageClient.top -= y_direction;   
+        const y_ratio = Math.abs(y_direction* (this.realImageClient.height / this.realImage.height));
+        const top = this.realImageClient.top;
+        const left = this.realImageClient.left;
+        const right = this.realImageClient.left + this.realImageClient.width;
+        const botton = this.realImageClient.top + this.realImageClient.height;
+        console.log(`\n--------------\nleft: ${left}\ntop: ${top}\nright: ${right} x ${this.realImage.width}\nbotton:${botton} x ${this.realImage.height}\n------------`)
+        if(x_direction > 0){
+            if(left > 0){
+                 this.realImageClient.left -= x_ratio;
+            }
+        }else{
+            if(right < this.realImage.width){
+                 this.realImageClient.left += x_ratio;
+            }
+        }
+        if(y_direction > 0){
+            if (top > 0){
+                this.realImageClient.top -= y_ratio;
+            }
+        }else{
+            if(botton < this.realImage.height){
+                this.realImageClient.top +=y_ratio
+            }
+        }  
         this.adjustSizes();
     }
 

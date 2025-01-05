@@ -41,7 +41,7 @@ canvas {
     justify-content: center; /* Alinha horizontalmente ao centro */
     align-items: center; /* Alinha verticalmente ao centro */
     background-color: #005599;
-    width: 804px;
-    height: 804px;
+    width: 800px;
+    height: 800px;
     margin: 0 auto; /* Opcional: Centraliza horizontalmente no corpo */
 }
