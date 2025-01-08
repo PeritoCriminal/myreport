@@ -4,7 +4,7 @@ export default class ImageEditor {
         this.maxSideVisibleCanvas = maxSideVisibleCanvas;
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         this.realImage = new Image();
-        this.realImageClient = { left: 0, top: 0, width: 800, height: 600 };
+        this.realImageClient = { left: 0, top: 0, width: 800, height: 600, center_x: 400, center_y: 300 };
         this.realImageFactor = 2;
 
         this.lastCoordinates = [];
@@ -117,7 +117,7 @@ export default class ImageEditor {
                     this.realImage = new Image();
                     this.realImage.src = compressedDataURL;
                     this.realImage.onload = () => {
-                        this.realImageClient = { left: 0, top: 0, width: this.realImage.width, height: this.realImage.height };
+                        this.realImageClient = { left: 0, top: 0, width: this.realImage.width, height: this.realImage.height, center_x: this.realImage.width / 2, center_y: this.realImage.height / 2 };
                         this.adjustSizes();
                         console.log('Orientação do canvas ajustada.');
                     }
@@ -132,10 +132,13 @@ export default class ImageEditor {
         input.click();
     }
 
+    getCenterClient(){
+        this.realImageClient.center_x = (this.realImageClient.width / 2) - this.realImageClient.left;
+        this.realImageClient.center_y = (this.realImageClient.height / 2) - this.realImageClient.top;
+    }
 
     adjustSizes() {
         const ratio = this.realImageClient.width / this.realImageClient.height;
-        //console.log(`Bloquado para movimento e zoom: ${this.lockZoomAndPan()}`)
         if (ratio > 1) {
             this.canvas.width = this.maxSideVisibleCanvas;
             this.canvas.height = this.canvas.width / ratio;
@@ -155,40 +158,68 @@ export default class ImageEditor {
         console.log(`\nTamanho do recorte: x = ${clientX}, y = ${clientY}, W = ${clientW}, H =${clientH}`);
         console.log(`\ntacha = ${ratio}\n---------------`)
         this.ctx.drawImage(this.realImage, clientX, clientY, clientW, clientH, imgX, imgY, this.canvas.width, this.canvas.height);
-        //this.ctx.drawImage(this.realImage, 0, 0, this.canvas.width, this.canvas.height);
-        //this.showRealImage();
+        this.showRealImage();
     }
 
     rotate(direction) {
-        //console.log(`\n\n-------------------\nImagem rotacionada ...`);
-        //console.log(`Imagem: x = ${this.realImage.left}, y = ${this.realImage.top}, w = ${this.realImage.width}, h = ${this.realImage.height}`);
-        //console.log(`Recorte: x = ${this.realImageClient.left}, y = ${this.realImageClient.top}, w = ${this.realImageClient.width}, h = ${this.realImageClient.height}`);
-
         const canvas = document.createElement('canvas');
+        canvas.width = this.realImage.width;
+        canvas.height = this.realImage.height;
         const ctx = canvas.getContext('2d');
-        canvas.width = this.realImage.height;
-        canvas.height = this.realImage.width;
+        ctx.drawImage(this.realImage, 0, 0, this.realImage.width, this.realImage.height);
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.rotate(direction * Math.PI / 2);
-        ctx.drawImage(
-            this.realImage,
-            -this.realImage.width / 2,
-            -this.realImage.height / 2
-        );
+        const rotatedImage = new Image();
+        rotatedImage.src = canvas.toDataURL();
+        rotatedImage.onload = () =>{
+            const parseSide = this.realImageClient.width;
+            this.realImageClient.width = this.realImageClient.height;
+            this.realImageClient.height = parseSide;
+            // direction determina se é giro horário(1) ou anti-horário(-1).
+            // na condição abaixo preciso das coordendas relativas para o ponto que será rotacionado juntamente com  canvas
+            // esse ponto é definido pelo atributo this.realImageClient.center_x e y, que agora é rotacionado.
+            if(direction = 1){
+                const newRealImageClientCenter = {x:'?', y:'?'};
+            }else{
+                const newRealImageClientCenter = {x:'?', y:'?'};
+                }
+            this.realImageClient.left = newRealImageClientCenter.x - this.realImageClient.width / 2;
+            this.realImageClient.top = newRealImageClientCenter.y - this.realImageClient.height / 2;
+            this.setCenterClient(); // Esse método 
+            this.adjustSizes();
+        }
+    }
+
+    rotate1(direction) {
+        const centerX = this.realImageClient.center_x;
+        const centerY = this.realImageClient.center_y;
+        console.log(`\n_____________centerX = ${centerX}, centerY = ${centerY}`)
+
         const rotatedImage = new Image();
         rotatedImage.src = canvas.toDataURL();
         this.realImage = rotatedImage;
-        const { left, top, width, height } = this.realImageClient;
-        this.realImageClient = {
-            left: (canvas.width - height) / 2,
-            top: (canvas.height - width) / 2,
-            width: height,
-            height: width,
-        };
-        this.realImage.onload = () => {
-            this.adjustSizes();
-        };
+    
+        // Coordenadas relativas ao centro
+        const relX = centerX - canvas.width / 2;
+        const relY = centerY - canvas.height / 2;
+    
+        // Coordenadas após a rotação
+        let newRelX, newRelY;
+        if (direction === 1) { // Sentido horário
+            newRelX = relY;
+            newRelY = -relX;
+        } else if (direction === -1) { // Sentido anti-horário
+            newRelX = -relY;
+            newRelY = relX;
+        }
+    
+        // Ajustar de volta para o sistema original
+        const newX = newRelX + canvas.width / 2;
+        const newY = newRelY + canvas.height / 2;
+    
+        console.log(`New coordinates: (${newX}, ${newY})`);
     }
+    
 
 
     zoom(factor) {
@@ -226,21 +257,30 @@ export default class ImageEditor {
         if(x_direction > 0){
             if(left > 0){
                  this.realImageClient.left -= x_ratio;
+            }else{
+                this.realImageClient.left = 0;
             }
         }else{
             if(right < this.realImage.width){
                  this.realImageClient.left += x_ratio;
+            }else{
+                this.realImageClient.left = this.realImage.width - this.realImageClient.width;
             }
         }
         if(y_direction > 0){
             if (top > 0){
                 this.realImageClient.top -= y_ratio;
+            }else{
+                this.realImageClient.top = 0;
             }
         }else{
             if(botton < this.realImage.height){
                 this.realImageClient.top +=y_ratio
+            }else{
+                this.realImageClient.top = this.realImage.height - this.realImageClient.height;
             }
         }  
+        
         this.adjustSizes();
     }
 
