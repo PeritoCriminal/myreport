@@ -152,6 +152,72 @@ export default class ImageEditor {
     }
 
     zoom() {
+        let factor_zoom;
+
+        // Determinar o fator de zoom com base no movimento do mouse
+        if (this.lastMouseCoordinates[2].y < this.lastMouseCoordinates[1].y &&
+            this.realImageClient.width >= this.realImage.width / 15) {
+            factor_zoom = 0.98; // Zoom out
+        } else if (this.lastMouseCoordinates[2].y > this.lastMouseCoordinates[1].y &&
+            this.realImageClient.width >= this.realImage.width &&
+            this.realImageClient.height >= this.realImage.height) {
+            return; // Já está no limite máximo de zoom
+        } else {
+            factor_zoom = 1.02; // Zoom in
+        }
+
+        // Calcular novas dimensões e posições
+        const newWidth = this.realImageClient.width * factor_zoom;
+        const newHeight = this.realImageClient.height * factor_zoom;
+
+        // Garantir que as dimensões não ultrapassem os limites do realImage
+        if (newWidth > this.realImage.width) {
+            return; // Não aumentar além do tamanho da imagem original
+        }
+
+        if (newHeight > this.realImage.height) {
+            return; // Não aumentar além do tamanho da imagem original
+        }
+
+        const centerX = this.realImageClient.left + this.realImageClient.width / 2;
+        const centerY = this.realImageClient.top + this.realImageClient.height / 2;
+        let newLeft, newTop;    
+
+        
+            newLeft = centerX - newWidth / 2;
+            if(newWidth + newLeft > this.realImage.width){
+                newLeft = this.realImage.width - newWidth;
+            }
+      
+            newTop = centerY - newHeight / 2;
+            if(newHeight + newTop > this.realImage.height){
+                newTop = this.realImage.height - newHeight;
+            }
+
+            if(newWidth >= this.realImage.width - 10){
+                newLeft = 0;
+                this.realImageClient.width = this.realImage.width;
+            }
+
+            if(newHeight >= this.realImage.height - 10){
+                newTop = 0;
+                this.realImageClient.height = this.realImage.height;
+            }
+
+        // Atualizar as propriedades do realImageClient
+        this.realImageClient.left = Math.max(0, newLeft); // Garantir que não saia dos limites
+        this.realImageClient.top = Math.max(0, newTop);
+        this.realImageClient.width = newWidth;
+        this.realImageClient.height = newHeight;
+
+        // Ajustar tamanhos ou redesenhar a imagem, se necessário
+        this.adjustSizes();
+    }
+
+
+
+
+    zoom1() {
         console.log('zoom');
         let factor_zoom = 1;
 
@@ -163,7 +229,7 @@ export default class ImageEditor {
         } else if (this.lastMouseCoordinates[2].y > this.lastMouseCoordinates[1].y) {
             if (
                 this.realImageClient.width > this.realImage.width ||
-                this.realImageClient.height > this.realImage.height 
+                this.realImageClient.height > this.realImage.height
             ) {
                 return;
             } else {
@@ -194,6 +260,12 @@ export default class ImageEditor {
         // Adjust canvas rendering
         this.adjustSizes();
     }
+
+
+
+
+
+
 
 
     pan() {
@@ -243,10 +315,10 @@ export default class ImageEditor {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         let newLeft, newTop;
-        if(direction === 1){
+        if (direction === 1) {
             newLeft = this.realImage.height - (this.realImageClient.top + this.realImageClient.height);
             newTop = this.realImageClient.left;
-        }else{
+        } else {
             newLeft = this.realImageClient.top;
             newTop = this.realImage.width - (this.realImageClient.left + this.realImageClient.width);
         }
@@ -276,7 +348,7 @@ export default class ImageEditor {
             };
             this.adjustSizes();
         };
-    }  
+    }
 
 
     /******************************************************* */
@@ -291,8 +363,8 @@ export default class ImageEditor {
             this.realImageClient.top,
             this.realImageClient.width,
             this.realImageClient.height
-            );
-        
+        );
+
     }
 
     divAboveImage(divLeft, divTop, divWidth, divHeight) {
