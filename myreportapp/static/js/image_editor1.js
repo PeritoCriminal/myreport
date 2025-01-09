@@ -1,19 +1,25 @@
-//  Pfv, me ajude nas linhas comentadas no método rotate();
+// myreportapp/static/js/image_editor1.js
 
 
 export default class ImageEditor {
     constructor(someCanvasElement, maxSideVisibleCanvas = 800) {
+        this.isTesting = false;
         this.canvas = someCanvasElement;
         this.maxSideVisibleCanvas = maxSideVisibleCanvas;
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+        this.colorLine = 'red';
         this.realImage = new Image();
         this.realImageClient = { left: 0, top: 0, width: 800, height: 600, center_x: 400, center_y: 300 };
-        this.realImageFactor = 0.5;
+        this.realImageFactor = 2;
+        this.mouseDownCoordinates = { x: 0, y: 0 };
+        this.mouseMoveCoordinates = { x: 0, y: 0 };
+        this.mouseUpCoordinates = { x: 0, y: 0 };
         this.lastMouseCoordinates = [];
         this.isMouseDown = false;
         this.isDragging = false;
         this.isZooming = false;
         this.isCropping = false;
+        this.operation = 'Nenhuma operação ...';
         this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
@@ -23,9 +29,12 @@ export default class ImageEditor {
     handleMouseDown(event) {
         const dx = event.offsetX;
         const dy = event.offsetY;
+        this.mouseDownCoordinates.x = dx;
+        this.mouseDownCoordinates.y = dy;
         this.lastMouseCoordinates.length = 0;
         this.lastMouseCoordinates.push({ x: dx, y: dy }, { x: dx, y: dy }, { x: dx, y: dy });
         this.isMouseDown = true;
+        this.operation = 'Botão esquerdo do mouse abaixado ...'
     }
 
     handleMouseMove(event) {
@@ -34,6 +43,8 @@ export default class ImageEditor {
         }
         const dx = event.offsetX;
         const dy = event.offsetY;
+        this.mouseMoveCoordinates.x = dx;
+        this.mouseMoveCoordinates.y = dy;
         this.lastMouseCoordinates.push({ x: dx, y: dy });
         if (this.lastMouseCoordinates.length > 2) {
             this.lastMouseCoordinates.shift();
@@ -51,17 +62,27 @@ export default class ImageEditor {
         }
     }
 
-
     handleMouseUp(event) {
-        const dx = event.offsetX;
-        const dy = event.offsetY;
+        if(this.isCropping){
+            const left = this.mouseDownCoordinates.x * this.realImageFactor;
+            const top = this.mouseDownCoordinates.y * this.realImageFactor;
+            const width = (event.offsetX - this.mouseDownCoordinates.x) * this.realImageFactor;
+            const height = (event.offsetY - this.mouseDownCoordinates.y) * this.realImageFactor;
+            this.realImageClient.left = left;
+            this.realImageClient.top = top;
+            this.realImageClient.width = width;
+            this.realImageClient.height = height;
+            this.adjustSizes();
+        }
         this.clearOperations();
+        this.operation = 'Botão esquerdo do mouse levantado ...'
     }
 
     handleMouseLeave(event) {
         const dx = event.offsetX;
         const dy = event.offsetY;
         this.clearOperations();
+        this.operation = 'Cursor do mouse saiu da área da imagem ...'
     }
 
     clearOperations() {
@@ -74,13 +95,6 @@ export default class ImageEditor {
     setCenterClient() {
         this.realImageClient.center_x = (this.realImageClient.width / 2) - this.realImageClient.left;
         this.realImageClient.center_y = (this.realImageClient.height / 2) - this.realImageClient.top;
-    }
-
-    displayInfo() {
-        console.log('____________________________')
-        console.log(`Dimensões da imagem real: esquerda = ${this.realImage.left}, topo = ${this.realImage.top} largura = ${this.realImage.width}, altura = ${this.realImage.height}`);
-        console.log(`Dimensões do frame: largura = ${this.realImageClient.width}, altura = ${this.realImageClient.height}`);
-        console.log(`Posição do frame: esquerda = ${this.realImageClient.left}, topo = ${this.realImageClient.top}, centro = ${this.realImageClient.center_x} / ${this.realImageClient.center_y}`);
     }
 
     selectImage() {
@@ -119,6 +133,7 @@ export default class ImageEditor {
             reader.readAsDataURL(file);
         });
         input.click();
+        this.operation = 'Imagem selecionada e carregada ...'
     }
 
     adjustSizes() {
@@ -130,143 +145,68 @@ export default class ImageEditor {
             this.canvas.height = this.maxSideVisibleCanvas;
             this.canvas.width = this.canvas.height * ratio;
         }
-
-        // Constrain rendering to valid image dimensions
         const imgX = Math.max(0, this.realImageClient.left);
         const imgY = Math.max(0, this.realImageClient.top);
         const clientW = Math.min(this.realImageClient.width, this.realImage.width - imgX);
         const clientH = Math.min(this.realImageClient.height, this.realImage.height - imgY);
-
-        console.log(`-------------\nTamanho da imagem real: x = ${imgX}, y = ${imgY}, W = ${clientW}, H = ${clientH}`);
-        console.log(`\nTamanho do recorte: x = ${imgX}, y = ${imgY}, W = ${clientW}, H =${clientH}`);
-        console.log(`\ntacha = ${ratio}\n---------------`);
-
         this.ctx.drawImage(
             this.realImage,
             imgX, imgY, clientW, clientH,
             0, 0, this.canvas.width, this.canvas.height
         );
         this.setCenterClient();
-        this.showRealImage();
-        this.displayInfo();
+        if(this.isTesting){
+            this.showRealImage();
+            this.displayInfo();
+        }
     }
 
     zoom() {
         let factor_zoom;
-
-        // Determinar o fator de zoom com base no movimento do mouse
         if (this.lastMouseCoordinates[2].y < this.lastMouseCoordinates[1].y &&
             this.realImageClient.width >= this.realImage.width / 15) {
-            factor_zoom = 0.98; // Zoom out
+            factor_zoom = 0.98;
         } else if (this.lastMouseCoordinates[2].y > this.lastMouseCoordinates[1].y &&
             this.realImageClient.width >= this.realImage.width &&
             this.realImageClient.height >= this.realImage.height) {
-            return; // Já está no limite máximo de zoom
+            return;
         } else {
-            factor_zoom = 1.02; // Zoom in
+            factor_zoom = 1.02;
         }
-
-        // Calcular novas dimensões e posições
         const newWidth = this.realImageClient.width * factor_zoom;
         const newHeight = this.realImageClient.height * factor_zoom;
-
-        // Garantir que as dimensões não ultrapassem os limites do realImage
         if (newWidth > this.realImage.width) {
-            return; // Não aumentar além do tamanho da imagem original
-        }
-
-        if (newHeight > this.realImage.height) {
-            return; // Não aumentar além do tamanho da imagem original
-        }
-
-        const centerX = this.realImageClient.left + this.realImageClient.width / 2;
-        const centerY = this.realImageClient.top + this.realImageClient.height / 2;
-        let newLeft, newTop;    
-
-        
-            newLeft = centerX - newWidth / 2;
-            if(newWidth + newLeft > this.realImage.width){
-                newLeft = this.realImage.width - newWidth;
-            }
-      
-            newTop = centerY - newHeight / 2;
-            if(newHeight + newTop > this.realImage.height){
-                newTop = this.realImage.height - newHeight;
-            }
-
-            if(newWidth >= this.realImage.width - 10){
-                newLeft = 0;
-                this.realImageClient.width = this.realImage.width;
-            }
-
-            if(newHeight >= this.realImage.height - 10){
-                newTop = 0;
-                this.realImageClient.height = this.realImage.height;
-            }
-
-        // Atualizar as propriedades do realImageClient
-        this.realImageClient.left = Math.max(0, newLeft); // Garantir que não saia dos limites
-        this.realImageClient.top = Math.max(0, newTop);
-        this.realImageClient.width = newWidth;
-        this.realImageClient.height = newHeight;
-
-        // Ajustar tamanhos ou redesenhar a imagem, se necessário
-        this.adjustSizes();
-    }
-
-
-
-
-    zoom1() {
-        console.log('zoom');
-        let factor_zoom = 1;
-
-        // Determine zoom in or out
-        if (this.lastMouseCoordinates[2].y < this.lastMouseCoordinates[1].y) {
-            if (this.realImageClient.width >= this.realImage.width / 15) {
-                factor_zoom = 0.98; // Zoom out
-            }
-        } else if (this.lastMouseCoordinates[2].y > this.lastMouseCoordinates[1].y) {
-            if (
-                this.realImageClient.width > this.realImage.width ||
-                this.realImageClient.height > this.realImage.height
-            ) {
-                return;
-            } else {
-                factor_zoom = 1.02; // Zoom in
-            }
-        } else {
             return;
         }
-
-        console.log('Aplicando Zoom ...');
-
-        // Calculate new dimensions
-        const newWidth = this.realImageClient.width * factor_zoom;
-        const newHeight = this.realImageClient.height * factor_zoom;
-
-        // Calculate new top-left position to maintain center
+        if (newHeight > this.realImage.height) {
+            return;
+        }
         const centerX = this.realImageClient.left + this.realImageClient.width / 2;
         const centerY = this.realImageClient.top + this.realImageClient.height / 2;
-        const newLeft = centerX - newWidth / 2;
-        const newTop = centerY - newHeight / 2;
-
-        // Update realImageClient
-        this.realImageClient.left = Math.max(0, newLeft); // Ensure it doesn't go outside bounds
+        let newLeft, newTop;
+        newLeft = centerX - newWidth / 2;
+        if (newWidth + newLeft > this.realImage.width) {
+            newLeft = this.realImage.width - newWidth;
+        }
+        newTop = centerY - newHeight / 2;
+        if (newHeight + newTop > this.realImage.height) {
+            newTop = this.realImage.height - newHeight;
+        }
+        if (newWidth >= this.realImage.width - 10) {
+            newLeft = 0;
+            this.realImageClient.width = this.realImage.width;
+        }
+        if (newHeight >= this.realImage.height - 10) {
+            newTop = 0;
+            this.realImageClient.height = this.realImage.height;
+        }
+        this.realImageClient.left = Math.max(0, newLeft);
         this.realImageClient.top = Math.max(0, newTop);
         this.realImageClient.width = newWidth;
         this.realImageClient.height = newHeight;
-
-        // Adjust canvas rendering
+        this.operation = 'Aplicado zoom ...'
         this.adjustSizes();
     }
-
-
-
-
-
-
-
 
     pan() {
         const x_direction = this.lastMouseCoordinates[2].x - this.lastMouseCoordinates[0].x;
@@ -303,12 +243,22 @@ export default class ImageEditor {
                 this.realImageClient.top = this.realImage.height - this.realImageClient.height;
             }
         }
+        this.operation = 'Aplicado deslocamento (PAN) ...'
         this.adjustSizes();
     }
 
-
     crop() {
-        console.log('crop');
+        const left = this.mouseDownCoordinates.x;
+        const top = this.mouseDownCoordinates.y;
+        const width = this.mouseMoveCoordinates.x - left;
+        const height = this.mouseMoveCoordinates.y - top;
+        this.ctx.setLineDash([10, 5]); 
+        this.ctx.strokeStyle = this.colorLine; 
+        this.ctx.lineWidth = 3; 
+        this.ctx.beginPath(); 
+        this.ctx.rect(left, top, width, height); 
+        this.ctx.stroke();
+        this.operation = 'Imagem recortada ...';
     }
 
     rotate(direction) {
@@ -346,6 +296,7 @@ export default class ImageEditor {
                 width: this.realImageClient.height,
                 height: this.realImageClient.width,
             };
+            this.operation = 'Imagem rotacionada ...'
             this.adjustSizes();
         };
     }
@@ -354,7 +305,17 @@ export default class ImageEditor {
     /******************************************************* */
 
     // TESTES
+    displayInfo() {
+        if(!this.isTesting)return;
+        console.log('\n\n____________________________')
+        console.log(this.operation);
+        console.log(`Dimensões da imagem real: esquerda = ${this.realImage.left}, topo = ${this.realImage.top} largura = ${this.realImage.width}, altura = ${this.realImage.height}`);
+        console.log(`Dimensões do frame: largura = ${this.realImageClient.width}, altura = ${this.realImageClient.height}`);
+        console.log(`Posição do frame: esquerda = ${this.realImageClient.left}, topo = ${this.realImageClient.top}, centro = ${this.realImageClient.center_x} / ${this.realImageClient.center_y}`);
+    }
+
     showRealImage() {
+        if(!this.isTesting)return;
         const img = document.querySelector('#optimizedImage');
         img.src = this.realImage.src;
         this.realImage.top = this.maxSideVisibleCanvas + 30;
@@ -368,26 +329,20 @@ export default class ImageEditor {
     }
 
     divAboveImage(divLeft, divTop, divWidth, divHeight) {
+        if(!this.isTesting)return;
         const imgElement = document.getElementById('optimizedImage');
         const divElement = document.getElementById('overlayDiv');
-
         if (!divElement || !imgElement) {
             console.error("Elementos com os IDs fornecidos não foram encontrados.");
             return;
         }
-
         const imgLeft = 600;
         const imgTop = 1000;
-
         imgElement.style.position = "absolute";
         imgElement.style.left = `${imgLeft}px`;
         imgElement.style.top = `${imgTop}px`;
-        //imgElement.style.width = `${imgWidth}px`;
-        //imgElement.style.height = `${imgHeight}px`;
-
         const new_divLeft = imgLeft + divLeft;
         const new_divTop = imgTop + divTop;
-        // Estilizar a div
         divElement.style.position = "absolute";
         divElement.style.left = `${new_divLeft}px`;
         divElement.style.top = `${new_divTop}px`;
