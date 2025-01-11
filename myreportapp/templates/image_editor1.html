@@ -6,34 +6,39 @@
 {% load static %}
 
 {% block center_content %}
-<div class="toolbar">
+<div class="toolbar fixed-top">
     <button id="newImageBtn" title="Nova Imagem">
         <i class="fas fa-image"></i>
-        <span>Nova Imagem</span>
+        <!--
+        <span>Nova Imagem</span>-->
     </button>
     <button id="rotateClockwiseBtn" title="Rotacionar Horário">
         <i class="fas fa-redo"></i>
-        <span>Rotacionar Horário</span>
+        <!--<span>Rotacionar Horário</span>-->
     </button>
     <button id="rotateCounterClockwiseBtn" title="Rotacionar Anti-Horário">
         <i class="fas fa-undo"></i>
-        <span>Rotacionar Anti-Horário</span>
+        <!--<span>Rotacionar Anti-Horário</span>-->
     </button>
     <button id="zoomInBtn" title="Zoom In">
         <i class="fas fa-search-plus"></i>
-        <span>Zoom In</span>
+        <!--<span>Zoom In</span>-->
     </button>
     <button id="panBtn" title="Pan">
         <i class="fas fa-arrows-alt"></i>
-        <span>Mover</span>
+        <!--<span>Mover</span>-->
     </button>
     <button id="cropBtn" title="Crop">
         <i class="fas fa-crop"></i>
-        <span>Crop</span>
+        <!--<span>Crop</span>-->
+    </button>
+    <button id="markerBtn" title="Inserir Marcador">
+        <i class="fas fa-map-marker-alt"></i>
+        <!--<span>Marcador</span>-->
     </button>
     <button id="undoBtn" title="Desfazer">
         <i class="fas fa-undo-alt"></i>
-        <span>Desfazer</span>
+        <!--<span>Desfazer</span>-->
     </button>
 </div>
 
@@ -74,11 +79,15 @@
     });
 
     document.querySelector('#rotateClockwiseBtn').addEventListener('click', (event)=>{
-        editor.rotate(1);
+        editor.rotate_image(1);
     });
 
     document.querySelector('#rotateCounterClockwiseBtn').addEventListener('click', (event)=>{
-        editor.rotate(-1);
+        editor.rotate_image(-1);
+    });
+
+    document.querySelector('#markerBtn').addEventListener('click', (event)=>{
+        editor.isMarking = true;
     });
 
     

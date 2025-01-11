@@ -3,7 +3,7 @@
     display: block;
     justify-content: space-evenly;
     align-items: center;
-    background-color: #f0f0f0;
+    background-color: #222;
     padding: 10px;
     margin-bottom: 10px;
 }
@@ -12,13 +12,15 @@
     background: none;
     border: none;
     font-size: 20px;
+    color: whitesmoke;
     cursor: pointer;
     padding: 10px;
     transition: background-color 0.3s;
 }
 
 .toolbar button:hover {
-    background-color: #ddd;
+    background-color: #333;
+    color: #fe5;
 }
 
 .toolbar button i {
@@ -32,15 +34,15 @@
 
 /* Estilo para o canvas */
 canvas {
-    border: 1px solid #ccc;
-    background-color: #f9f9f9;
+    border: 1px solid #221;
+    background-color: #333;
 }
 
 .canvas-container {
     display: flex; /* Ativa o Flexbox */
     justify-content: center; /* Alinha horizontalmente ao centro */
     align-items: center; /* Alinha verticalmente ao centro */
-    background-color: #005599;
+    background-color: #1e1e1e;
     width: 800px;
     height: 800px;
     margin: 0 auto; /* Opcional: Centraliza horizontalmente no corpo */
