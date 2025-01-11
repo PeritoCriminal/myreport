@@ -9,38 +9,39 @@
 <div class="toolbar fixed-top">
     <button id="newImageBtn" title="Nova Imagem">
         <i class="fas fa-image"></i>
-        <!--
-        <span>Nova Imagem</span>-->
     </button>
     <button id="rotateClockwiseBtn" title="Rotacionar Horário">
         <i class="fas fa-redo"></i>
-        <!--<span>Rotacionar Horário</span>-->
     </button>
     <button id="rotateCounterClockwiseBtn" title="Rotacionar Anti-Horário">
         <i class="fas fa-undo"></i>
-        <!--<span>Rotacionar Anti-Horário</span>-->
     </button>
     <button id="zoomInBtn" title="Zoom In">
         <i class="fas fa-search-plus"></i>
-        <!--<span>Zoom In</span>-->
     </button>
     <button id="panBtn" title="Pan">
         <i class="fas fa-arrows-alt"></i>
-        <!--<span>Mover</span>-->
     </button>
     <button id="cropBtn" title="Crop">
         <i class="fas fa-crop"></i>
-        <!--<span>Crop</span>-->
     </button>
+    <!-- Separador -->
+    <span class="separator"></span>
+    <!-- Caixa de texto para inserir números -->
+    <input type="number" id="numberInput" title="Inserir Número" value="1" min="1" maxlength="2" placeholder="00" style="width: 50px;">
     <button id="markerBtn" title="Inserir Marcador">
-        <i class="fas fa-map-marker-alt"></i>
-        <!--<span>Marcador</span>-->
+        <i class="fas fa-hashtag"></i> <!-- Alterado para numeral -->
+    </button>
+    <!-- Caixa de texto para inserir texto -->
+    <input type="text" id="textInput" title="Inserir Texto" maxlength="40" placeholder="Texto" style="width: 150px;">
+    <button id="textBtn" title="Adicionar Texto">
+        <i class="fas fa-font"></i> <!-- Ícone para texto -->
     </button>
     <button id="undoBtn" title="Desfazer">
         <i class="fas fa-undo-alt"></i>
-        <!--<span>Desfazer</span>-->
     </button>
 </div>
+
 
 <div class="canvas-container">
     <canvas id="display-image" width="800" height="600"></canvas>
@@ -88,6 +89,14 @@
 
     document.querySelector('#markerBtn').addEventListener('click', (event)=>{
         editor.isMarking = true;
+    });
+
+    document.querySelector('#numberInput').addEventListener('change', (event) => {
+        editor.lastMarkNumber = event.target.value - 1;
+    });
+
+    document.querySelector('#textBtn').addEventListener('click', (event)=>{
+        editor.isLabeling = true;
     });
 
     

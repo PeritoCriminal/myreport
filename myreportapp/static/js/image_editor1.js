@@ -6,8 +6,8 @@
 
 
 export default class ImageEditor {
-    constructor(someCanvasElement, maxSideVisibleCanvas = 800) {        
-        this.isTesting = true;
+    constructor(someCanvasElement, maxSideVisibleCanvas = 800) {
+        this.isTesting = false;
         this.visibleImage = someCanvasElement;
         this.maxSideVisibleCanvas = maxSideVisibleCanvas;
         this.ctx = this.visibleImage.getContext('2d', { willReadFrequently: true });
@@ -26,6 +26,7 @@ export default class ImageEditor {
         this.isCropping = false;
         this.endCrop = false;
         this.isMarking = false;
+        this.isLabeling = false;
         this.operation = 'Nenhuma operação ...';
         this.visibleImage.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.visibleImage.addEventListener('mousemove', this.handleMouseMove.bind(this));
@@ -39,7 +40,13 @@ export default class ImageEditor {
         this.mouseDownCoordinates.x = dx;
         this.mouseDownCoordinates.y = dy;
         if (this.isMarking) {
-            this.marker();
+            const idInputElement = document.querySelector('#numberInput');
+            this.marker(idInputElement || null);
+            return;
+        }
+        if (this.isLabeling) {
+            const idInputElement = document.querySelector('#textInput');
+            this.markerLabel(idInputElement || null);
             return;
         }
         this.lastMouseCoordinates.length = 0;
@@ -95,6 +102,7 @@ export default class ImageEditor {
         this.isZooming = false;
         //this.isCropping = false;
         this.isMarking = false;
+        this.isLabeling = false;
         this.endCrop = false;
     }
 
@@ -338,17 +346,70 @@ export default class ImageEditor {
         };
     }
 
-    marker() {
-        //this.clientToHideImage();
+    marker(idInputElement = null) {
         if (!this.isMarking) {
             return;
         }
-        //this.transformRealImage();
         this.lastMarkNumber += 1;
-
-        // Configurar o contexto do canvas
+        if (idInputElement) {
+            idInputElement.value = this.lastMarkNumber + 1;
+        }
         const { x, y } = this.mouseDownCoordinates;
         const text = `${this.lastMarkNumber}`;
+        const fontSize = 22;
+        const font = 'Arial';
+        const padding = 5;
+        const radius = 5;
+
+        // Definir estilo do texto
+        this.ctx.font = `${fontSize}px ${font}`;
+        this.ctx.textBaseline = 'top';
+        this.ctx.fillStyle = 'black';
+
+        // Medir o tamanho do texto
+        const textMetrics = this.ctx.measureText(text);
+        const textWidth = textMetrics.width;
+        const textHeight = fontSize; // Aproximação do tamanho da altura do texto
+
+        // Configurar o estilo do fundo
+        const backgroundX = x - padding;
+        const backgroundY = y - padding;
+        const backgroundWidth = textWidth + 2 * padding;
+        const backgroundHeight = textHeight + 2 * padding;
+
+        // Desenhar o fundo com bordas arredondadas
+        this.ctx.beginPath();
+        this.ctx.moveTo(backgroundX + radius, backgroundY);
+        this.ctx.arcTo(backgroundX + backgroundWidth, backgroundY, backgroundX + backgroundWidth, backgroundY + backgroundHeight, radius);
+        this.ctx.arcTo(backgroundX + backgroundWidth, backgroundY + backgroundHeight, backgroundX, backgroundY + backgroundHeight, radius);
+        this.ctx.arcTo(backgroundX, backgroundY + backgroundHeight, backgroundX, backgroundY, radius);
+        this.ctx.arcTo(backgroundX, backgroundY, backgroundX + backgroundWidth, backgroundY, radius);
+        this.ctx.closePath();
+
+        // Preencher fundo amarelo
+        this.ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+        this.ctx.fill();
+
+        // Desenhar borda vermelha
+        this.ctx.strokeStyle = 'red';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+
+        // Desenhar o texto no centro do fundo
+        this.ctx.fillStyle = 'black';
+        this.ctx.fillText(text, x, y);
+
+        // Atualizar a imagem real com o marcador
+        this.updateMarkOnRealImage(x, y, text, fontSize, font, padding, radius);
+    }
+
+
+    markerLabel(idInputElement = null) {
+        if (!this.isLabeling || idInputElement === null || idInputElement.value.trim() == '') {
+            return;
+        }
+        const { x, y } = this.mouseDownCoordinates;
+        const text = `${idInputElement.value}`;
         const fontSize = 22;
         const font = 'Arial';
         const padding = 5;
@@ -459,7 +520,7 @@ export default class ImageEditor {
         }
     }
 
-    clientToHideImage(){
+    clientToHideImage() {
         const newCanvas = document.createElement('canvas');
         newCanvas.width = this.hideImageClient.width;
         newCanvas.height = this.hideImageClient.height;
@@ -477,7 +538,7 @@ export default class ImageEditor {
         )
         const newImage = new Image();
         newImage.src = newCanvas.toDataURL();
-        newImage.onload = () =>{
+        newImage.onload = () => {
             //this.hideImage = new Image();
             this.hideImage = newImage;
         }
@@ -485,7 +546,7 @@ export default class ImageEditor {
     }
 
 
- /******************************************************* */
+    /******************************************************* */
 
     // TESTES
     displayInfo() {
