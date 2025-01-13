@@ -2,16 +2,18 @@
 
 // por favor, avalie marker, updateMarkOnrealImage e transformRealImage.
 // O primeiro marcador aparece e logo em seguida é apagado, e só do segundo em diante que é exibido.
-// Ao palicar trasnformações e depois usar o mark, a imagem fica distorcida.
+// Ao aplicar trasnformações e depois usar o mark, a imagem fica distorcida.
 
 
 export default class ImageEditor {
     constructor(someCanvasElement, maxSideVisibleCanvas = 800) {
-        this.isTesting = false;
+        this.isTesting = true;
         this.visibleImage = someCanvasElement;
         this.maxSideVisibleCanvas = maxSideVisibleCanvas;
         this.ctx = this.visibleImage.getContext('2d', { willReadFrequently: true });
-        this.colorLine = 'red';
+        this.colorLine = 'rgba(0, 0, 0, 1)';
+        this.colorLineArrow = 'rgba(0, 0, 0, 1)';
+        this.lineThickness = 2;
         this.lastMarkNumber = 0;
         this.hideImage = new Image();
         this.hideImageClient = { left: 0, top: 0, width: 800, height: 600, center_x: 400, center_y: 300 };
@@ -27,6 +29,8 @@ export default class ImageEditor {
         this.endCrop = false;
         this.isMarking = false;
         this.isLabeling = false;
+        this.isPointing = false;
+        this.endArrowTip = false;
         this.operation = 'Nenhuma operação ...';
         this.visibleImage.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.visibleImage.addEventListener('mousemove', this.handleMouseMove.bind(this));
@@ -48,6 +52,9 @@ export default class ImageEditor {
             const idInputElement = document.querySelector('#textInput');
             this.markerLabel(idInputElement || null);
             return;
+        }
+        if (this.isPointing) {
+            this.endArrowTip = false;
         }
         this.lastMouseCoordinates.length = 0;
         this.lastMouseCoordinates.push({ x: dx, y: dy }, { x: dx, y: dy }, { x: dx, y: dy });
@@ -77,6 +84,9 @@ export default class ImageEditor {
             case this.isDragging:
                 this.pan();
                 break;
+            case this.isPointing:
+                this.pointTo();
+                break;
         }
     }
 
@@ -84,6 +94,10 @@ export default class ImageEditor {
         if (this.isCropping) {
             this.endCrop = true;
             this.crop();
+        }
+        if (this.isPointing) {
+            this.endArrowTip = true;
+            this.pointTo();
         }
         this.clearOperations();
         this.operation = 'Botão esquerdo do mouse levantado ...'
@@ -100,10 +114,10 @@ export default class ImageEditor {
         this.isMouseDown = false;
         this.isDragging = false;
         this.isZooming = false;
-        //this.isCropping = false;
         this.isMarking = false;
         this.isLabeling = false;
         this.endCrop = false;
+        this.isPointing = false;
     }
 
     setCenterClient() {
@@ -350,6 +364,7 @@ export default class ImageEditor {
         if (!this.isMarking) {
             return;
         }
+        this.updateMarkOnRealImage(0, 0, '', 0, '', 0, 0)
         this.lastMarkNumber += 1;
         if (idInputElement) {
             idInputElement.value = this.lastMarkNumber + 1;
@@ -391,8 +406,8 @@ export default class ImageEditor {
         this.ctx.fill();
 
         // Desenhar borda vermelha
-        this.ctx.strokeStyle = 'red';
-        this.ctx.lineWidth = 1;
+        this.ctx.strokeStyle = this.colorLineArrow;
+        this.ctx.lineWidth = this.lineThickness;
         this.ctx.stroke();
 
         // Desenhar o texto no centro do fundo
@@ -445,8 +460,8 @@ export default class ImageEditor {
         this.ctx.fill();
 
         // Desenhar borda vermelha
-        this.ctx.strokeStyle = 'red';
-        this.ctx.lineWidth = 1;
+        this.ctx.strokeStyle = this.colorLineArrow;
+        this.ctx.lineWidth = this.lineThickness;
         this.ctx.stroke();
 
         // Desenhar o texto no centro do fundo
@@ -504,7 +519,7 @@ export default class ImageEditor {
         realCtx.fill();
 
         // Desenhar borda vermelha
-        realCtx.strokeStyle = 'red';
+        realCtx.strokeStyle = this.colorLineArrow;
         realCtx.lineWidth = 1 * scaleFactor;
         realCtx.stroke();
 
@@ -520,6 +535,180 @@ export default class ImageEditor {
         }
     }
 
+    pointTo() {
+        if (!this.isPointing) {
+            return;
+        }
+        const arrowBase = this.mouseDownCoordinates;
+        const arrowTip = this.mouseMoveCoordinates;
+        this.ctx.clearRect(0, 0, this.visibleImage.width, this.visibleImage.height);
+        this.adjustSizes();
+        this.ctx.strokeStyle = this.colorLine;
+        this.ctx.lineWidth = this.lineThickness;
+        const baseRadius = this.ctx.lineWidth * 0.7;
+        this.ctx.fillStyle = this.colorLine;
+        this.ctx.beginPath();
+        this.ctx.arc(arrowBase.x, arrowBase.y, baseRadius, 0, 2 * Math.PI);
+        this.ctx.fill();
+        const headLength = 10;
+        const dx = arrowTip.x - arrowBase.x;
+        const dy = arrowTip.y - arrowBase.y;
+        const angle = Math.atan2(dy, dx);
+        this.ctx.beginPath();
+        this.ctx.moveTo(arrowBase.x, arrowBase.y);
+        this.ctx.lineTo(arrowTip.x, arrowTip.y);
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(arrowTip.x, arrowTip.y);
+        this.ctx.lineTo(
+            arrowTip.x - headLength * Math.cos(angle - Math.PI / 6),
+            arrowTip.y - headLength * Math.sin(angle - Math.PI / 6)
+        );
+        this.ctx.lineTo(
+            arrowTip.x - headLength * Math.cos(angle + Math.PI / 6),
+            arrowTip.y - headLength * Math.sin(angle + Math.PI / 6)
+        );
+        this.ctx.lineTo(arrowTip.x, arrowTip.y);
+        this.ctx.closePath();
+        this.ctx.fillStyle = this.colorLine;
+        this.ctx.fill();
+        console.log(`Seta de ${arrowBase.x} x ${arrowBase.y} até ${arrowTip.x} x ${arrowTip.y}`);
+        if (this.endArrowTip) {
+            this.updateArrowOnRealImage(arrowBase.x, arrowBase.y, arrowTip.x, arrowTip.y, this.ctx.lineWidth, headLength);
+        }
+    }
+
+    updateArrowOnRealImage(xStart, yStart, xEnd, yEnd, lineWidth, arrowHeadSize) {
+        // Calcular as proporções entre canvas e realImage
+        const scaleFactor = this.hideImageClient.width / this.visibleImage.width;
+
+        // Ajustar as coordenadas considerando o deslocamento do realImageClient
+        const adjustedXStart = (xStart * scaleFactor) + this.hideImageClient.left;
+        const adjustedYStart = (yStart * scaleFactor) + this.hideImageClient.top;
+        const adjustedXEnd = (xEnd * scaleFactor) + this.hideImageClient.left;
+        const adjustedYEnd = (yEnd * scaleFactor) + this.hideImageClient.top;
+
+        // Obter o contexto da realImage
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = this.hideImage.width;
+        tempCanvas.height = this.hideImage.height;
+        const realCtx = tempCanvas.getContext('2d');
+
+        // Desenhar a imagem original
+        realCtx.drawImage(this.hideImage, 0, 0);
+
+        // Configurar estilo da seta
+        realCtx.strokeStyle = this.colorLine;
+        realCtx.lineWidth = lineWidth * scaleFactor * 0.5;
+
+        // Desenhar o corpo da seta
+        realCtx.beginPath();
+        realCtx.moveTo(adjustedXStart, adjustedYStart);
+        realCtx.lineTo(adjustedXEnd, adjustedYEnd);
+        realCtx.stroke();
+
+        // Calcular o ângulo da ponta da seta
+        const dx = adjustedXEnd - adjustedXStart;
+        const dy = adjustedYEnd - adjustedYStart;
+        const angle = Math.atan2(dy, dx);
+
+        // Desenhar a ponta da seta
+        const scaledArrowHeadSize = arrowHeadSize * scaleFactor;
+        realCtx.beginPath();
+        realCtx.moveTo(adjustedXEnd, adjustedYEnd);
+        realCtx.lineTo(
+            adjustedXEnd - scaledArrowHeadSize * Math.cos(angle - Math.PI / 6),
+            adjustedYEnd - scaledArrowHeadSize * Math.sin(angle - Math.PI / 6)
+        );
+        realCtx.lineTo(
+            adjustedXEnd - scaledArrowHeadSize * Math.cos(angle + Math.PI / 6),
+            adjustedYEnd - scaledArrowHeadSize * Math.sin(angle + Math.PI / 6)
+        );
+        realCtx.lineTo(adjustedXEnd, adjustedYEnd);
+        realCtx.closePath();
+        realCtx.fillStyle = this.colorLine;
+        realCtx.fill();
+
+        // Desenhar a base da seta (círculo)
+        const baseRadius = (lineWidth * 0.6) * scaleFactor;
+        realCtx.beginPath();
+        realCtx.arc(adjustedXStart, adjustedYStart, baseRadius, 0, 2 * Math.PI);
+        realCtx.fillStyle = this.colorLine;
+        realCtx.fill();
+
+        // Atualizar realImage
+        const newImage = new Image();
+        newImage.src = tempCanvas.toDataURL();
+        newImage.onload = () => {
+            this.hideImage = newImage;
+        };
+
+        console.log("\n\n---------------\nscaleFactor:", scaleFactor);
+        console.log("Adjusted Start:", adjustedXStart, adjustedYStart);
+        console.log("Adjusted End:", adjustedXEnd, adjustedYEnd);
+        console.log("LineWidth:", lineWidth, "ArrowHeadSize:", arrowHeadSize);
+    }
+
+
+    apply() {
+        // Verifica se this.hideImage é uma imagem válida
+        if (!(this.hideImage instanceof HTMLImageElement)) {
+            console.error("this.hideImage não é uma instância de HTMLImageElement.");
+            return;
+        }
+        console.log('Inicio da função aapply...')
+        // Verifica se this.hideImageClient contém as propriedades necessárias
+        if (!this.hideImageClient ||
+            typeof this.hideImageClient.left !== 'number' ||
+            typeof this.hideImageClient.top !== 'number' ||
+            typeof this.hideImageClient.width !== 'number' ||
+            typeof this.hideImageClient.height !== 'number') {
+            console.error("this.hideImageClient está inválido ou incompleto.");
+            return;
+        }
+        console.log('Primeiras condições satisfeitas...')
+        // Cria um canvas com as dimensões do frame
+        const canvas = document.createElement('canvas');
+        canvas.width = this.hideImageClient.width;
+        canvas.height = this.hideImageClient.height;
+    
+        // Obtém o contexto 2D do canvas
+        const ctx = canvas.getContext('2d');
+    
+        try {
+            // Desenha o conteúdo do frame no canvas
+            ctx.drawImage(
+                this.hideImage,                              // Imagem original
+                this.hideImageClient.left,                  // Coordenada X inicial do frame
+                this.hideImageClient.top,                   // Coordenada Y inicial do frame
+                this.hideImageClient.width,                 // Largura do frame
+                this.hideImageClient.height,                // Altura do frame
+                0,                                          // Coordenada X no canvas
+                0,                                          // Coordenada Y no canvas
+                this.hideImageClient.width,                 // Largura no canvas
+                this.hideImageClient.height                 // Altura no canvas
+            );
+    
+            // Cria uma nova imagem a partir do canvas
+            const image = new Image();
+            image.src = canvas.toDataURL();
+    
+            // Atribui a nova imagem ao this.hideImage após carregamento
+            image.onload = () => {
+                this.hideImage = image;
+                //this.adjustSizes();
+            };
+        } catch (error) {
+            console.error("Erro ao processar a imagem:", error);
+        }
+        this.adjustSizes();
+        this.hideImageFactor = this.hideImageClient.width / this.visibleImage.width;
+    }
+    
+
+
+
+    /* Não sei ainda de vou usar esse método.
     clientToHideImage() {
         const newCanvas = document.createElement('canvas');
         newCanvas.width = this.hideImageClient.width;
@@ -544,6 +733,9 @@ export default class ImageEditor {
         }
         this.adjustSizes();
     }
+
+    */
+
 
 
     /******************************************************* */

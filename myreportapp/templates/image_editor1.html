@@ -37,8 +37,12 @@
     <button id="textBtn" title="Adicionar Texto">
         <i class="fas fa-font"></i> <!-- Ícone para texto -->
     </button>
+    <button id="arrowBtn" title="Adicionar Seta">
+        <i class="fas fa-long-arrow-alt-down"></i> <!-- Ícone de seta -->
+    </button>
+    <!-- Substituição do ícone de desfazer -->
     <button id="undoBtn" title="Desfazer">
-        <i class="fas fa-undo-alt"></i>
+        <i class="fas fa-history"></i> <!-- Novo ícone para desfazer -->
     </button>
 </div>
 
@@ -97,6 +101,14 @@
 
     document.querySelector('#textBtn').addEventListener('click', (event)=>{
         editor.isLabeling = true;
+    });
+
+    document.querySelector('#arrowBtn').addEventListener('click', (event)=>{
+        editor.isPointing = true;
+    });
+
+    document.querySelector('#undoBtn').addEventListener('click', (event)=>{
+        editor.apply();
     });
 
     
