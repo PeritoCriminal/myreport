@@ -11,12 +11,12 @@ export default class ImageEditor {
         this.visibleImage = someCanvasElement;
         this.maxSideVisibleCanvas = maxSideVisibleCanvas;
         this.ctx = this.visibleImage.getContext('2d', { willReadFrequently: true });
-        this.colorLine = 'rgba(0, 0, 0, 1)';
-        this.colorLineArrow = 'rgba(0, 0, 0, 1)';
+        this.colorLine = 'rgba(250, 0, 0, 1)';
+        this.colorBackGround = 'rgba(250, 250, 0, 0.7)';
         this.lineThickness = 2;
         this.lastMarkNumber = 0;
         this.hideImage = new Image();
-        this.hideImageClient = { left: 0, top: 0, width: 800, height: 600, center_x: 400, center_y: 300 };
+        this.hideImageClient = { left: 0, top: 0, width: 800, height: 600 };
         this.hideImageFactor = 2;
         this.mouseDownCoordinates = { x: 0, y: 0 };
         this.mouseMoveCoordinates = { x: 0, y: 0 };
@@ -36,6 +36,7 @@ export default class ImageEditor {
         this.visibleImage.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.visibleImage.addEventListener('mouseup', this.handleMouseUp.bind(this));
         this.visibleImage.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
+        this.savedImages = [];
     }
 
     handleMouseDown(event) {
@@ -120,12 +121,13 @@ export default class ImageEditor {
         this.isPointing = false;
     }
 
-    setCenterClient() {
+    setCenterClient1() {
         this.hideImageClient.center_x = (this.hideImageClient.width / 2) - this.hideImageClient.left;
         this.hideImageClient.center_y = (this.hideImageClient.height / 2) - this.hideImageClient.top;
     }
 
     selectImage() {
+        this.hideImageFactor = 2;
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
@@ -165,6 +167,10 @@ export default class ImageEditor {
     }
 
     adjustSizes() {
+        if (this.hideImageFactor < 1) {
+            this.visibleImage.width = this.hideImage.width;
+            this.visibleImage.height = this.hideImage.height;
+        }
         const ratio = this.hideImageClient.width / this.hideImageClient.height;
         if (ratio > 1) {
             this.visibleImage.width = this.maxSideVisibleCanvas;
@@ -182,9 +188,10 @@ export default class ImageEditor {
             imgX, imgY, clientW, clientH,
             0, 0, this.visibleImage.width, this.visibleImage.height
         );
-        this.setCenterClient();
+        //this.setCenterClient();
         if (this.isTesting) {
             this.showRealImage();
+            this.updateListOfSavedImages();
             this.displayInfo();
         }
     }
@@ -371,7 +378,7 @@ export default class ImageEditor {
         }
         const { x, y } = this.mouseDownCoordinates;
         const text = `${this.lastMarkNumber}`;
-        const fontSize = 22;
+        const fontSize = 26;
         const font = 'Arial';
         const padding = 5;
         const radius = 5;
@@ -402,11 +409,11 @@ export default class ImageEditor {
         this.ctx.closePath();
 
         // Preencher fundo amarelo
-        this.ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+        this.ctx.fillStyle = this.colorBackGround;
         this.ctx.fill();
 
         // Desenhar borda vermelha
-        this.ctx.strokeStyle = this.colorLineArrow;
+        this.ctx.strokeStyle = this.colorLine;
         this.ctx.lineWidth = this.lineThickness;
         this.ctx.stroke();
 
@@ -425,7 +432,7 @@ export default class ImageEditor {
         }
         const { x, y } = this.mouseDownCoordinates;
         const text = `${idInputElement.value}`;
-        const fontSize = 22;
+        const fontSize = 26;
         const font = 'Arial';
         const padding = 5;
         const radius = 5;
@@ -456,11 +463,11 @@ export default class ImageEditor {
         this.ctx.closePath();
 
         // Preencher fundo amarelo
-        this.ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+        this.ctx.fillStyle = this.colorBackGround;
         this.ctx.fill();
 
         // Desenhar borda vermelha
-        this.ctx.strokeStyle = this.colorLineArrow;
+        this.ctx.strokeStyle = this.colorLine;
         this.ctx.lineWidth = this.lineThickness;
         this.ctx.stroke();
 
@@ -515,11 +522,11 @@ export default class ImageEditor {
         realCtx.closePath();
 
         // Preencher fundo amarelo
-        realCtx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+        realCtx.fillStyle = this.colorBackGround;
         realCtx.fill();
 
         // Desenhar borda vermelha
-        realCtx.strokeStyle = this.colorLineArrow;
+        realCtx.strokeStyle = this.colorLine;
         realCtx.lineWidth = 1 * scaleFactor;
         realCtx.stroke();
 
@@ -599,7 +606,7 @@ export default class ImageEditor {
 
         // Configurar estilo da seta
         realCtx.strokeStyle = this.colorLine;
-        realCtx.lineWidth = lineWidth * scaleFactor * 0.5;
+        realCtx.lineWidth = lineWidth * scaleFactor;
 
         // Desenhar o corpo da seta
         realCtx.beginPath();
@@ -656,7 +663,8 @@ export default class ImageEditor {
             console.error("this.hideImage não é uma instância de HTMLImageElement.");
             return;
         }
-        console.log('Inicio da função aapply...')
+        console.log('Início da função apply...');
+
         // Verifica se this.hideImageClient contém as propriedades necessárias
         if (!this.hideImageClient ||
             typeof this.hideImageClient.left !== 'number' ||
@@ -666,15 +674,16 @@ export default class ImageEditor {
             console.error("this.hideImageClient está inválido ou incompleto.");
             return;
         }
-        console.log('Primeiras condições satisfeitas...')
+        console.log('Primeiras condições satisfeitas...');
+
         // Cria um canvas com as dimensões do frame
         const canvas = document.createElement('canvas');
         canvas.width = this.hideImageClient.width;
         canvas.height = this.hideImageClient.height;
-    
+
         // Obtém o contexto 2D do canvas
         const ctx = canvas.getContext('2d');
-    
+
         try {
             // Desenha o conteúdo do frame no canvas
             ctx.drawImage(
@@ -688,25 +697,70 @@ export default class ImageEditor {
                 this.hideImageClient.width,                 // Largura no canvas
                 this.hideImageClient.height                 // Altura no canvas
             );
-    
+
             // Cria uma nova imagem a partir do canvas
             const image = new Image();
             image.src = canvas.toDataURL();
-    
-            // Atribui a nova imagem ao this.hideImage após carregamento
+
+            // Ajusta o this.hideImage após a nova imagem carregar
             image.onload = () => {
                 this.hideImage = image;
-                //this.adjustSizes();
+                this.hideImageClient.left = 0;
+                this.hideImageClient.top = 0;
+                this.adjustSizes(); // Ajusta tamanhos após a imagem carregar
+                this.hideImageFactor = this.hideImageClient.width / this.visibleImage.width;
             };
         } catch (error) {
             console.error("Erro ao processar a imagem:", error);
         }
-        this.adjustSizes();
-        this.hideImageFactor = this.hideImageClient.width / this.visibleImage.width;
+    }
+
+
+    // Método para verificar e atualizar a lista de imagens salvas
+    updateListOfSavedImages() {
+        const newImageSrc = this.hideImage?.src;
+
+        // Verifica se a imagem existe e se é diferente da última salva
+        if (newImageSrc && newImageSrc !== this.savedImages[this.savedImages.length - 1]) {
+            this.savedImages.push(newImageSrc);
+
+            // Mantém no máximo 10 imagens na lista
+            if (this.savedImages.length > 10) {
+                this.savedImages.shift();
+            }
+            console.log('Atualizado lista de imagens....');
+        }
+    }
+
+
+    undo() {
+        if (this.savedImages.length <= 1) {
+            console.log("Não há imagens anteriores...");
+            return;
+        }
+    
+        // Obtém a última imagem da lista
+        this.savedImages.pop();
+        const lastImageSrc = this.savedImages.pop();
+    
+        // Cria uma nova imagem com o último src
+        const newImage = new Image();
+        newImage.src = lastImageSrc;
+    
+        // Define a nova imagem como a atual (hideImage)
+        newImage.onload = () => {
+            this.hideImage = newImage;
+            this.hideImageClient.width = this.hideImage.width;
+            this.hideImageClient.height = this.hideImage.height;
+            this.adjustSizes();
+            console.log("Imagem revertida para a anterior.");
+        };
+    
+        newImage.onerror = () => {
+            console.error("Erro ao carregar a imagem anterior.");
+        };
     }
     
-
-
 
     /* Não sei ainda de vou usar esse método.
     clientToHideImage() {
@@ -748,6 +802,7 @@ export default class ImageEditor {
         console.log(`Dimensões da imagem real: esquerda = ${this.hideImage.left}, topo = ${this.hideImage.top} largura = ${this.hideImage.width}, altura = ${this.hideImage.height}`);
         console.log(`Dimensões do frame: largura = ${this.hideImageClient.width}, altura = ${this.hideImageClient.height}`);
         console.log(`Posição do frame: esquerda = ${this.hideImageClient.left}, topo = ${this.hideImageClient.top}, centro = ${this.hideImageClient.center_x} / ${this.hideImageClient.center_y}`);
+        console.log(`Quantidade de imagens salvas = ${this.savedImages.length}.`)
     }
 
     showRealImage() {

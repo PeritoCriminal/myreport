@@ -25,6 +25,9 @@
     <button id="cropBtn" title="Crop">
         <i class="fas fa-crop"></i>
     </button>
+    <button id="applyBtn" title="Aplicar">
+        <i class="fas fa-check"></i>
+    </button>
     <!-- Separador -->
     <span class="separator"></span>
     <!-- Caixa de texto para inserir números -->
@@ -107,8 +110,12 @@
         editor.isPointing = true;
     });
 
-    document.querySelector('#undoBtn').addEventListener('click', (event)=>{
+    document.querySelector('#applyBtn').addEventListener('click', (event)=>{
         editor.apply();
+    });
+
+    document.querySelector('#undoBtn').addEventListener('click', (event)=>{
+        editor.undo();
     });
 
     
