@@ -1,18 +1,15 @@
 // myreportapp/static/js/image_editor1.js
 
-// por favor, avalie marker, updateMarkOnrealImage e transformRealImage.
-// O primeiro marcador aparece e logo em seguida é apagado, e só do segundo em diante que é exibido.
-// Ao aplicar trasnformações e depois usar o mark, a imagem fica distorcida.
-
 
 export default class ImageEditor {
     constructor(someCanvasElement, maxSideVisibleCanvas = 800) {
-        this.isTesting = true;
+        this.isTesting = false;
         this.visibleImage = someCanvasElement;
         this.maxSideVisibleCanvas = maxSideVisibleCanvas;
         this.ctx = this.visibleImage.getContext('2d', { willReadFrequently: true });
         this.colorLine = 'rgba(250, 0, 0, 1)';
         this.colorBackGround = 'rgba(250, 250, 0, 0.7)';
+        this.textColor = 'rgba(0, 0, 0, 1)'
         this.lineThickness = 2;
         this.lastMarkNumber = 0;
         this.hideImage = new Image();
@@ -27,9 +24,12 @@ export default class ImageEditor {
         this.isZooming = false;
         this.isCropping = false;
         this.endCrop = false;
+        this.initBlur = false;
+        this.endBlur = false;
         this.isMarking = false;
         this.isLabeling = false;
         this.isPointing = false;
+        this.isBlurring = false;
         this.endArrowTip = false;
         this.operation = 'Nenhuma operação ...';
         this.visibleImage.addEventListener('mousedown', this.handleMouseDown.bind(this));
@@ -37,6 +37,9 @@ export default class ImageEditor {
         this.visibleImage.addEventListener('mouseup', this.handleMouseUp.bind(this));
         this.visibleImage.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
         this.savedImages = [];
+
+        this.hideCanvas = document.createElement('canvas');
+        this.hideCtx = this.hideCanvas.getContext('2d');
     }
 
     handleMouseDown(event) {
@@ -56,6 +59,9 @@ export default class ImageEditor {
         }
         if (this.isPointing) {
             this.endArrowTip = false;
+        }
+        if (this.isBlurring) {
+            this.initBlur = true;
         }
         this.lastMouseCoordinates.length = 0;
         this.lastMouseCoordinates.push({ x: dx, y: dy }, { x: dx, y: dy }, { x: dx, y: dy });
@@ -88,6 +94,9 @@ export default class ImageEditor {
             case this.isPointing:
                 this.pointTo();
                 break;
+            case this.isBlurring:
+                this.blur();
+                break;
         }
     }
 
@@ -95,6 +104,10 @@ export default class ImageEditor {
         if (this.isCropping) {
             this.endCrop = true;
             this.crop();
+        }
+        if (this.isBlurring) {
+            this.endBlur = true;
+            this.blur();
         }
         if (this.isPointing) {
             this.endArrowTip = true;
@@ -119,6 +132,7 @@ export default class ImageEditor {
         this.isLabeling = false;
         this.endCrop = false;
         this.isPointing = false;
+        this.isBlurring = false;
     }
 
     setCenterClient1() {
@@ -386,7 +400,7 @@ export default class ImageEditor {
         // Definir estilo do texto
         this.ctx.font = `${fontSize}px ${font}`;
         this.ctx.textBaseline = 'top';
-        this.ctx.fillStyle = 'black';
+        this.ctx.fillStyle = this.textColor;
 
         // Medir o tamanho do texto
         const textMetrics = this.ctx.measureText(text);
@@ -418,7 +432,7 @@ export default class ImageEditor {
         this.ctx.stroke();
 
         // Desenhar o texto no centro do fundo
-        this.ctx.fillStyle = 'black';
+        this.ctx.fillStyle = this.textColor;
         this.ctx.fillText(text, x, y);
 
         // Atualizar a imagem real com o marcador
@@ -440,7 +454,7 @@ export default class ImageEditor {
         // Definir estilo do texto
         this.ctx.font = `${fontSize}px ${font}`;
         this.ctx.textBaseline = 'top';
-        this.ctx.fillStyle = 'black';
+        this.ctx.fillStyle = this.textColor;
 
         // Medir o tamanho do texto
         const textMetrics = this.ctx.measureText(text);
@@ -472,7 +486,7 @@ export default class ImageEditor {
         this.ctx.stroke();
 
         // Desenhar o texto no centro do fundo
-        this.ctx.fillStyle = 'black';
+        this.ctx.fillStyle = this.textColor;
         this.ctx.fillText(text, x, y);
 
         // Atualizar a imagem real com o marcador
@@ -531,7 +545,7 @@ export default class ImageEditor {
         realCtx.stroke();
 
         // Desenhar o texto no centro do fundo
-        realCtx.fillStyle = 'black';
+        realCtx.fillStyle = this.textColor;
         realCtx.fillText(text, adjustedX, adjustedY);
 
         // Atualizar realImage
@@ -738,15 +752,15 @@ export default class ImageEditor {
             console.log("Não há imagens anteriores...");
             return;
         }
-    
+
         // Obtém a última imagem da lista
         this.savedImages.pop();
         const lastImageSrc = this.savedImages.pop();
-    
+
         // Cria uma nova imagem com o último src
         const newImage = new Image();
         newImage.src = lastImageSrc;
-    
+
         // Define a nova imagem como a atual (hideImage)
         newImage.onload = () => {
             this.hideImage = newImage;
@@ -755,40 +769,130 @@ export default class ImageEditor {
             this.adjustSizes();
             console.log("Imagem revertida para a anterior.");
         };
-    
+
         newImage.onerror = () => {
             console.error("Erro ao carregar a imagem anterior.");
         };
     }
-    
 
-    /* Não sei ainda de vou usar esse método.
-    clientToHideImage() {
-        const newCanvas = document.createElement('canvas');
-        newCanvas.width = this.hideImageClient.width;
-        newCanvas.height = this.hideImageClient.height;
-        const newCtx = newCanvas.getContext('2d');
-        newCtx.drawImage(
-            this.hideImage,
-            this.hideImageClient.left,
-            this.hideImageClient.top,
-            this.hideImageClient.width,
-            this.hideImageClient.height,
-            0,
-            0,
-            newCtx.width,
-            newCtx.height,
-        )
-        const newImage = new Image();
-        newImage.src = newCanvas.toDataURL();
-        newImage.onload = () => {
-            //this.hideImage = new Image();
-            this.hideImage = newImage;
+
+
+
+
+    /******************************************************* */
+
+
+
+    blur(sizeValue = 10) {
+        if (!this.isBlurring) {
+            return;
         }
-        this.adjustSizes();
+
+        const { x, y } = this.mouseMoveCoordinates;
+        const radius = Math.floor(sizeValue / 2);
+        const ctx = this.ctx;
+        const canvas = this.visibleImage;
+
+        const startX = Math.max(0, x - radius);
+        const startY = Math.max(0, y - radius);
+        const width = Math.min(sizeValue, canvas.width - startX);
+        const height = Math.min(sizeValue, canvas.height - startY);
+
+        const imageData = ctx.getImageData(startX, startY, width, height);
+        const { data, width: imgWidth, height: imgHeight } = imageData;
+
+        const listOfDataBlur = []; // Para armazenar os pixels alterados
+
+        // Aplicar desfoque e armazenar pixels alterados
+        this.applyBlurToData(data, imgWidth, imgHeight);
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+
+            const pixelIndex = i / 4;
+            const pixelX = startX * this.hideImageFactor + (pixelIndex % imgWidth) * this.hideImageFactor;
+            const pixelY = startY * this.hideImageFactor + Math.floor(pixelIndex / imgWidth) * this.hideImageFactor;
+        }
+
+        // Atualizar o canvas visível
+        ctx.putImageData(imageData, startX, startY);
+
+        // Finalizar o desfoque ao soltar o botão
+        if (this.endBlur) {
+            this.ctx.save();
+            const newImg = new Image();
+            newImg.src = this.visibleImage.toDataURL();
+            newImg.onload = () =>{
+                this.hideImage = newImg;
+                this.hideImageClient.width = this.hideImage.width;
+                this.hideImageClient.height = this.hideImage.height;
+                this.apply();
+            }
+            this.endBlur = false;
+        };
+
     }
 
-    */
+    // Função para aplicar desfoque
+    applyBlurToData(data, imgWidth, imgHeight) {
+        for (let i = 0; i < imgHeight; i++) {
+            for (let j = 0; j < imgWidth; j++) {
+                const idx = (i * imgWidth + j) * 4; // Índice do pixel atual
+                const neighbors = this.getNeighbors(data, j, i, imgWidth, imgHeight);
+                const avgColor = this.calculateAverageColor(neighbors);
+
+                // Atualizar as cores do pixel com a média
+                data[idx] = avgColor.r; // Vermelho
+                data[idx + 1] = avgColor.g; // Verde
+                data[idx + 2] = avgColor.b; // Azul
+            }
+        }
+    }
+
+
+    getNeighbors(data, x, y, width, height) {
+        const neighbors = [];
+        const radius = 1; // Raio para calcular os vizinhos
+
+        for (let dx = -radius; dx <= radius; dx++) {
+            for (let dy = -radius; dy <= radius; dy++) {
+                const nx = x + dx;
+                const ny = y + dy;
+
+                // Verificar se o vizinho está dentro dos limites
+                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                    const idx = (ny * width + nx) * 4;
+                    neighbors.push({
+                        r: data[idx],
+                        g: data[idx + 1],
+                        b: data[idx + 2],
+                    });
+                }
+            }
+        }
+
+        return neighbors;
+    }
+
+    calculateAverageColor(neighbors) {
+        let totalR = 0, totalG = 0, totalB = 0;
+
+        neighbors.forEach(({ r, g, b }) => {
+            totalR += r;
+            totalG += g;
+            totalB += b;
+        });
+
+        const count = neighbors.length;
+        return {
+            r: Math.floor(totalR / count),
+            g: Math.floor(totalG / count),
+            b: Math.floor(totalB / count),
+        };
+    }
+
 
 
 

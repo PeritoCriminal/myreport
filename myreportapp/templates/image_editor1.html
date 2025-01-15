@@ -43,6 +43,9 @@
     <button id="arrowBtn" title="Adicionar Seta">
         <i class="fas fa-long-arrow-alt-down"></i> <!-- Ícone de seta -->
     </button>
+    <button id="blurBtn" title="Borrar" class="blur-effect">
+        <i class="fas fa-hand-pointer"></i> <!-- Ícone de seta -->
+    </button>
     <!-- Substituição do ícone de desfazer -->
     <button id="undoBtn" title="Desfazer">
         <i class="fas fa-history"></i> <!-- Novo ícone para desfazer -->
@@ -112,6 +115,10 @@
 
     document.querySelector('#applyBtn').addEventListener('click', (event)=>{
         editor.apply();
+    });
+
+    document.querySelector('#blurBtn').addEventListener('click', (event)=>{
+        editor.isBlurring = true;
     });
 
     document.querySelector('#undoBtn').addEventListener('click', (event)=>{
