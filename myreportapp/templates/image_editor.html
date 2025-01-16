@@ -37,47 +37,28 @@
     </button>
 </div>
 
-<div class="canvas-container">
-    <canvas id="display-image" width="800" height="600"></canvas>
+<div id="canvas-container" class="canvas-container">
 </div>
 
 <hr>
-
-<img id="optimizedImage" src="" alt="Imagem otimizada">
-
 
 {% endblock center_content %}
 
 {% block scripts %}
 <script type="module" src="{% static 'js/image_editor.js' %}"></script>
 <script type="module">
-    const display_image = document.querySelector('#display-image');
+
     import ImageEditor from "{% static 'js/image_editor.js' %}";
 
-    const editor = new ImageEditor(display_image);
+    const canvas_container = document.querySelector('#canvas-container');
 
-    document.querySelector('#newImageBtn').addEventListener('click', (event)=>{
-        editor.selectImage();
-    });
+    
 
-    document.querySelector('#zoomInBtn').addEventListener('click', (event)=>{
-        editor.isZooming = true;
-    });
-
-    document.querySelector('#panBtn').addEventListener('click', (event)=>{
-        editor.isDragging = true;
-    });
-
-    document.querySelector('#cropBtn').addEventListener('click', (event)=>{
-        editor.isCropping = true;
-    });
-
-    document.querySelector('#rotateClockwiseBtn').addEventListener('click', (event)=>{
-        editor.rotate1(1);
-    });
-
-    document.querySelector('#rotateCounterClockwiseBtn').addEventListener('click', (event)=>{
-        editor.rotate(-1);
+    const editor = new ImageEditor();
+    editor.createVisibleCanvas(canvas_container);
+    
+    document.querySelector('#newImageBtn').addEventListener('click', ()=>{
+        editor.selectImageOnExplorer();
     });
 
     

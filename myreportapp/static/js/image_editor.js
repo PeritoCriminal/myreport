@@ -1,794 +1,169 @@
 // myreportapp/static/js/image_editor1.js
 
-// por favor, avalie marker, updateMarkOnrealImage e transformRealImage.
-// O primeiro marcador aparece e logo em seguida é apagado, e só do segundo em diante que é exibido.
-// Ao aplicar trasnformações e depois usar o mark, a imagem fica distorcida.
-
-
 export default class ImageEditor {
-    constructor(someCanvasElement, maxSideVisibleCanvas = 800) {
+    constructor() {
         this.isTesting = true;
-        this.visibleImage = someCanvasElement;
-        this.maxSideVisibleCanvas = maxSideVisibleCanvas;
-        this.ctx = this.visibleImage.getContext('2d', { willReadFrequently: true });
-        this.colorLine = 'rgba(0, 0, 0, 1)';
-        this.colorLineArrow = 'rgba(0, 0, 0, 1)';
-        this.lineThickness = 2;
-        this.lastMarkNumber = 0;
-        this.hideImage = new Image();
-        this.hideImageClient = { left: 0, top: 0, width: 800, height: 600, center_x: 400, center_y: 300 };
-        this.hideImageFactor = 2;
-        this.mouseDownCoordinates = { x: 0, y: 0 };
-        this.mouseMoveCoordinates = { x: 0, y: 0 };
-        this.mouseUpCoordinates = { x: 0, y: 0 };
-        this.lastMouseCoordinates = [];
-        this.isMouseDown = false;
-        this.isDragging = false;
-        this.isZooming = false;
-        this.isCropping = false;
-        this.endCrop = false;
-        this.isMarking = false;
-        this.isLabeling = false;
-        this.isPointing = false;
-        this.endArrowTip = false;
-        this.operation = 'Nenhuma operação ...';
-        this.visibleImage.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        this.visibleImage.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        this.visibleImage.addEventListener('mouseup', this.handleMouseUp.bind(this));
-        this.visibleImage.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
+        this.visibleCanvas = document.createElement('canvas');
+        this.hideCanvas = document.createElement('canvas');
+        this.clientArea = { left: 0, top: 0, width: 10, height: 10 };
+        this.pixelOnMouseDown = { x: 0, y: 0 };
+        this.pixelOnMuseMove = { x: 0, y: 0 };
+        this.sizeFactor = 2;
+        this.operation = '';
     }
 
-    handleMouseDown(event) {
-        const dx = event.offsetX;
-        const dy = event.offsetY;
-        this.mouseDownCoordinates.x = dx;
-        this.mouseDownCoordinates.y = dy;
-        if (this.isMarking) {
-            const idInputElement = document.querySelector('#numberInput');
-            this.marker(idInputElement || null);
+    createVisibleCanvas(someDivElement) {
+        if (!(someDivElement instanceof HTMLDivElement)) {
+            console.error('O elemento fornecido não é um <div>.');
             return;
         }
-        if (this.isLabeling) {
-            const idInputElement = document.querySelector('#textInput');
-            this.markerLabel(idInputElement || null);
-            return;
-        }
-        if (this.isPointing) {
-            this.endArrowTip = false;
-        }
-        this.lastMouseCoordinates.length = 0;
-        this.lastMouseCoordinates.push({ x: dx, y: dy }, { x: dx, y: dy }, { x: dx, y: dy });
-        this.isMouseDown = true;
-        this.operation = 'Botão esquerdo do mouse abaixado ...'
-    }
-
-    handleMouseMove(event) {
-        if (!this.isMouseDown) {
-            return;
-        }
-        const dx = event.offsetX;
-        const dy = event.offsetY;
-        this.mouseMoveCoordinates.x = dx;
-        this.mouseMoveCoordinates.y = dy;
-        this.lastMouseCoordinates.push({ x: dx, y: dy });
-        if (this.lastMouseCoordinates.length > 2) {
-            this.lastMouseCoordinates.shift();
-        }
-        switch (true) {
-            case this.isZooming:
-                this.zoom();
-                break;
-            case this.isCropping:
-                this.crop();
-                break;
-            case this.isDragging:
-                this.pan();
-                break;
-            case this.isPointing:
-                this.pointTo();
-                break;
-        }
-    }
-
-    handleMouseUp(event) {
-        if (this.isCropping) {
-            this.endCrop = true;
-            this.crop();
-        }
-        if (this.isPointing) {
-            this.endArrowTip = true;
-            this.pointTo();
-        }
-        this.clearOperations();
-        this.operation = 'Botão esquerdo do mouse levantado ...'
-    }
-
-    handleMouseLeave(event) {
-        const dx = event.offsetX;
-        const dy = event.offsetY;
-        this.clearOperations();
-        this.operation = 'Cursor do mouse saiu da área da imagem ...'
-    }
-
-    clearOperations() {
-        this.isMouseDown = false;
-        this.isDragging = false;
-        this.isZooming = false;
-        this.isMarking = false;
-        this.isLabeling = false;
-        this.endCrop = false;
-        this.isPointing = false;
-    }
-
-    setCenterClient() {
-        this.hideImageClient.center_x = (this.hideImageClient.width / 2) - this.hideImageClient.left;
-        this.hideImageClient.center_y = (this.hideImageClient.height / 2) - this.hideImageClient.top;
-    }
-
-    selectImage() {
-        this.hideImageFactor = 2;
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) {
-                console.log('Nenhum arquivo foi escolhido ou o arquivo escolhido não é uma imagem.');
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const ratio = img.width / img.height;
-                    canvas.width = this.maxSideVisibleCanvas * this.hideImageFactor;
-                    canvas.height = canvas.width / ratio;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const compressedDataURL = canvas.toDataURL('image/jpeg', 0.9);
-                    this.hideImage = new Image();
-                    this.hideImage.src = compressedDataURL;
-                    this.hideImage.onload = () => {
-                        this.hideImageClient = { left: 0, top: 0, width: this.hideImage.width, height: this.hideImage.height, center_x: this.hideImage.width / 2, center_y: this.hideImage.height / 2 };
-                        this.adjustSizes();
-                    }
-                };
-                img.onerror = () => {
-                    console.log('Erro ao carregar a imagem.');
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-        input.click();
-        this.operation = 'Imagem selecionada e carregada ...'
-    }
-
-    adjustSizes() {
-        const ratio = this.hideImageClient.width / this.hideImageClient.height;
-        if (ratio > 1) {
-            this.visibleImage.width = this.maxSideVisibleCanvas;
-            this.visibleImage.height = this.visibleImage.width / ratio;
-        } else {
-            this.visibleImage.height = this.maxSideVisibleCanvas;
-            this.visibleImage.width = this.visibleImage.height * ratio;
-        }
-        const imgX = Math.max(0, this.hideImageClient.left);
-        const imgY = Math.max(0, this.hideImageClient.top);
-        const clientW = Math.min(this.hideImageClient.width, this.hideImage.width - imgX);
-        const clientH = Math.min(this.hideImageClient.height, this.hideImage.height - imgY);
-        this.ctx.drawImage(
-            this.hideImage,
-            imgX, imgY, clientW, clientH,
-            0, 0, this.visibleImage.width, this.visibleImage.height
-        );
-        this.setCenterClient();
-        if (this.isTesting) {
-            this.showRealImage();
-            this.displayInfo();
-        }
-    }
-
-    zoom() {
-        let factor_zoom;
-        if (this.lastMouseCoordinates[2].y < this.lastMouseCoordinates[1].y &&
-            this.hideImageClient.width >= this.hideImage.width / 15) {
-            factor_zoom = 0.98;
-        } else if (this.lastMouseCoordinates[2].y > this.lastMouseCoordinates[1].y &&
-            this.hideImageClient.width >= this.hideImage.width &&
-            this.hideImageClient.height >= this.hideImage.height) {
-            return;
-        } else {
-            factor_zoom = 1.02;
-        }
-        const newWidth = this.hideImageClient.width * factor_zoom;
-        const newHeight = this.hideImageClient.height * factor_zoom;
-        if (newWidth > this.hideImage.width) {
-            return;
-        }
-        if (newHeight > this.hideImage.height) {
-            return;
-        }
-        const centerX = this.hideImageClient.left + this.hideImageClient.width / 2;
-        const centerY = this.hideImageClient.top + this.hideImageClient.height / 2;
-        let newLeft, newTop;
-        newLeft = centerX - newWidth / 2;
-        if (newWidth + newLeft > this.hideImage.width) {
-            newLeft = this.hideImage.width - newWidth;
-        }
-        newTop = centerY - newHeight / 2;
-        if (newHeight + newTop > this.hideImage.height) {
-            newTop = this.hideImage.height - newHeight;
-        }
-        if (newWidth >= this.hideImage.width - 10) {
-            newLeft = 0;
-            this.hideImageClient.width = this.hideImage.width;
-        }
-        if (newHeight >= this.hideImage.height - 10) {
-            newTop = 0;
-            this.hideImageClient.height = this.hideImage.height;
-        }
-        this.hideImageClient.left = Math.max(0, newLeft);
-        this.hideImageClient.top = Math.max(0, newTop);
-        this.hideImageClient.width = newWidth;
-        this.hideImageClient.height = newHeight;
-        this.operation = 'Aplicado zoom ...'
-        this.adjustSizes();
-    }
-
-    pan() {
-        const x_direction = this.lastMouseCoordinates[2].x - this.lastMouseCoordinates[0].x;
-        const x_ratio = Math.abs(x_direction * (this.hideImageClient.width / this.hideImage.width));
-        const y_direction = this.lastMouseCoordinates[2].y - this.lastMouseCoordinates[0].y;
-        const y_ratio = Math.abs(y_direction * (this.hideImageClient.height / this.hideImage.height));
-        const top = this.hideImageClient.top;
-        const left = this.hideImageClient.left;
-        const right = this.hideImageClient.left + this.hideImageClient.width;
-        const botton = this.hideImageClient.top + this.hideImageClient.height;
-        if (x_direction > 0) {
-            if (left > 0) {
-                this.hideImageClient.left -= x_ratio;
-            } else {
-                this.hideImageClient.left = 0;
-            }
-        } else {
-            if (right < this.hideImage.width) {
-                this.hideImageClient.left += x_ratio;
-            } else {
-                this.hideImageClient.left = this.hideImage.width - this.hideImageClient.width;
-            }
-        }
-        if (y_direction > 0) {
-            if (top > 0) {
-                this.hideImageClient.top -= y_ratio;
-            } else {
-                this.hideImageClient.top = 0;
-            }
-        } else {
-            if (botton < this.hideImage.height) {
-                this.hideImageClient.top += y_ratio
-            } else {
-                this.hideImageClient.top = this.hideImage.height - this.hideImageClient.height;
-            }
-        }
-        this.operation = 'Aplicado deslocamento (PAN) ...'
-        this.adjustSizes();
-    }
-
-    crop() {
-        // Método para delimitar uma área no canvas, recortar e exibir a imagem recortada.
-        // Esse método ainda precisa de ajustes quando executado várias vezes.
-        // A posição left e top não são precisas após o segundo crop.
-        // Por enquanto está funcional.
-        let left, top, width, height;
-        if (this.mouseDownCoordinates.x < this.mouseMoveCoordinates.x) {
-            left = this.mouseDownCoordinates.x;
-            width = this.mouseMoveCoordinates.x - left;
-        } else {
-            left = this.mouseMoveCoordinates.x;
-            width = this.mouseDownCoordinates.x - left;
-        }
-        if (this.mouseDownCoordinates.y < this.mouseMoveCoordinates.y) {
-            top = this.mouseDownCoordinates.y;
-            height = this.mouseMoveCoordinates.y - top;
-        } else {
-            top = this.mouseMoveCoordinates.y;
-            height = this.mouseDownCoordinates.y - top;
-        }
-        this.adjustSizes();
-        this.ctx.setLineDash([10, 5]);
-        this.ctx.strokeStyle = this.colorLine;
-        this.ctx.lineWidth = 3;
-        this.ctx.beginPath();
-        this.ctx.rect(left, top, width, height);
-        this.ctx.stroke();
-        this.operation = 'Imagem recortada ...';
-        if (this.endCrop) {
-            const factor = this.hideImageFactor / (this.hideImage.width / this.hideImageClient.width);
-            const client_left = (left * factor + this.hideImageClient.left);
-            const client_top = (top * factor + this.hideImageClient.top);
-            const client_widt = width * factor;
-            const client_height = height * factor;
-            this.hideImageClient.left = client_left;
-            this.hideImageClient.top = client_top;
-            this.hideImageClient.width = client_widt;
-            this.hideImageClient.height = client_height;
-            this.adjustSizes();
-            this.isCropping = false;
-        }
-    }
-
-    rotate_image(direction) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        let newLeft, newTop, msg;
-        if (direction === 1) {
-            newLeft = this.hideImage.height - (this.hideImageClient.top + this.hideImageClient.height);
-            newTop = this.hideImageClient.left;
-            msg = 'imagem rotacionada no sentido horário ...'
-        } else {
-            newLeft = this.hideImageClient.top;
-            newTop = this.hideImage.width - (this.hideImageClient.left + this.hideImageClient.width);
-            msg = 'imagem rotacionada no sentido anti-horário ...'
-        }
-        if (Math.abs(direction) % 2 !== 0) {
-            canvas.width = this.hideImage.height;
-            canvas.height = this.hideImage.width;
-        } else {
-            canvas.width = this.hideImage.width;
-            canvas.height = this.hideImage.height;
-        }
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(direction * Math.PI / 2);
-        ctx.drawImage(
-            this.hideImage,
-            -this.hideImage.width / 2,
-            -this.hideImage.height / 2
-        );
-        const rotatedImage = new Image();
-        rotatedImage.src = canvas.toDataURL();
-        rotatedImage.onload = () => {
-            this.hideImage = rotatedImage;
-            this.hideImageClient = {
-                left: newLeft,
-                top: newTop,
-                width: this.hideImageClient.height,
-                height: this.hideImageClient.width,
-            };
-            this.operation = msg;
-            this.adjustSizes();
-        };
-    }
-
-    marker(idInputElement = null) {
-        if (!this.isMarking) {
-            return;
-        }
-        this.updateMarkOnRealImage(0, 0, '', 0, '', 0, 0)
-        this.lastMarkNumber += 1;
-        if (idInputElement) {
-            idInputElement.value = this.lastMarkNumber + 1;
-        }
-        const { x, y } = this.mouseDownCoordinates;
-        const text = `${this.lastMarkNumber}`;
-        const fontSize = 22;
-        const font = 'Arial';
-        const padding = 5;
-        const radius = 5;
-
-        // Definir estilo do texto
-        this.ctx.font = `${fontSize}px ${font}`;
-        this.ctx.textBaseline = 'top';
-        this.ctx.fillStyle = 'black';
-
-        // Medir o tamanho do texto
-        const textMetrics = this.ctx.measureText(text);
-        const textWidth = textMetrics.width;
-        const textHeight = fontSize; // Aproximação do tamanho da altura do texto
-
-        // Configurar o estilo do fundo
-        const backgroundX = x - padding;
-        const backgroundY = y - padding;
-        const backgroundWidth = textWidth + 2 * padding;
-        const backgroundHeight = textHeight + 2 * padding;
-
-        // Desenhar o fundo com bordas arredondadas
-        this.ctx.beginPath();
-        this.ctx.moveTo(backgroundX + radius, backgroundY);
-        this.ctx.arcTo(backgroundX + backgroundWidth, backgroundY, backgroundX + backgroundWidth, backgroundY + backgroundHeight, radius);
-        this.ctx.arcTo(backgroundX + backgroundWidth, backgroundY + backgroundHeight, backgroundX, backgroundY + backgroundHeight, radius);
-        this.ctx.arcTo(backgroundX, backgroundY + backgroundHeight, backgroundX, backgroundY, radius);
-        this.ctx.arcTo(backgroundX, backgroundY, backgroundX + backgroundWidth, backgroundY, radius);
-        this.ctx.closePath();
-
-        // Preencher fundo amarelo
-        this.ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
-        this.ctx.fill();
-
-        // Desenhar borda vermelha
-        this.ctx.strokeStyle = this.colorLineArrow;
-        this.ctx.lineWidth = this.lineThickness;
-        this.ctx.stroke();
-
-        // Desenhar o texto no centro do fundo
-        this.ctx.fillStyle = 'black';
-        this.ctx.fillText(text, x, y);
-
-        // Atualizar a imagem real com o marcador
-        this.updateMarkOnRealImage(x, y, text, fontSize, font, padding, radius);
-    }
-
-
-    markerLabel(idInputElement = null) {
-        if (!this.isLabeling || idInputElement === null || idInputElement.value.trim() == '') {
-            return;
-        }
-        const { x, y } = this.mouseDownCoordinates;
-        const text = `${idInputElement.value}`;
-        const fontSize = 22;
-        const font = 'Arial';
-        const padding = 5;
-        const radius = 5;
-
-        // Definir estilo do texto
-        this.ctx.font = `${fontSize}px ${font}`;
-        this.ctx.textBaseline = 'top';
-        this.ctx.fillStyle = 'black';
-
-        // Medir o tamanho do texto
-        const textMetrics = this.ctx.measureText(text);
-        const textWidth = textMetrics.width;
-        const textHeight = fontSize; // Aproximação do tamanho da altura do texto
-
-        // Configurar o estilo do fundo
-        const backgroundX = x - padding;
-        const backgroundY = y - padding;
-        const backgroundWidth = textWidth + 2 * padding;
-        const backgroundHeight = textHeight + 2 * padding;
-
-        // Desenhar o fundo com bordas arredondadas
-        this.ctx.beginPath();
-        this.ctx.moveTo(backgroundX + radius, backgroundY);
-        this.ctx.arcTo(backgroundX + backgroundWidth, backgroundY, backgroundX + backgroundWidth, backgroundY + backgroundHeight, radius);
-        this.ctx.arcTo(backgroundX + backgroundWidth, backgroundY + backgroundHeight, backgroundX, backgroundY + backgroundHeight, radius);
-        this.ctx.arcTo(backgroundX, backgroundY + backgroundHeight, backgroundX, backgroundY, radius);
-        this.ctx.arcTo(backgroundX, backgroundY, backgroundX + backgroundWidth, backgroundY, radius);
-        this.ctx.closePath();
-
-        // Preencher fundo amarelo
-        this.ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
-        this.ctx.fill();
-
-        // Desenhar borda vermelha
-        this.ctx.strokeStyle = this.colorLineArrow;
-        this.ctx.lineWidth = this.lineThickness;
-        this.ctx.stroke();
-
-        // Desenhar o texto no centro do fundo
-        this.ctx.fillStyle = 'black';
-        this.ctx.fillText(text, x, y);
-
-        // Atualizar a imagem real com o marcador
-        this.updateMarkOnRealImage(x, y, text, fontSize, font, padding, radius);
-    }
-
-    // Novo método para atualizar a realImage
-    updateMarkOnRealImage(x, y, text, fontSize, font, padding, radius) {
-        // Calcular as proporções entre canvas e realImage
-        const scaleFactor = this.hideImageClient.width / this.visibleImage.width;
-
-        // Ajustar as coordenadas considerando o deslocamento do realImageClient
-        const adjustedX = (x * scaleFactor) + this.hideImageClient.left;
-        const adjustedY = (y * scaleFactor) + this.hideImageClient.top;
-
-        // Obter o contexto da realImage
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = this.hideImage.width;
-        tempCanvas.height = this.hideImage.height;
-        const realCtx = tempCanvas.getContext('2d');
-
-        // Desenhar a imagem original
-        realCtx.drawImage(this.hideImage, 0, 0);
-
-        // Configurar estilo do texto
-        realCtx.font = `${fontSize * scaleFactor}px ${font}`;
-        realCtx.textBaseline = 'top';
-
-        // Medir o tamanho do texto
-        const textMetrics = realCtx.measureText(text);
-        const textWidth = textMetrics.width;
-        const textHeight = fontSize * scaleFactor;
-
-        // Configurar o estilo do fundo
-        const backgroundX = adjustedX - padding * scaleFactor;
-        const backgroundY = adjustedY - padding * scaleFactor;
-        const backgroundWidth = textWidth + 2 * padding * scaleFactor;
-        const backgroundHeight = textHeight + 2 * padding * scaleFactor;
-
-        // Desenhar o fundo com bordas arredondadas
-        realCtx.beginPath();
-        realCtx.moveTo(backgroundX + radius * scaleFactor, backgroundY);
-        realCtx.arcTo(backgroundX + backgroundWidth, backgroundY, backgroundX + backgroundWidth, backgroundY + backgroundHeight, radius * scaleFactor);
-        realCtx.arcTo(backgroundX + backgroundWidth, backgroundY + backgroundHeight, backgroundX, backgroundY + backgroundHeight, radius * scaleFactor);
-        realCtx.arcTo(backgroundX, backgroundY + backgroundHeight, backgroundX, backgroundY, radius * scaleFactor);
-        realCtx.arcTo(backgroundX, backgroundY, backgroundX + backgroundWidth, backgroundY, radius * scaleFactor);
-        realCtx.closePath();
-
-        // Preencher fundo amarelo
-        realCtx.fillStyle = 'rgba(255, 255, 0, 0.5)';
-        realCtx.fill();
-
-        // Desenhar borda vermelha
-        realCtx.strokeStyle = this.colorLineArrow;
-        realCtx.lineWidth = 1 * scaleFactor;
-        realCtx.stroke();
-
-        // Desenhar o texto no centro do fundo
-        realCtx.fillStyle = 'black';
-        realCtx.fillText(text, adjustedX, adjustedY);
-
-        // Atualizar realImage
-        const newImage = new Image();
-        newImage.src = tempCanvas.toDataURL();
-        newImage.onload = () => {
-            this.hideImage = newImage;
-        }
-    }
-
-    pointTo() {
-        if (!this.isPointing) {
-            return;
-        }
-        const arrowBase = this.mouseDownCoordinates;
-        const arrowTip = this.mouseMoveCoordinates;
-        this.ctx.clearRect(0, 0, this.visibleImage.width, this.visibleImage.height);
-        this.adjustSizes();
-        this.ctx.strokeStyle = this.colorLine;
-        this.ctx.lineWidth = this.lineThickness;
-        const baseRadius = this.ctx.lineWidth * 0.7;
-        this.ctx.fillStyle = this.colorLine;
-        this.ctx.beginPath();
-        this.ctx.arc(arrowBase.x, arrowBase.y, baseRadius, 0, 2 * Math.PI);
-        this.ctx.fill();
-        const headLength = 10;
-        const dx = arrowTip.x - arrowBase.x;
-        const dy = arrowTip.y - arrowBase.y;
-        const angle = Math.atan2(dy, dx);
-        this.ctx.beginPath();
-        this.ctx.moveTo(arrowBase.x, arrowBase.y);
-        this.ctx.lineTo(arrowTip.x, arrowTip.y);
-        this.ctx.stroke();
-        this.ctx.beginPath();
-        this.ctx.moveTo(arrowTip.x, arrowTip.y);
-        this.ctx.lineTo(
-            arrowTip.x - headLength * Math.cos(angle - Math.PI / 6),
-            arrowTip.y - headLength * Math.sin(angle - Math.PI / 6)
-        );
-        this.ctx.lineTo(
-            arrowTip.x - headLength * Math.cos(angle + Math.PI / 6),
-            arrowTip.y - headLength * Math.sin(angle + Math.PI / 6)
-        );
-        this.ctx.lineTo(arrowTip.x, arrowTip.y);
-        this.ctx.closePath();
-        this.ctx.fillStyle = this.colorLine;
-        this.ctx.fill();
-        console.log(`Seta de ${arrowBase.x} x ${arrowBase.y} até ${arrowTip.x} x ${arrowTip.y}`);
-        if (this.endArrowTip) {
-            this.updateArrowOnRealImage(arrowBase.x, arrowBase.y, arrowTip.x, arrowTip.y, this.ctx.lineWidth, headLength);
-        }
-    }
-
-    updateArrowOnRealImage(xStart, yStart, xEnd, yEnd, lineWidth, arrowHeadSize) {
-        // Calcular as proporções entre canvas e realImage
-        const scaleFactor = this.hideImageClient.width / this.visibleImage.width;
-
-        // Ajustar as coordenadas considerando o deslocamento do realImageClient
-        const adjustedXStart = (xStart * scaleFactor) + this.hideImageClient.left;
-        const adjustedYStart = (yStart * scaleFactor) + this.hideImageClient.top;
-        const adjustedXEnd = (xEnd * scaleFactor) + this.hideImageClient.left;
-        const adjustedYEnd = (yEnd * scaleFactor) + this.hideImageClient.top;
-
-        // Obter o contexto da realImage
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = this.hideImage.width;
-        tempCanvas.height = this.hideImage.height;
-        const realCtx = tempCanvas.getContext('2d');
-
-        // Desenhar a imagem original
-        realCtx.drawImage(this.hideImage, 0, 0);
-
-        // Configurar estilo da seta
-        realCtx.strokeStyle = this.colorLine;
-        realCtx.lineWidth = lineWidth * scaleFactor * 0.5;
-
-        // Desenhar o corpo da seta
-        realCtx.beginPath();
-        realCtx.moveTo(adjustedXStart, adjustedYStart);
-        realCtx.lineTo(adjustedXEnd, adjustedYEnd);
-        realCtx.stroke();
-
-        // Calcular o ângulo da ponta da seta
-        const dx = adjustedXEnd - adjustedXStart;
-        const dy = adjustedYEnd - adjustedYStart;
-        const angle = Math.atan2(dy, dx);
-
-        // Desenhar a ponta da seta
-        const scaledArrowHeadSize = arrowHeadSize * scaleFactor;
-        realCtx.beginPath();
-        realCtx.moveTo(adjustedXEnd, adjustedYEnd);
-        realCtx.lineTo(
-            adjustedXEnd - scaledArrowHeadSize * Math.cos(angle - Math.PI / 6),
-            adjustedYEnd - scaledArrowHeadSize * Math.sin(angle - Math.PI / 6)
-        );
-        realCtx.lineTo(
-            adjustedXEnd - scaledArrowHeadSize * Math.cos(angle + Math.PI / 6),
-            adjustedYEnd - scaledArrowHeadSize * Math.sin(angle + Math.PI / 6)
-        );
-        realCtx.lineTo(adjustedXEnd, adjustedYEnd);
-        realCtx.closePath();
-        realCtx.fillStyle = this.colorLine;
-        realCtx.fill();
-
-        // Desenhar a base da seta (círculo)
-        const baseRadius = (lineWidth * 0.6) * scaleFactor;
-        realCtx.beginPath();
-        realCtx.arc(adjustedXStart, adjustedYStart, baseRadius, 0, 2 * Math.PI);
-        realCtx.fillStyle = this.colorLine;
-        realCtx.fill();
-
-        // Atualizar realImage
-        const newImage = new Image();
-        newImage.src = tempCanvas.toDataURL();
-        newImage.onload = () => {
-            this.hideImage = newImage;
-        };
-
-        console.log("\n\n---------------\nscaleFactor:", scaleFactor);
-        console.log("Adjusted Start:", adjustedXStart, adjustedYStart);
-        console.log("Adjusted End:", adjustedXEnd, adjustedYEnd);
-        console.log("LineWidth:", lineWidth, "ArrowHeadSize:", arrowHeadSize);
-    }
-
-
-    apply() {
-        // Verifica se this.hideImage é uma imagem válida
-        if (!(this.hideImage instanceof HTMLImageElement)) {
-            console.error("this.hideImage não é uma instância de HTMLImageElement.");
-            return;
-        }
-        console.log('Inicio da função aapply...')
-        // Verifica se this.hideImageClient contém as propriedades necessárias
-        if (!this.hideImageClient ||
-            typeof this.hideImageClient.left !== 'number' ||
-            typeof this.hideImageClient.top !== 'number' ||
-            typeof this.hideImageClient.width !== 'number' ||
-            typeof this.hideImageClient.height !== 'number') {
-            console.error("this.hideImageClient está inválido ou incompleto.");
-            return;
-        }
-        console.log('Primeiras condições satisfeitas...')
-        // Cria um canvas com as dimensões do frame
-        const canvas = document.createElement('canvas');
-        canvas.width = this.hideImageClient.width;
-        canvas.height = this.hideImageClient.height;
     
-        // Obtém o contexto 2D do canvas
-        const ctx = canvas.getContext('2d');
+        someDivElement.appendChild(this.visibleCanvas);
     
+        // Usando getBoundingClientRect() para pegar a largura e altura
+        const rect = someDivElement.getBoundingClientRect();
+        this.visibleCanvas.width = rect.width;
+        this.visibleCanvas.height = rect.height;
+    
+        console.log('Largura do div:', rect.width);
+        console.log('Altura do div:', rect.height);
+    
+        this.operation = this.strings('createVisibleCanvas');
+        this.showDataLog();
+    }
+    
+
+    adjustVisbleCanvasSides(imgElement) {
+        const ratio = imgElement.width / imgElement.height;
+        console.log(`\n\n${imgElement.width} x ${imgElement.height} / ${ratio}`);
+        if (imgElement.width >= imgElement.heigh) {
+            this.visibleCanvas.height = this.visibleCanvas.width / ratio;
+        } else {
+            this.visibleCanvas.width = this.visibleCanvas.height * ratio;
+        }
+        this.operation = this.strings('adjustVisbleCanvasSides');
+        this.showDataLog();
+    }
+
+    adjustHideCanvasSides() {
+        this.hideCanvas.width = this.visibleCanvas.width * this.sizeFactor;
+        this.hideCanvas.height = this.visibleCanvas.height * this.sizeFactor;
+        this.operation = this.strings('adjustHideCanvasSides');
+        this.showDataLog();
+    }
+
+    adjustClientArea(left, top, width, height) {
+        if (left < 0 || top < 0 || left + width > this.hideCanvas.width || top + height > this.hideCanvas.height) {
+            this.operation = this.strings('adjustClientAreaFail');
+            this.showDataLog();
+            return;
+        }
+        this.clientArea = { left, top, width, height };
+        this.operation = this.strings('adjustClientArea');
+        this.showDataLog();
+    }
+
+    transposePixel(pixelOnVisibleCanvas = this.pixelOnMouseDown) {
         try {
-            // Desenha o conteúdo do frame no canvas
-            ctx.drawImage(
-                this.hideImage,                              // Imagem original
-                this.hideImageClient.left,                  // Coordenada X inicial do frame
-                this.hideImageClient.top,                   // Coordenada Y inicial do frame
-                this.hideImageClient.width,                 // Largura do frame
-                this.hideImageClient.height,                // Altura do frame
-                0,                                          // Coordenada X no canvas
-                0,                                          // Coordenada Y no canvas
-                this.hideImageClient.width,                 // Largura no canvas
-                this.hideImageClient.height                 // Altura no canvas
-            );
-    
-            // Cria uma nova imagem a partir do canvas
-            const image = new Image();
-            image.src = canvas.toDataURL();
-    
-            // Atribui a nova imagem ao this.hideImage após carregamento
-            image.onload = () => {
-                this.hideImage = image;
-                //this.adjustSizes();
-            };
+            if (!this.visibleCanvas || !this.clientArea) {
+                throw new Error('Os atributos "visibleCanvas" ou "clientArea" não estão definidos.');
+            }
+            if (typeof pixelOnVisibleCanvas !== 'object' || pixelOnVisibleCanvas === null) {
+                throw new TypeError('O parâmetro "pixelOnVisibleCanvas" deve ser um objeto contendo coordenadas x e y.');
+            }
+            if (typeof pixelOnVisibleCanvas.x !== 'number' || typeof pixelOnVisibleCanvas.y !== 'number') {
+                throw new TypeError('O objeto "pixelOnVisibleCanvas" deve conter propriedades numéricas "x" e "y".');
+            }
+            const ratio = this.visibleCanvas.width / this.clientArea.width;
+            if (!isFinite(ratio) || ratio <= 0) {
+                throw new Error('O valor calculado para "ratio" é inválido. Verifique as dimensões do canvas e da área do cliente.');
+            }
+            const pixelOnHideCanvas = { x: 0, y: 0 };
+            pixelOnHideCanvas.x = pixelOnVisibleCanvas.x * ratio + this.clientArea.left;
+            pixelOnHideCanvas.y = pixelOnVisibleCanvas.y * ratio + this.clientArea.top;
+            this.operation = this.strings('transposePixel');
+            this.showDataLog();
+            return pixelOnHideCanvas;
         } catch (error) {
-            console.error("Erro ao processar a imagem:", error);
+            const originPixel = { x: 0, y: 0 };
+            this.operation = this.strings('transposePixelFail');
+            console.error('Erro em transposePixel:', error.message);
+            return originPixel;
         }
-        this.adjustSizes();
-        this.hideImageFactor = this.hideImageClient.width / this.visibleImage.width;
-    }
-    
-
-
-
-    /* Não sei ainda de vou usar esse método.
-    clientToHideImage() {
-        const newCanvas = document.createElement('canvas');
-        newCanvas.width = this.hideImageClient.width;
-        newCanvas.height = this.hideImageClient.height;
-        const newCtx = newCanvas.getContext('2d');
-        newCtx.drawImage(
-            this.hideImage,
-            this.hideImageClient.left,
-            this.hideImageClient.top,
-            this.hideImageClient.width,
-            this.hideImageClient.height,
-            0,
-            0,
-            newCtx.width,
-            newCtx.height,
-        )
-        const newImage = new Image();
-        newImage.src = newCanvas.toDataURL();
-        newImage.onload = () => {
-            //this.hideImage = new Image();
-            this.hideImage = newImage;
-        }
-        this.adjustSizes();
     }
 
-    */
-
-
-
-    /******************************************************* */
-
-    // TESTES
-    displayInfo() {
-        if (!this.isTesting) return;
-        console.log('\n\n____________________________')
-        console.log(this.operation);
-        console.log(`Dimensões da imagem real: esquerda = ${this.hideImage.left}, topo = ${this.hideImage.top} largura = ${this.hideImage.width}, altura = ${this.hideImage.height}`);
-        console.log(`Dimensões do frame: largura = ${this.hideImageClient.width}, altura = ${this.hideImageClient.height}`);
-        console.log(`Posição do frame: esquerda = ${this.hideImageClient.left}, topo = ${this.hideImageClient.top}, centro = ${this.hideImageClient.center_x} / ${this.hideImageClient.center_y}`);
+    strings(key) {
+        const operations = {
+            createVisibleCanvas: 'Criada a área visível para edição de imagens.',
+            adjustVisbleCanvasSides: `Ajustadas largura e altura da imagem visivel: ${this.visibleCanvas.width} x ${this.visibleCanvas.height}`,
+            adjustHideCanvasSides: `Ajustadas largura e altura da imagem virtual em ${this.sizeFactor}.`,
+            adjustClientAreaFail: 'Falha ao ajustar área de recorte clientArea',
+            adjustClientArea: 'Ajustadas margens e dimensões do recorte clientArea',
+            transposePixelFail: 'Ponto de origem setado em x = 0 e y = 0',
+            transposePixel: `Coordenadas ajustadas.`,
+            selectImageOnExplorerFail: 'Nenhuma imagem foi selecionada.'
+        };
+        return operations[key] || 'Operação desconhecida';
     }
 
-    showRealImage() {
-        if (!this.isTesting) return;
-        const img = document.querySelector('#optimizedImage');
-        img.src = this.hideImage.src;
-        this.hideImage.top = this.maxSideVisibleCanvas + 30;
-        this.hideImage.left = 0;
-        this.divAboveImage(
-            this.hideImageClient.left,
-            this.hideImageClient.top,
-            this.hideImageClient.width,
-            this.hideImageClient.height
-        );
-
-    }
-
-    divAboveImage(divLeft, divTop, divWidth, divHeight) {
-        if (!this.isTesting) return;
-        const imgElement = document.getElementById('optimizedImage');
-        const divElement = document.getElementById('overlayDiv');
-        if (!divElement || !imgElement) {
-            console.error("Elementos com os IDs fornecidos não foram encontrados.");
+    /** testes */
+    showDataLog() {
+        if (!this.isTesting) {
             return;
         }
-        const imgLeft = 600;
-        const imgTop = 1000;
-        imgElement.style.position = "absolute";
-        imgElement.style.left = `${imgLeft}px`;
-        imgElement.style.top = `${imgTop}px`;
-        const new_divLeft = imgLeft + divLeft;
-        const new_divTop = imgTop + divTop;
-        divElement.style.position = "absolute";
-        divElement.style.left = `${new_divLeft}px`;
-        divElement.style.top = `${new_divTop}px`;
-        divElement.style.width = `${divWidth}px`;
-        divElement.style.height = `${divHeight}px`;
-        divElement.style.border = "2px solid red";
-        divElement.style.backgroundColor = "transparent";
+        console.log(this.operation);
     }
 
+    selectImageOnExplorer() {
+        try {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) {
+                    console.warn('Nenhum arquivo foi selecionado.');
+                    this.operation = 'selectImageOnExplorerFail';
+                    return;
+                }
+                if (typeof FileReader === 'undefined') {
+                    console.error('FileReader não é suportado neste navegador.');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const newImage = new Image();
+                    newImage.onload = () => {
+                        try {
+                            this.adjustVisbleCanvasSides(newImage);
+                            this.adjustHideCanvasSides();
+                            this.adjustClientArea(0, 0, this.hideCanvas.width, this.hideCanvas.height);
+                            const hideCtx = this.hideCanvas.getContext('2d');
+                            const visibleCtx = this.visibleCanvas.getContext('2d');
+                            if (!hideCtx || !visibleCtx) {
+                                throw new Error('Erro ao obter os contextos dos canvases.');
+                            }
+                            hideCtx.drawImage(newImage, 0, 0, this.hideCanvas.width, this.hideCanvas.height);
+                            visibleCtx.drawImage(newImage, 0, 0, this.visibleCanvas.width, this.visibleCanvas.height);
+                            console.log('Imagem otimizada gerada com qualidade de 90%.');
+                        } catch (canvasError) {
+                            console.error('Erro ao ajustar e renderizar a imagem:', canvasError.message);
+                        }
+                    };
+                    newImage.onerror = () => {
+                        console.error('Erro ao carregar a imagem. Verifique o formato do arquivo.');
+                    };
+                    newImage.src = e.target.result;
+                };
+                reader.onerror = () => {
+                    console.error('Erro ao ler o arquivo. Verifique se ele é válido.');
+                };
+                reader.readAsDataURL(file);
+            });
+            input.click();
+        } catch (error) {
+            console.error('Erro em selectImageOnExplorer:', error.message);
+        }
+    }
 
 }
