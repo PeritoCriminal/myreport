@@ -38,6 +38,7 @@
 </div>
 
 <div id="canvas-container" class="canvas-container">
+    <canvas id="visible_image" width="800px" height="800px"></canvas>
 </div>
 
 <hr>
@@ -50,15 +51,14 @@
 
     import ImageEditor from "{% static 'js/image_editor.js' %}";
 
-    const canvas_container = document.querySelector('#canvas-container');
+    const visibleImage = document.querySelector('#visible_image');
 
     
 
-    const editor = new ImageEditor();
-    editor.createVisibleCanvas(canvas_container);
+    const editor = new ImageEditor(visibleImage);
     
     document.querySelector('#newImageBtn').addEventListener('click', ()=>{
-        editor.selectImageOnExplorer();
+        editor.selectImage();
     });
 
     

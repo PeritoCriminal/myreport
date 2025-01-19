@@ -3,7 +3,7 @@
 
 export default class ImageEditor {
     constructor(someCanvasElement, maxSideVisibleCanvas = 800) {
-        this.isTesting = false;
+        this.isTesting = true;
         this.visibleImage = someCanvasElement;
         this.maxSideVisibleCanvas = maxSideVisibleCanvas;
         this.ctx = this.visibleImage.getContext('2d', { willReadFrequently: true });
@@ -202,10 +202,11 @@ export default class ImageEditor {
             imgX, imgY, clientW, clientH,
             0, 0, this.visibleImage.width, this.visibleImage.height
         );
+        this.updateListOfSavedImages();
         //this.setCenterClient();
         if (this.isTesting) {
             this.showRealImage();
-            this.updateListOfSavedImages();
+            //this.updateListOfSavedImages();
             this.displayInfo();
         }
     }
@@ -738,8 +739,8 @@ export default class ImageEditor {
         if (newImageSrc && newImageSrc !== this.savedImages[this.savedImages.length - 1]) {
             this.savedImages.push(newImageSrc);
 
-            // Mantém no máximo 10 imagens na lista
-            if (this.savedImages.length > 10) {
+            // Mantém no máximo 20 imagens na lista
+            if (this.savedImages.length > 20) {
                 this.savedImages.shift();
             }
             console.log('Atualizado lista de imagens....');
@@ -824,7 +825,7 @@ export default class ImageEditor {
             this.ctx.save();
             const newImg = new Image();
             newImg.src = this.visibleImage.toDataURL();
-            newImg.onload = () =>{
+            newImg.onload = () => {
                 this.hideImage = newImg;
                 this.hideImageClient.width = this.hideImage.width;
                 this.hideImageClient.height = this.hideImage.height;
