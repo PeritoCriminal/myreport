@@ -66,10 +66,10 @@
 {% endblock center_content %}
 
 {% block scripts %}
-<script type="module" src="{% static 'js/image_editor1.js' %}"></script>
+<script type="module" src="{% static 'js/image_editor.js' %}"></script>
 <script type="module">
     const display_image = document.querySelector('#display-image');
-    import ImageEditor from "{% static 'js/image_editor1.js' %}";
+    import ImageEditor from "{% static 'js/image_editor.js' %}";
 
     const editor = new ImageEditor(display_image);
 

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block center_content %}
+<div class="container mt-5 ml-5 mr-5">
+    <h2 class="mb-4 text-center pl-4 pr-4">Dados do Atendimento</h2>
+    <form method="post" class="mx-auto" style="max-width: 600px;">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="report_number">Número do Laudo:</label>
+            <input type="text" id="report_number" name="report_number" required class="form-control custom-input">
+        </div>
+        <div class="form-group">
+            <label for="protocol_number">Número do Protocolo:</label>
+            <input type="text" id="protocol_number" name="protocol_number" required class="form-control custom-input">
+        </div>
+        <div class="form-group">
+            <label for="designation_date">Data de Designação:</label>
+            <input type="date" id="designation_date" name="designation_date" class="form-control custom-input">
+        </div>
+        <div class="form-group">
+            <label for="service_date">Data de Atendimento:</label>
+            <input type="date" id="service_date" name="service_date" class="form-control custom-input">
+        </div>
+        <div class="form-group">
+            <label for="service_time">Hora de Atendimento:</label>
+            <input type="time" id="service_time" name="service_time" class="form-control custom-input">
+        </div>
+        <div class="form-group">
+            <label for="photographer">Fotografia:</label>
+            <input type="text" id="photographer" name="photographer" class="form-control custom-input">
+        </div>
+        <div class="form-row">
+            <div class="col">
+                <button type="submit" class="btn btn-primary btn-block">
+                    {% if post.id %}
+                        Atualizar
+                    {% else %}
+                        Criar
+                    {% endif %}
+                </button>
+            </div>
+            <div class="col">
+                <a href="{% url 'home' %}" class="btn btn-secondary btn-block">Cancelar</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
