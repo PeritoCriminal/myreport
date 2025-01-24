@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block center_content %}
+    <h2 class="mb-4 text-center pl-4 pr-4">Lista de Laudos</h2>
+    <ul>
+        {% for report in reports %}
+            <li>
+                <a href="{% url 'report_dataheader' report.id %}">{{ report.report_number }}</a> - 
+                Criado em: {{ report.created_at|date:"d/m/Y" }}
+            </li>
+        {% empty %}
+            <li>Você não possui relatórios cadastrados.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

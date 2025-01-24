@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.utils.timezone import now
 from myreportapp.models import ReportModel
 
@@ -8,11 +8,13 @@ from myreportapp.models import ReportModel
 def report_dataheader_view(request, report_id=None):
     current_user = request.user
     report = None
+
     if report_id:
         report = get_object_or_404(ReportModel, id=report_id)
+        if report.user != request.user:
+            raise Http404("Você não tem permissão para acessar este relatório.")
 
     if request.method == 'POST':
-        # Obter dados do formulário
         expert_display_name = request.POST.get('expert_display_name', '').strip()
         institute_director = request.POST.get('institute_director', '').strip()
         institute_unit = request.POST.get('institute_unit', '').strip()
@@ -26,9 +28,7 @@ def report_dataheader_view(request, report_id=None):
         considerations = request.POST.get('considerations', '').strip()
         conclusion = request.POST.get('conclusion', '').strip()
 
-        # Atualizar ou criar um novo relatório
         if report:
-            # Atualiza os campos do relatório existente
             report.expert_display_name = expert_display_name
             report.institute_director = institute_director
             report.institute_unit = institute_unit
@@ -43,7 +43,6 @@ def report_dataheader_view(request, report_id=None):
             report.conclusion = conclusion
             report.save()
         else:
-            # Cria um novo relatório
             report = ReportModel.objects.create(
                 user=current_user,
                 expert_display_name=current_user.display_name,
@@ -60,7 +59,6 @@ def report_dataheader_view(request, report_id=None):
                 conclusion=conclusion,
             )
 
-        # Retornar uma resposta JSON ou redirecionar para outra página
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({
                 'message': 'Relatório salvo com sucesso!',
@@ -69,7 +67,6 @@ def report_dataheader_view(request, report_id=None):
         else:
             return redirect('home')
 
-    # Preencher o contexto com os dados existentes (ou padrão)
     context = {
     'expert_display_name': report.expert_display_name if report else current_user.display_name,
     'institute_director': report.institute_director if report else current_user.director,
@@ -84,6 +81,5 @@ def report_dataheader_view(request, report_id=None):
     'considerations': report.considerations if report else '',
     'conclusion': report.conclusion if report else '',
     }
-
 
     return render(request, 'report_dataheader.html', context)
