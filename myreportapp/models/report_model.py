@@ -7,8 +7,15 @@ from datetime import date
 
 class ReportModel(models.Model):
     """ A classe ReportModel tem atributos e métdodos comuns a todos os relatórios """
-    # Dados do usuário
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Usuário"
+    )
 
+    # Dados do usuário
     expert_display_name = models.CharField('Perito', max_length=200, default='')
     institute_director = models.CharField('Diretor do Instituto', max_length=200, default='')
     institute_unit = models.CharField('Núcleo do Instituto', max_length=200, default='')

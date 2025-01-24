@@ -8,6 +8,7 @@ from myreportapp.views import (
 
 urlpatterns = [
     path('', home_view, name='home'),
-    path('image_editor', image_editor_view, name='image_editor'),
-    path('report_dataheader', report_dataheader_view, name='report_dataheader'),
+    path('image_editor/', image_editor_view, name='image_editor'),
+    path('report_dataheader/', report_dataheader_view, name='report_dataheader'),
+    path('report_dataheader/<int:report_id>/', report_dataheader_view, name='report_dataheader'),
 ]
