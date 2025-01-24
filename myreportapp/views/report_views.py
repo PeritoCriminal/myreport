@@ -11,7 +11,7 @@ def report_dataheader_view(request, report_id=None):
 
     if report_id:
         report = get_object_or_404(ReportModel, id=report_id)
-        if report.user != request.user:
+        if report.user != current_user:
             raise Http404("Você não tem permissão para acessar este relatório.")
 
     if request.method == 'POST':

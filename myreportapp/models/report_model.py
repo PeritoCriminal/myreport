@@ -50,3 +50,4 @@ class ReportModel(models.Model):
     class Meta:
         verbose_name = 'Relatório Pericial'
         verbose_name_plural = 'Relatórios Periciais'
+        ordering = ['-updated_at']

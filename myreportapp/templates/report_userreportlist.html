@@ -1,14 +1,30 @@
 {% extends 'base.html' %}
 {% block center_content %}
     <h2 class="mb-4 text-center pl-4 pr-4">Lista de Laudos</h2>
-    <ul>
-        {% for report in reports %}
-            <li>
-                <a href="{% url 'report_dataheader' report.id %}">{{ report.report_number }}</a> - 
-                Criado em: {{ report.created_at|date:"d/m/Y" }}
-            </li>
-        {% empty %}
-            <li>Você não possui relatórios cadastrados.</li>
-        {% endfor %}
-    </ul>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Número do Laudo</th>
+                    <th>BO - Requisitante</th>
+                    <th>Natureza da Ocorrência</th>
+                    <th>Última Atualização</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                    <tr>
+                        <td><a href="{% url 'report_showreport' report.id %}">{{ report.report_number }}</a></td>
+                        <td>{{ report.police_report_number }}<br/>{{ report.police_station }}</td>
+                        <td>{{ report.incident_nature }}</td>
+                        <td>{{ report.updated_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">Você não possui relatórios cadastrados.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 {% endblock %}
