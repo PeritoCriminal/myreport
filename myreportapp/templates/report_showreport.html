@@ -1,12 +1,92 @@
 {% extends 'base.html' %}
 
-{% block center_content %}
-<h2>Laudo {{ report_number }}</h2>
-<p>{{ preamble }}</p>
-<h3>Dados do Boletim</h3>
-<h3>Dados da Requisição</h3>
-<h3>Dados do Atendimento</h3>
-<h3>Preservação do Local</h3>
-<h3>Localização</h3>
-<h3>Descrição e Exame do Local</h3>
-{% endblock center_content %}
+{% block header-block %}
+<div class="btn-toolbar overflow-auto" role="toolbar">
+    <div class="btn-group me-2 toolbar" role="group">
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-pen" href="{% url 'home' %}"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-arrow-circle-right"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-keyboard"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-cross"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-scroll"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-feather"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-landmark"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-folder-open"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-city"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-gem"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-clipboard"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-wrench"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-database"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-table"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-car"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-truck"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-gun"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-crosshairs"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-shield"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-shield-alt"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-bullseye"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-bomb"></i>
+        </button>
+        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
+            <i class="fas fa-fire"></i>
+        </button>
+    </div>
+</div>
+{% endblock header-block %}
+
+{% block report-block %}
+<h2 class="report-number">Laudo {{ report_number }}</h2>
+<p class="report-preamble">{{ preamble }}</p>
+{% if report.has_police_report %}
+    <h3 class="report-title">Dados do Boletim</h3>
+{% endif %}
+{% if report.has_authority_request %}
+    <h3 class="report-title">Dados da Requisição</h3>
+{% endif %}
+<h3 class="report-title">Dados do Atendimento</h3>
+<h3 class="report-title">Preservação do Local</h3>
+<h3 class="report-title">Localização</h3>
+<h3 class="report-title">Descrição e Exame do Local</h3>
+{% endblock report-block %}

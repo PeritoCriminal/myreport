@@ -137,28 +137,27 @@
       <div class="container-fluid d-flex flex-column min-vh-100">
         <!-- Cabeçalho ou menu de navegação -->
         <header>
+          {% block header-block %}
           <!-- Adicione aqui o cabeçalho, se necessário -->
-        </header>
-      
-        
-      
+          {% endblock header-block %}
+        </header>     
           <!-- Coluna central mais larga -->
           <div class="block-center">
             {% block center_content %}
             <!-- Conteúdo central -->
-            <h1>Base.html</h1>
             {% endblock center_content %}
-          </div>
-      
-          
-      
-        <!-- Rodapé -->
+          </div>        
+      </div>
+      <div>
+        {% block report-block %}
         
+        {% endblock report-block %}
       </div>
-      </div>
-      <footer class="footer text-center py-3 mt-12">
-        <p class="mb-0">MyReport - Todos os direitos reservados © 2025</p>
-      </footer>
+    </div>
+    <footer class="footer text-center py-3 mt-12">
+      <hr>
+      <p class="mb-0">MyReport - Todos os direitos reservados © 2025</p>
+    </footer>
       
     <!-- JavaScript (Opcional) -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>

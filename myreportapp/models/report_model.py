@@ -34,6 +34,7 @@ class ReportModel(models.Model):
     conclusion = models.TextField('Conclusão', blank=True, default='')   
 
     # Dados do Boletim de Ocorrência 
+    has_police_report = models.BooleanField('Elaborado Boletim?', default=False)
     police_report_number = models.CharField('Número do Boletim de Ocorrência', max_length=200, default='', null=True)
     police_station = models.CharField('Distrito Policial', max_length=200, default='', null=True)
     occurrence_date = models.DateField('Data da Ocorrência', default=timezone.localdate) 
@@ -42,6 +43,7 @@ class ReportModel(models.Model):
     incident_nature = models.CharField('Natureza da Ocorrência', max_length=300, default='', null=True)    
 
     # Dados da requisição de Exame
+    has_authority_request = models.BooleanField('Requistado?', default=False)
     requesting_authority = models.CharField('Autoridade Requisitante', max_length=200, default='', null=True)
     call_date = models.DateField('Data do Acionamento', default=timezone.localdate) 
     call_time = models.TimeField('Hora do Acionamento', null=True, default='00:00:00')
