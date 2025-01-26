@@ -312,12 +312,17 @@ a.cancel-comment-link i {
 }
 
 .report-dotlist{
-  padding-left: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+  padding-top: 10px;
+  padding-bottom: 5px;
+  font-size: 12pt;
 }
-
 
 .dot-labelitem{
   font-family: 'Times New Roman', Times, serif;
-  font-size: 10pt;
+  font-size: 11pt;
   font-style: italic;
 }

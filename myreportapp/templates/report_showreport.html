@@ -4,21 +4,20 @@
 <div class="btn-toolbar overflow-auto" role="toolbar">
     <div class="btn-group me-2 toolbar" role="group">
         <a href="{% url 'report_dataheader' report_id %}" title="Dados do Atendimento.">
-            <button id="report_bo">
+            <button>
                 <i class="fas fa-pen"></i>
             </button>
         </a>
         <a href="{% url 'report_datapolicereport' report_id %}" title="Dados do Boletim de Ocorrência.">
-            <button id="report_bo">
-                <i class="fas fa-pen"></i>
+            <button>
+                <i class="fas fa-keyboard"></i>
             </button>
         </a>
-        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
-            <i class="fas fa-arrow-circle-right"></i>
-        </button>
-        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
-            <i class="fas fa-keyboard"></i>
-        </button>
+        <a href="{% url 'report_datarequest' report_id %}" title="Dados da Requisição.">
+            <button>
+                <i class="fas fa-arrow-circle-right"></i>
+            </button>
+        </a>
         <button id="report_bo" title="Dados do Boleteim de Ocorrência">
             <i class="fas fa-cross"></i>
         </button>
@@ -92,13 +91,24 @@
         <li><span class="dot-labelitem">Número do boletim:</span> {{ police_report_number }}</li>
         <li><span class="dot-labelitem">Distríto Policial:</span> {{ police_station }}</li>
         <li><span class="dot-labelitem">Natureza da Ocorrência:</span> {{ incident_nature }}</li>
-        <li><span class="dot-labelitem">Data e hora da ocorrência:</span> {{ occurrence_date }}, às {{ occurrence_time }}</li>
+        <li><span class="dot-labelitem">Data e Hora da Ocorrência:</span> {{ occurrence_date }}, às {{ occurrence_time }}</li>
     </ul>
 {% endif %}
 {% if has_authority_request %}
     <h3 class="report-title">Dados da Requisição</h3>
+    <ul class="report-dotlist">
+        <li><span class="dot-labelitem">Autoridade Requisitante:</span> {{ authority }}</li>
+        <li><span class="dot-labelitem">Objetivo da Perícia:</span> {{ objective }}</li>
+        <li><span class="dot-labelitem">Data e Hora do Acionamento:</span> {{ call_date }}, às {{ call_time }}</li>
+    </ul>
 {% endif %}
 <h3 class="report-title">Dados do Atendimento</h3>
+    <ul class="report-dotlist">
+        <li><span class="dot-labelitem">Protocolo:</span> {{ protocol_number }}</li>
+        <li><span class="dot-labelitem">Data e Hora do Atendimento:</span> {{ service_date }}, às {{ service_time }}</li>
+        <li><span class="dot-labelitem">{{ expert_gender }}:</span> {{ expert_display_name }}</li>
+        <li><span class="dot-labelitem">Fotografia:</span> {{ photographer }}</li>
+    </ul>
 <h3 class="report-title">Preservação do Local</h3>
 <h3 class="report-title">Localização</h3>
 <h3 class="report-title">Descrição e Exame do Local</h3>
