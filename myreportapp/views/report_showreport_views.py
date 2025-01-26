@@ -31,6 +31,8 @@ def report_showreport_view(request, report_id=None):
     context = {
         'report_number': report.report_number,
         'preamble': preamble,
+        'has_police_report': report.has_police_report,
+        'has_authority_request': report.has_authority_request,
     }
     
     return render(request, 'report_showreport.html', context)

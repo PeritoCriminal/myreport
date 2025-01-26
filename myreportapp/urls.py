@@ -7,6 +7,7 @@ from myreportapp.views import (
     report_userreportlist_view,
     report_showreport_view,
     report_policereport_view,
+    report_requestauthority_view,
     )
 
 urlpatterns = [
@@ -17,4 +18,5 @@ urlpatterns = [
     path('report_showreport/<int:report_id>', report_showreport_view, name='report_showreport'),
     path('report_userreportlist', report_userreportlist_view, name='report_userreportlist'),
     path('report_datapolicereport/<int:report_id>', report_policereport_view, name='report_datapolicereport'),
+    path('report_datarequest/<int:report_id>', report_requestauthority_view, name='report_datarequest'),
 ]

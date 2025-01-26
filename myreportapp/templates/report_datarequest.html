@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block center_content %}
+<div class="container mt-5 ml-5 mr-5">
+    <h2 class="mb-4 text-center pl-4 pr-4">Dados da Requisição</h2>
+    <form method="post" class="mx-auto" style="max-width: 600px;" onsubmit="return checkInputs();">
+        {% csrf_token %}        
+        <div class="form-group">
+            <label for="requesting_authority">Autoridade Requisitante:</label>
+            <input type="text" id="requesting_authority" name="requesting_authority" required class="form-control custom-input" value="{{ requesting_authority }}">
+        </div>
+        <div class="form-group">
+            <label for="examination_objective">Objetivo do Exame:</label>
+            <input type="text" id="examination_objective" name="examination_objective" required class="form-control custom-input" value="{{ examination_objective }}">
+        </div>
+        <div class="form-group">
+            <label for="call_date">Data do Acionamento:</label>
+            <input type="date" id="call_date" name="call_date" class="form-control custom-input" value="{{  call_date }}">
+        </div>
+        <div class="form-group">
+            <label for="call_time">Hora do Acionamento:</label>
+            <input type="time" id="call_time" name="call_time" class="form-control custom-input" value="{{ call_time }}">
+        </div>
+        <div class="form-row">
+            <div class="col">
+                <button type="submit" id="submit_btn" class="btn btn-primary btn-block">
+                    {% if post.id %}
+                        Atualizar
+                    {% else %}
+                        Criar
+                    {% endif %}
+                </button>
+            </div>
+            <div class="col">
+                <a href="{% url 'home' %}" class="btn btn-secondary btn-block">Cancelar</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    document.querySelector('#requesting_authority').focus();
+
+    
+</script>
+{% endblock scripts %}

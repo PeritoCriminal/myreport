@@ -79,10 +79,10 @@
 {% block report-block %}
 <h2 class="report-number">Laudo {{ report_number }}</h2>
 <p class="report-preamble">{{ preamble }}</p>
-{% if report.has_police_report %}
+{% if has_police_report %}
     <h3 class="report-title">Dados do Boletim</h3>
 {% endif %}
-{% if report.has_authority_request %}
+{% if has_authority_request %}
     <h3 class="report-title">Dados da Requisição</h3>
 {% endif %}
 <h3 class="report-title">Dados do Atendimento</h3>

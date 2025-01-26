@@ -13,7 +13,7 @@ class ReportModelAdmin(admin.ModelAdmin):
         'city'
     )
     list_filter = ('service_date', 'city', 'incident_nature')  # Filtros laterais úteis
-    search_fields = ('report_number', 'protocol_number', 'city', 'incident_nature')  # Barra de pesquisa
+    search_fields = ('report_number', 'protocol_number', 'city', 'incident_nature', 'has_police_report')  # Barra de pesquisa
     ordering = ('-report_date',)  # Ordena do mais recente para o mais antigo
     readonly_fields = ('updated_at', 'report_date')  # Campos somente leitura
 

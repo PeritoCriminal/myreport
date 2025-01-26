@@ -7,3 +7,4 @@ from .report_userreportlist_views import report_userreportlist_view
 from .report_showreport_views import report_showreport_view
 from .report_userreportlist_views import report_userreportlist_view
 from .report_policereport_views import report_policereport_view
+from .report_requestauthority_views import report_requestauthority_view
