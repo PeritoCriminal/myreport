@@ -29,9 +29,14 @@ def report_showreport_view(request, report_id=None):
 
 
     context = {
+        'report_id': report.id,
         'report_number': report.report_number,
         'preamble': preamble,
         'has_police_report': report.has_police_report,
+        'police_report_number': report.police_report_number,
+        'police_station': report.police_station,
+        'occurrence_date': report.occurrence_date,
+        'occurrence_time': report.occurrence_time,
         'has_authority_request': report.has_authority_request,
     }
     

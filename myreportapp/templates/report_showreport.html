@@ -3,9 +3,16 @@
 {% block header-block %}
 <div class="btn-toolbar overflow-auto" role="toolbar">
     <div class="btn-group me-2 toolbar" role="group">
-        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
-            <i class="fas fa-pen" href="{% url 'home' %}"></i>
-        </button>
+        <a href="{% url 'report_dataheader' report_id %}" title="Dados do Atendimento.">
+            <button id="report_bo">
+                <i class="fas fa-pen"></i>
+            </button>
+        </a>
+        <a href="{% url 'report_datapolicereport' report_id %}" title="Dados do Boletim de Ocorrência.">
+            <button id="report_bo">
+                <i class="fas fa-pen"></i>
+            </button>
+        </a>
         <button id="report_bo" title="Dados do Boleteim de Ocorrência">
             <i class="fas fa-arrow-circle-right"></i>
         </button>
@@ -81,6 +88,12 @@
 <p class="report-preamble">{{ preamble }}</p>
 {% if has_police_report %}
     <h3 class="report-title">Dados do Boletim</h3>
+    <ul class="report-dotlist">
+        <li><span class="dot-labelitem">Número do boletim:</span> {{ police_report_number }}</li>
+        <li><span class="dot-labelitem">Distríto Policial:</span> {{ police_station }}</li>
+        <li><span class="dot-labelitem">Natureza da Ocorrência:</span> {{ incident_nature }}</li>
+        <li><span class="dot-labelitem">Data e hora da ocorrência:</span> {{ occurrence_date }}, às {{ occurrence_time }}</li>
+    </ul>
 {% endif %}
 {% if has_authority_request %}
     <h3 class="report-title">Dados da Requisição</h3>

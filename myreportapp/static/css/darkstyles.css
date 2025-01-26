@@ -262,12 +262,6 @@ a.cancel-comment-link i {
   /* Espaçamento inferior */
 }
 
-.report-title {
-  text-align: left;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 14pt;
-}
-
 .report-preamble {
   background-color: #1e1e1e;
   /* Fundo levemente mais claro para destacar */
@@ -315,4 +309,15 @@ a.cancel-comment-link i {
   padding-bottom: 15px;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 16pt;
+}
+
+.report-dotlist{
+  padding-left: 50px;
+}
+
+
+.dot-labelitem{
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 10pt;
+  font-style: italic;
 }
