@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.utils.timezone import now
+from django.urls import reverse
 from myreportapp.models import ReportModel
 
 @login_required
@@ -34,7 +35,7 @@ def report_requestauthority_view(request, report_id=None):
         report.call_date = call_date
         report.call_time = call_time
         report.save()
-        return redirect('home')  # Substitua 'success_page' pela URL de sucesso apropriada.
+        return redirect(reverse('report_showreport', kwargs={'report_id': report.id}))  # Substitua 'success_page' pela URL de sucesso apropriada.
 
     # Contexto para renderização inicial da página
     context = {

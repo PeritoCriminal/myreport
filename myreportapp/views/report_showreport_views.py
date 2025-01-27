@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404
 from django.utils.timezone import now
 from myreportapp.models import ReportModel
+from commonapp.commondefs import fulldate
 
 @login_required
 def report_showreport_view(request, report_id=None):
@@ -13,6 +14,7 @@ def report_showreport_view(request, report_id=None):
         report = get_object_or_404(ReportModel, id=report_id)
         if report.user != current_user:
             raise Http404("Você não tem permissão para acessar este relatório.")
+        
         expert_gender = 'Perito(a) Responsável'
         if current_user.gender == 'M':
             expert_gender = 'Perito Responsável'
@@ -20,19 +22,50 @@ def report_showreport_view(request, report_id=None):
             expert_gender = 'Perita Responsável'
         else:
             expert_gender = 'Perito(a) Responsável'
-        preamble = (
-            f'Em {report.designation_date}, na cidade de {current_user.city} e no Instituto de' 
-            f'Criminalística da Superintendência da Polícia Técnico-Científica, '
-            f'da Secretaria de Segurança Pública do Estado de São Paulo, '
-            f'em conformidade com o disposto no art. 178 do Decreto-Lei 3689, '
-            f'de 3 de outubro de 1941, e no Decreto-Lei 42847, de 9 de fevereiro de 1998, '
-            f'pelo Diretor deste Instituto de Criminalística, '
-            f'o Perito Criminal {report.institute_director}, '
-            f'foi designado o perito criminal {report.expert_display_name} para proceder ao exame pericial' 
-            f'especificado em requisição assinada pela Autoridade Policial, '
-            f'o Delegado de Polícia {report.requesting_authority}.'
-        )
+        
+    def makepreamble():
+        # Obtenção da data por extenso
+        datedesignation = fulldate(report.designation_date)
+        city = current_user.city
 
+        # Montagem do texto do diretor ou diretora
+        if 'Dra.' in report.institute_director:
+            director = f'pela Diretora deste Instituto de Criminalística, Perita Criminal {report.institute_director}'
+        elif 'Dr.' in report.institute_director:
+            director = f'pelo Diretor deste Instituto de Criminalística, Perito Criminal {report.institute_director}'
+        else:
+            director = f'pelo(a) Diretor(a) deste Instituto de Criminalística, Perito(a) Criminal {report.institute_director}'
+
+        # Montagem do texto do perito ou perita
+        if current_user.gender == 'M':
+            expertdisplayname = f'designado o Perito Criminal {report.expert_display_name}'
+        elif current_user.gender == 'F':
+            expertdisplayname = f'designada a Perita Criminal {report.expert_display_name}'
+        else:
+            expertdisplayname = f'designado(a) o(a) Perito(a) Criminal {report.expert_display_name}'
+
+        # Montagem do texto da autoridade requisitante
+        if 'Dra.' in report.requesting_authority:
+            authority = f'a Delegada de Polícia {report.requesting_authority}'
+        elif 'Dr.' in report.requesting_authority:
+            authority = f'o Delegado de Polícia {report.requesting_authority}'
+        else:
+            authority = f'o(a) Delegado(a) de Polícia {report.requesting_authority}'
+
+        # Construção do preâmbulo
+        return (
+            f"Em {datedesignation}, na cidade de {city}, no Instituto de "
+            f"Criminalística da Superintendência da Polícia Técnico-Científica, "
+            f"da Secretaria de Segurança Pública do Estado de São Paulo, "
+            f"em conformidade com o disposto no art. 178 do Decreto-Lei nº 3.689 "
+            f"de 3 de outubro de 1941, "
+            f"{director}, "
+            f"foi {expertdisplayname} para proceder ao exame pericial "
+            f"especificado na Requisição expedida pela Autoridade Policial, "
+            f"{authority}."
+        )       
+
+    preamble = makepreamble()
 
     context = {
         'report_id': report.id,

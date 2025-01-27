@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404
 from django.utils.timezone import now
+from django.urls import reverse
 from myreportapp.models import ReportModel
 
 @login_required
@@ -59,13 +60,15 @@ def report_dataheader_view(request, report_id=None):
                 conclusion=conclusion,
             )
 
+
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({
                 'message': 'Relatório salvo com sucesso!',
                 'report_id': report.id,
             })
         else:
-            return redirect('home')
+            return redirect(reverse('report_showreport', kwargs={'report_id': report.id}))
+
 
     context = {
     'expert_display_name': report.expert_display_name if report else current_user.display_name,
