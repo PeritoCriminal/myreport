@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404
 from django.utils.timezone import now
-from myreportapp.models import ReportModel
+from myreportapp.models import ReportModel, PreservationModel
 from commonapp.commondefs import fulldate
 
 @login_required
@@ -63,11 +63,15 @@ def report_showreport_view(request, report_id=None):
             f"foi {expertdisplayname} para proceder ao exame pericial "
             f"especificado na Requisição expedida pela Autoridade Policial, "
             f"{authority}."
-        )       
+        )    
+    
 
     preamble = makepreamble()
 
+    preservations = PreservationModel.objects.filter(report__id=report_id) 
+
     context = {
+        'preservations': preservations,
         'report_id': report.id,
         'report_number': report.report_number,
         'expert_display_name': report.expert_display_name,

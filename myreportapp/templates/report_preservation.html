@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block center_content %}
+<div class="container mt-5 ml-5 mr-5">
+    <h2 class="mb-4 text-center pl-4 pr-4">Preservação do Local e Contexto de Atendimento</h2>
+    <form method="post" class="mx-auto" style="max-width: 600px;" onsubmit="return checkInputs();">
+        {% csrf_token %}
+        
+        <!-- Equipe de Preservação -->
+        <div class="form-group">
+            <label for="preservation_team">Equipe de Preservação:</label>
+            <select id="preservation_team" name="preservation_team" required class="form-control custom-input">
+                <option value="preservado" {% if preservation_team == "preservado" %}selected{% endif %}>Preservado</option>
+                <option value="parcialmente_preservado" {% if preservation_team == "parcialmente_preservado" %}selected{% endif %}>Parcialmente Preservado</option>
+                <option value="prejudicado" {% if preservation_team == "prejudicado" %}selected{% endif %}>Prejudicado</option>
+            </select>
+        </div>
+        
+        <!-- Encarregado -->
+        <div class="form-group">
+            <label for="officer_in_charge">Encarregado:</label>
+            <input type="text" id="officer_in_charge" name="officer_in_charge" required class="form-control custom-input" value="{{ officer_in_charge }}">
+        </div>
+        
+        <!-- Viatura -->
+        <div class="form-group">
+            <label for="vehicle">Viatura:</label>
+            <input type="text" id="vehicle" name="vehicle" required class="form-control custom-input" value="{{ official_vehicle }}">
+        </div>
+        
+        <!-- Autoridade Policial Presente -->
+        <div class="form-group">
+            <label for="police_authority_present">Autoridade Policial Presente:</label>
+            <select id="police_authority_present" name="police_authority_present" required class="form-control custom-input">
+                <option value="true" {% if police_authority_present == "true" %}selected{% endif %}>Sim</option>
+                <option value="false" {% if police_authority_present == "false" %}selected{% endif %}>Não</option>
+            </select>
+        </div>
+        
+        <!-- Equipe de Investigação Presente -->
+        <div class="form-group">
+            <label for="investigation_team_present">Equipe de Investigação Presente:</label>
+            <select id="investigation_team_present" name="investigation_team_present" required class="form-control custom-input">
+                <option value="true" {% if investigation_team_present == "true" %}selected{% endif %}>Sim</option>
+                <option value="false" {% if investigation_team_present == "false" %}selected{% endif %}>Não</option>
+            </select>
+        </div>
+        
+        <!-- Contexto Geral -->
+        <div class="form-group">
+            <label for="general_context">Contexto Geral:</label>
+            <textarea id="general_context" name="general_context" required class="form-control custom-input" rows="4">{{ general_context }}</textarea>
+        </div>
+
+        <!-- Botões -->
+        <div class="form-row">
+            <div class="col">
+                <button type="submit" id="submit_btn" class="btn btn-primary btn-block">
+                    {% if post.id %}
+                        Atualizar
+                    {% else %}
+                        Criar
+                    {% endif %}
+                </button>
+            </div>
+            <div class="col">
+                <a href="{% url 'report_showreport' report_id %}" class="btn btn-secondary btn-block">Cancelar</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelector('#preservation_team').focus();
+</script>
+{% endblock scripts %}

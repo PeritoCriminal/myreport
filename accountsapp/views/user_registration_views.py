@@ -106,6 +106,7 @@ def verify_email(request, uidb64, token):
 
 
 def user_login_view(request):
+    user = None  # Inicializa o usuário como None
     if request.method == 'POST':
         form = UserLoginForm(request.POST)
         if form.is_valid():
@@ -124,8 +125,11 @@ def user_login_view(request):
     else:
         form = UserLoginForm()
 
+    # Define o contexto verificando se o usuário está autenticado
     context = {
         'form': form,
+        'user_name': user.display_name if user else 'colega',  # Adiciona 'user_name' apenas se o login for bem-sucedido
     }
 
     return render(request, 'user_login.html', context)
+

@@ -18,9 +18,13 @@
                 <i class="fas fa-arrow-circle-right"></i>
             </button>
         </a>
-        <button id="report_bo" title="Dados do Boleteim de Ocorrência">
-            <i class="fas fa-cross"></i>
-        </button>
+        <a href="{% url 'report_preservation_new' report_id %}" title="Preservação do Local">
+            <button>
+                <i class="fas fa-plus"></i>
+            </button>
+        </a>
+
+
         <button id="report_bo" title="Dados do Boleteim de Ocorrência">
             <i class="fas fa-scroll"></i>
         </button>
@@ -109,7 +113,14 @@
         <li><span class="dot-labelitem">{{ expert_gender }}:</span> {{ expert_display_name }}</li>
         <li><span class="dot-labelitem">Fotografia:</span> {{ photographer }}</li>
     </ul>
-<h3 class="report-title">Preservação do Local</h3>
+    {% if preservations %}
+        <h3 class="report-title">Preservação do Local</h3>
+        {% for preservation in preservations %}
+            <p>
+                {{ preservation.general_context }}
+            </p>
+        {% endfor %}
+    {% endif %}
 <h3 class="report-title">Localização</h3>
 <h3 class="report-title">Descrição e Exame do Local</h3>
 {% endblock report-block %}

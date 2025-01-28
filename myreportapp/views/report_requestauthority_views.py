@@ -39,6 +39,7 @@ def report_requestauthority_view(request, report_id=None):
 
     # Contexto para renderização inicial da página
     context = {
+        'report_id': report.id,
         'requesting_authority': report.requesting_authority if report else '',
         'examination_objective': report.examination_objective if report else '',
         'call_date': report.call_date.isoformat() if report and report.call_date else now().date().isoformat(),

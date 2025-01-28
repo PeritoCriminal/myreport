@@ -41,6 +41,7 @@ def report_policereport_view(request, report_id=None):  # Sempre terá um ID
 
     # Contexto para renderização inicial da página
     context = {
+        'report_id': report.id,
         'police_report_number': report.police_report_number if report else '',
         'police_station': report.police_station if report else '',
         'incident_nature': report.incident_nature if report else '',

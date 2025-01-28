@@ -7,7 +7,7 @@
     <h1>MYREPORT</h1>
     <br>
     {% if not user.is_authenticated %}
-    <p>Bem-vindo ao MYREPORT, um projeto independente desenvolvido para oferecer um ambiente seguro, eficiente e colaborativo dedicado à elaboração e edição de relatórios técnicos periciais. Inicialmente concebido para atender Peritos Criminais Oficiais do Estado de São Paulo, o MYREPORT expande suas funcionalidades para profissionais que buscam aprimorar sua atuação técnica.</p>
+    <p>Conheça o MYREPORT, um projeto independente desenvolvido para oferecer um ambiente seguro, eficiente e colaborativo dedicado à elaboração e edição de relatórios técnicos periciais. Inicialmente concebido para atender Peritos Criminais Oficiais do Estado de São Paulo.</p>
     <p>A plataforma possibilita:</p>
     <ul>
         <li>Criar relatórios técnicos personalizados de maneira ágil e organizada;</li>
@@ -18,9 +18,9 @@
         <li>Baixar formulários úteis para o dia a dia da profissão.</li>
     </ul>
     <p>O acesso à plataforma exige cadastro, utilizando seu e-mail institucional, garantindo maior segurança e exclusividade para os participantes.</p>
-    <p><a href="{% url 'login' %}">Acesse sua conta</a> ou <a href="{% url 'register' %}">faça seu cadastro</a> e aproveite todos os benefícios do MYREPORT.</p>
+    <p><a href="{% url 'login' %}">Acesse sua conta</a> ou <a href="{% url 'register' %}">faça seu cadastro</a> e aproveite as funcionalidades do MYREPORT.</p>
     {% else %}
-        <p>Aqui o texto se a pessoa estiver logada.</p>
+        <p>Bem vindo {{ user_name }}!</p>
     {% endif %}
 {% endblock %}
 
