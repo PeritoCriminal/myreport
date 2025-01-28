@@ -116,9 +116,16 @@
     {% if preservations %}
         <h3 class="report-title">Preservação do Local</h3>
         {% for preservation in preservations %}
-            <p>
-                {{ preservation.general_context }}
-            </p>
+            <p>{{ preservation.preservation_team }}</p>
+            <p><span class="dot-labelitem">Encarregado: </span>{{ preservation.officer_in_charge }}</p>
+            <p><span class="dot-labelitem">Viatura: </span>{{ preservation.official_vehicle }}</p>
+            {% if preservation.police_authority_present %}
+                <p><span class="dot-labelitem">Autoridade Policial presente.</span></p>
+            {% endif %}
+            {% if reservation.investigation_team_present %}
+                <p><span class="dot-labelitem">Equipe de Investigação presente. </span>{{ preservation.investigation_team_present }}</p>
+            {% endif %}
+            <p><span class="dot-labelitem">Contexto: </span>{{ preservation.general_context }}</p>            
         {% endfor %}
     {% endif %}
 <h3 class="report-title">Localização</h3>

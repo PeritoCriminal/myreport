@@ -1,5 +1,5 @@
 from django.contrib import admin
-from myreportapp.models import ReportModel
+from myreportapp.models import ReportModel,PreservationModel
 
 @admin.register(ReportModel)
 class ReportModelAdmin(admin.ModelAdmin):    
@@ -16,6 +16,13 @@ class ReportModelAdmin(admin.ModelAdmin):
     search_fields = ('report_number', 'protocol_number', 'city', 'incident_nature', 'has_police_report')  # Barra de pesquisa
     ordering = ('-report_date',)  # Ordena do mais recente para o mais antigo
     readonly_fields = ('updated_at', 'report_date')  # Campos somente leitura
+
+@admin.register(PreservationModel)
+class PreservationModelAdmin(admin.ModelAdmin):
+    list_display = (
+        'report',
+        'general_context'
+    )
 
     
 

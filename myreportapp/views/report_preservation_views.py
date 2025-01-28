@@ -23,6 +23,7 @@ def report_preservation_view(request, report_id=None, preservation_id=None):
     # Se for um POST, salvar os dados enviados pelo formulário
     if request.method == "POST":
         # Coletar os dados enviados no formulário
+        section = request.POST.get("section")
         preservation_team = request.POST.get("preservation_team")
         officer_in_charge = request.POST.get("officer_in_charge")
         official_vehicle = request.POST.get("official_vehicle")
@@ -32,6 +33,7 @@ def report_preservation_view(request, report_id=None, preservation_id=None):
 
         if preservation:
             # Atualizar PreservationModel existente
+            preservation.section = section
             preservation.preservation_team = preservation_team
             preservation.officer_in_charge = officer_in_charge
             preservation.official_vehicle = official_vehicle
@@ -43,6 +45,7 @@ def report_preservation_view(request, report_id=None, preservation_id=None):
             # Criar um novo PreservationModel
             PreservationModel.objects.create(
                 report=report,
+                section = section,
                 preservation_team=preservation_team,
                 officer_in_charge=officer_in_charge,
                 official_vehicle=official_vehicle,
@@ -58,6 +61,7 @@ def report_preservation_view(request, report_id=None, preservation_id=None):
     context = {
         "report_id": report.id,
         "preservation": preservation,
+        "section": "Local - Preservação e Contexto do Atendimento",
         "preservation_team": preservation.preservation_team if preservation else "",
         "officer_in_charge": preservation.officer_in_charge if preservation else "",
         "official_vehicle": preservation.official_vehicle if preservation else "",

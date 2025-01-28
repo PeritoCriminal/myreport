@@ -1,17 +1,16 @@
 {% extends 'base.html' %}
-{% block center_content %}
+{% block report-block %}
 <div class="container mt-5 ml-5 mr-5">
-    <h2 class="mb-4 text-center pl-4 pr-4">Preservação do Local e Contexto de Atendimento</h2>
-    <form method="post" class="mx-auto" style="max-width: 600px;" onsubmit="return checkInputs();">
+    <form method="post" class="mx-auto" style="max-width: 800px;" onsubmit="return checkInputs();">
         {% csrf_token %}
         
         <!-- Equipe de Preservação -->
+        <div class="form-group report-title">
+            <input type="text" id="section" name="section" required class="form-control custom-input" value="{{ section }}" title="{{ section }}">
+        </div>
         <div class="form-group">
-            <label for="preservation_team">Equipe de Preservação:</label>
+            <label for="section">Equipe de Preservação:</label>
             <select id="preservation_team" name="preservation_team" required class="form-control custom-input">
-                <option value="preservado" {% if preservation_team == "preservado" %}selected{% endif %}>Preservado</option>
-                <option value="parcialmente_preservado" {% if preservation_team == "parcialmente_preservado" %}selected{% endif %}>Parcialmente Preservado</option>
-                <option value="prejudicado" {% if preservation_team == "prejudicado" %}selected{% endif %}>Prejudicado</option>
             </select>
         </div>
         
@@ -23,8 +22,8 @@
         
         <!-- Viatura -->
         <div class="form-group">
-            <label for="vehicle">Viatura:</label>
-            <input type="text" id="vehicle" name="vehicle" required class="form-control custom-input" value="{{ official_vehicle }}">
+            <label for="official_vehicle">Viatura:</label>
+            <input type="text" id="official_vehicle" name="official_vehicle" required class="form-control custom-input" value="{{ official_vehicle }}">
         </div>
         
         <!-- Autoridade Policial Presente -->
@@ -73,5 +72,27 @@
 {% block scripts %}
 <script>
     document.querySelector('#preservation_team').focus();
+
+    const preservation_team = document.querySelector('#preservation_team');
+    const preservationTeam = {
+        'Selecione': '',
+        'Sem equipe': 'No local não havia equipe de preservação.',
+        'PM': 'Local preservado por equipe da Polícia Militar',
+        'PMR': 'Local preservado por equipe da Polícia Militar Rodoviária',
+        'GCM': 'Local preservado por equipe da Guarda Civil Municipal',
+        'PC': 'Local preservado por equipe da Polícia Civil',
+        'PRF': 'Local preservado por equipe da Polícia Rodoviária Federal',
+        'CBM': 'Local preservado por equipe do Corpo de Bombeiros Militar',
+        'PF': 'Local preservado por equipe da Polícia Federal',
+        'Forças Armadas': 'Local preservado por equipe das Forças Armadas',
+        'Agentes de Trânsito': 'Local preservado por agentes de trânsito'
+    };
+    for (const [key, value] of Object.entries(preservationTeam)) {
+        const option = document.createElement('option');
+        option.value = value;  
+        option.textContent = key;
+        preservation_team.appendChild(option);
+    }
+
 </script>
 {% endblock scripts %}
