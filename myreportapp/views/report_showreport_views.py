@@ -88,6 +88,8 @@ def report_showreport_view(request, report_id=None):
         'occurrence_time': report.occurrence_time,
         'incident_nature': report.incident_nature,
         'has_authority_request': report.has_authority_request,
+        'section_request': report.section_request,
+        'section_police_report': report.section_police_report,
         'authority': report.requesting_authority,
         'objective': report.examination_objective,
         'call_date': report.call_date,

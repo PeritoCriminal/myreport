@@ -3,6 +3,11 @@
 {% block header-block %}
 <div class="btn-toolbar overflow-auto" role="toolbar">
     <div class="btn-group me-2 toolbar" role="group">
+        <a href="{% url 'report_datafromuser' report_id %}" title="Dados Gerais.">
+            <button>
+                <i class="fas fa-pen"></i>
+            </button>
+        </a>
         <a href="{% url 'report_dataheader' report_id %}" title="Dados do Atendimento.">
             <button>
                 <i class="fas fa-pen"></i>
@@ -90,7 +95,7 @@
 <h2 class="report-number">Laudo {{ report_number }}</h2>
 <p class="report-preamble">{{ preamble }}</p>
 {% if has_police_report %}
-    <h3 class="report-title">Dados do Boletim</h3>
+    <h3 class="report-title">{{ section_police_report }}</h3>
     <ul class="report-dotlist">
         <li><span class="dot-labelitem">Número do boletim:</span> {{ police_report_number }}</li>
         <li><span class="dot-labelitem">Distríto Policial:</span> {{ police_station }}</li>
@@ -99,7 +104,7 @@
     </ul>
 {% endif %}
 {% if has_authority_request %}
-    <h3 class="report-title">Dados da Requisição</h3>
+    <h3 class="report-title">{{ section_request }}</h3>
     <ul class="report-dotlist">
         <li><span class="dot-labelitem">Autoridade Requisitante:</span> {{ authority }}</li>
         <li><span class="dot-labelitem">Objetivo da Perícia:</span> {{ objective }}</li>
@@ -114,8 +119,8 @@
         <li><span class="dot-labelitem">Fotografia:</span> {{ photographer }}</li>
     </ul>
     {% if preservations %}
-        <h3 class="report-title">Preservação do Local</h3>
         {% for preservation in preservations %}
+            <h3 class="report-title">{{ preservation.section }}</h3>
             <p>{{ preservation.preservation_team }}</p>
             <p><span class="dot-labelitem">Encarregado: </span>{{ preservation.officer_in_charge }}</p>
             <p><span class="dot-labelitem">Viatura: </span>{{ preservation.official_vehicle }}</p>

@@ -1,32 +1,30 @@
 {% extends 'base.html' %}
 {% block center_content %}
 <div class="container mt-5 ml-5 mr-5">
-    <h2 class="mb-4 text-center pl-4 pr-4">Dados do Atendimento</h2>
+    <h2 class="mb-4 text-center pl-4 pr-4">Dados Gerais</h2>
+    <div class="alert alert-dark" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span>Os dados abaixo são preenchidos automaticamente com base nas informações cadastradas no perfil do usuário, mas podem ser alterados, se necessário. As alterações feitas aqui terão efeito apenas neste relatório.</span>
+      </div>
+      
+         
     <form method="post" class="mx-auto" style="max-width: 600px;" onsubmit="return checkInputs();">
         {% csrf_token %}
         <div class="form-group">
-            <label for="report_number">Número do Laudo:</label>
-            <input type="text" id="report_number" name="report_number" required class="form-control custom-input" value="{{ report_number }}">
+            <label for="expert_display_name">Perito:</label>
+            <input type="text" id="expert_display_name" name="expert_display_name" required class="form-control custom-input" value="{{ expert_display_name }}">
         </div>
         <div class="form-group">
-            <label for="protocol_number">Número do Protocolo:</label>
-            <input type="text" id="protocol_number" name="protocol_number" required class="form-control custom-input" value="{{ protocol_number }}">
+            <label for="institute_director">Diretor do Instituto de Criminalística:</label>
+            <input type="text" id="institute_director" name="institute_director" required class="form-control custom-input" value="{{ institute_director }}">
         </div>
         <div class="form-group">
-            <label for="designation_date">Data de Designação:</label>
-            <input type="date" id="designation_date" name="designation_date" class="form-control custom-input" value="{{  designation_date }}">
+            <label for="institute_unit">Unidade:</label>
+            <input type="text" id="institute_unit" name="institute_unit" required class="form-control custom-input" value="{{ institute_unit }}">
         </div>
         <div class="form-group">
-            <label for="service_date">Data de Atendimento:</label>
-            <input type="date" id="service_date" name="service_date" class="form-control custom-input" value="{{ service_date }}">
-        </div>
-        <div class="form-group">
-            <label for="service_time">Horário do Atendimento:</label>
-            <input type="time" id="service_time" name="service_time" class="form-control custom-input" value="{{ service_time }}">
-        </div>
-        <div class="form-group">
-            <label for="photographer">Fotografia:</label>
-            <input type="text" id="photographer" name="photographer" class="form-control custom-input" value="{{ report_photographer }}">
+            <label for="forensic_team_base">Equipe:</label>
+            <input type="text" id="forensic_team_base" name="forensic_team_base" required class="form-control custom-input" value="{{ forensic_team_base }}">
         </div>
         <div class="form-row">
             <div class="col">
@@ -50,6 +48,12 @@
 <script>
 
     document.querySelector('#report_number').focus();
+    document.querySelector('#expert_display_name').addEventListener('change', (e) => {
+        e.target.value = toNiceName(e.target.value);
+    });
+    document.querySelector('#institute_director').addEventListener('change', (e) => {
+        e.target.value = toNiceName(e.target.value);
+    });
     document.querySelector('#photographer').addEventListener('change', (e) => {
         e.target.value = toNiceName(e.target.value);
     });
@@ -63,6 +67,10 @@
 
     function checkInputs() {
         const fields = [
+            { id: 'expert_display_name', message: 'O nome do perito é obrigatório.' },
+            { id: 'institute_director', message: 'O nome do diretor é obrigatório.' },
+            { id: 'institute_unit', message: 'A unidade é obrigatória.' },
+            { id: 'forensic_team_base', message: 'A equipe é obrigatória.' },
             { id: 'report_number', message: 'O número do laudo é obrigatório.' },
             { id: 'protocol_number', message: 'O número do protocolo é obrigatório.' },
             { id: 'designation_date', message: 'A data de designação é obrigatória.', type: 'date' },

@@ -16,12 +16,14 @@ class ReportModel(models.Model):
     )
 
     # Dados do usuário
+    section_datauser = models.CharField('Dados Gerais', max_length=255, default='Dados Gerais')
     expert_display_name = models.CharField('Perito', max_length=200, default='')
     institute_director = models.CharField('Diretor do Instituto', max_length=200, default='')
     institute_unit = models.CharField('Núcleo do Instituto', max_length=200, default='')
     forensic_team_base = models.CharField('Base da Equipe de Perícias', max_length=200, default='')
 
     # Dados do atendimento
+    section_dataservice = models.CharField('Daodos do Atendimento', max_length=255, default='Dados do Atendimento')
     report_number = models.CharField('Número do Laudo', max_length=100, default='', null=True)
     protocol_number = models.CharField('Número do Protocolo', max_length=200, default='', null=True)
     report_date = models.DateField('Data do Registro', auto_now_add=True) 
@@ -31,9 +33,11 @@ class ReportModel(models.Model):
     service_time = models.TimeField('Hora do Atendimento', null=True, default='00:00:00')
     photographer = models.CharField('Fotografia', max_length=200, default='') 
     considerations = models.TextField('Considerações', blank=True, default='')
-    conclusion = models.TextField('Conclusão', blank=True, default='')   
+    conclusion = models.TextField('Conclusão', blank=True, default='') 
+    user_preamble = models.TextField('Preâmbulo Confomre Usuário', blank=True, default='')  
 
     # Dados do Boletim de Ocorrência 
+    section_police_report = models.CharField('Daodos do Boletim', max_length=255, default='Dados do Boletim de Ocorrência')
     has_police_report = models.BooleanField('Elaborado Boletim?', default=False)
     police_report_number = models.CharField('Número do Boletim de Ocorrência', max_length=200, default='', null=True)
     police_station = models.CharField('Distrito Policial', max_length=200, default='', null=True)
@@ -43,6 +47,7 @@ class ReportModel(models.Model):
     incident_nature = models.CharField('Natureza da Ocorrência', max_length=300, default='', null=True)    
 
     # Dados da requisição de Exame
+    section_request = models.CharField('Dados da Requisição', max_length=255, default='Dados da Requisição')
     has_authority_request = models.BooleanField('Requistado?', default=False)
     requesting_authority = models.CharField('Autoridade Requisitante', max_length=200, default='', null=True)
     call_date = models.DateField('Data do Acionamento', default=timezone.localdate) 

@@ -15,6 +15,7 @@ def report_policereport_view(request, report_id=None):  # Sempre terá um ID
         raise Http404("Você não tem permissão para acessar este relatório.")
 
     if request.method == 'POST':
+        section_police_report = request.POST.get('section_police_report', '').strip()
         police_report_number = request.POST.get('police_report_number', '').strip()
         police_station = request.POST.get('police_station', '').strip()
         incident_nature = request.POST.get('incident_nature', '').strip()
@@ -31,6 +32,7 @@ def report_policereport_view(request, report_id=None):  # Sempre terá um ID
 
         # Atualiza os dados do relatório
         report.has_police_report = True
+        report.section_police_report = section_police_report
         report.police_report_number = police_report_number
         report.police_station = police_station
         report.incident_nature = incident_nature
@@ -42,6 +44,7 @@ def report_policereport_view(request, report_id=None):  # Sempre terá um ID
     # Contexto para renderização inicial da página
     context = {
         'report_id': report.id,
+        'section_police_report': report.section_police_report if report else '',
         'police_report_number': report.police_report_number if report else '',
         'police_station': report.police_station if report else '',
         'incident_nature': report.incident_nature if report else '',

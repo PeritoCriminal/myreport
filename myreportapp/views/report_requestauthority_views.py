@@ -15,6 +15,7 @@ def report_requestauthority_view(request, report_id=None):
         raise Http404("Você não tem permissão para acessar este relatório.")
 
     if request.method == 'POST':
+        section_request = request.POST.get('section_request', '').strip()
         requesting_authority = request.POST.get('requesting_authority', '').strip()
         examination_objective = request.POST.get('examination_objective', '').strip()
         call_date = request.POST.get('call_date', now().date())
@@ -30,6 +31,7 @@ def report_requestauthority_view(request, report_id=None):
 
         # Atualiza os dados do relatório
         report.has_authority_request = True
+        report.section_request = section_request
         report.requesting_authority = requesting_authority
         report.examination_objective = examination_objective
         report.call_date = call_date
@@ -40,6 +42,7 @@ def report_requestauthority_view(request, report_id=None):
     # Contexto para renderização inicial da página
     context = {
         'report_id': report.id,
+        'section_request': report.section_request,
         'requesting_authority': report.requesting_authority if report else '',
         'examination_objective': report.examination_objective if report else '',
         'call_date': report.call_date.isoformat() if report and report.call_date else now().date().isoformat(),
