@@ -20,7 +20,7 @@ function fakePlacehold(element, str_value) {
 
 function toNiceName(someOneName) {
     const prepositions = new Set(['de', 'da', 'do', 'dos', 'das', 'e', 'ou', 'para', 'com', 'em', 'a', 'o', 'do', 'dos']);
-    const treatmentTerms = new Set(['PM', 'GCM', 'GM', 'PMR']); // Termos de tratamento que devem ser exibidos em maiúsculas
+    const treatmentTerms = new Set(['PM', 'GCM', 'GM', 'PMR', 'EPC']); // Termos de tratamento que devem ser exibidos em maiúsculas
     const words = someOneName.split(/\s+/);
     const formatedWords = words.map((word, index) => {
         const lowerCaseWord = word.toLowerCase();

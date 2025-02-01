@@ -11,8 +11,11 @@
     <form method="post" class="mx-auto" style="max-width: 600px;" onsubmit="return checkInputs();">
         {% csrf_token %}
         <div class="form-group">
+            <input type="checkbox" id="toNiceText" checked><label for="toNiceText" class="pl-3">Ajustar textos?</label>
+        </div>
+        <div class="form-group">
             <label for="expert_display_name">Perito:</label>
-            <input type="text" id="expert_display_name" name="expert_display_name" required class="form-control custom-input" value="{{ expert_display_name }}">
+            <input type="text" id="expert_display_name" name="expert_display_name" required class="form-control custom-input" value="{{ expert_display_name }}"> 
         </div>
         <div class="form-group">
             <label for="institute_director">Diretor do Instituto de Criminalística:</label>
@@ -47,23 +50,30 @@
 {% block scripts %}
 <script>
 
-    document.querySelector('#report_number').focus();
+    const toNiceText = document.querySelector('#toNiceText'); 
+
+    expert_display_name.focus();
+
     document.querySelector('#expert_display_name').addEventListener('change', (e) => {
-        e.target.value = toNiceName(e.target.value);
+        if(toNiceText.checked){
+            e.target.value = toNiceName(e.target.value);
+        }
     });
     document.querySelector('#institute_director').addEventListener('change', (e) => {
-        e.target.value = toNiceName(e.target.value);
+        if(toNiceText.checked){
+            e.target.value = toNiceName(e.target.value);
+        }
     });
-    document.querySelector('#photographer').addEventListener('change', (e) => {
-        e.target.value = toNiceName(e.target.value);
+    document.querySelector('#institute_unit').addEventListener('change', (e) => {
+        if(toNiceText.checked){
+            e.target.value = toNiceName(e.target.value);
+        }
     });
-    document.querySelector('#designation_date').addEventListener('blur', (e) => {
-        const reportNumberElement = document.querySelector('#report_number');
-        const protocoltNumberElement = document.querySelector('#protocol_number');
-        const designationDateElement = document.querySelector('#designation_date');    
-        reportNumberElement.value = adjustProtocol(reportNumberElement.value, designationDateElement.value);
-        protocoltNumberElement.value = adjustProtocol(protocoltNumberElement.value, designationDateElement.value);
-    });    
+    document.querySelector('#forensic_team_base').addEventListener('change', (e) => {
+        if(toNiceText.checked){
+            e.target.value = toNiceName(e.target.value);
+        }
+    });
 
     function checkInputs() {
         const fields = [
@@ -71,48 +81,8 @@
             { id: 'institute_director', message: 'O nome do diretor é obrigatório.' },
             { id: 'institute_unit', message: 'A unidade é obrigatória.' },
             { id: 'forensic_team_base', message: 'A equipe é obrigatória.' },
-            { id: 'report_number', message: 'O número do laudo é obrigatório.' },
-            { id: 'protocol_number', message: 'O número do protocolo é obrigatório.' },
-            { id: 'designation_date', message: 'A data de designação é obrigatória.', type: 'date' },
-            { id: 'service_date', message: 'A data de atendimento é obrigatória.', type: 'date' },
-            { id: 'service_time', message: 'O horário de atendimento é obrigatório.', type: 'time' }
         ];
-
-        for (let field of fields) {
-            const element = document.getElementById(field.id);
-            const value = element.value.trim();
-
-            if (!value) {
-                alert(field.message);
-                element.focus();
-                return false;
-            }
-
-            if (field.type === 'date' && !isValidDate(value)) {
-                alert(`${field.message} Insira uma data válida no formato AAAA-MM-DD.`);
-                element.focus();
-                return false;
-            }
-
-            if (field.type === 'time' && !isValidTime(value)) {
-                alert(`${field.message} Insira um horário válido no formato HH:MM.`);
-                element.focus();
-                return false;
-            }
-        }
-        return true;
     }
 
-    function isValidDate(value) {
-        const regex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!regex.test(value)) return false;
-        const date = new Date(value);
-        return !isNaN(date.getTime());
-    }
-
-    function isValidTime(value) {
-        const regex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-        return regex.test(value);
-    }
 </script>
 {% endblock scripts %}
