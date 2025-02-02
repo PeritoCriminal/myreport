@@ -32,15 +32,11 @@
         <div class="form-row">
             <div class="col">
                 <button type="submit" id="submit_btn" class="btn btn-primary btn-block">
-                    {% if post.id %}
-                        Atualizar
-                    {% else %}
-                        Criar
-                    {% endif %}
+                    Alterar
                 </button>
             </div>
             <div class="col">
-                <a href="{% url 'home' %}" class="btn btn-secondary btn-block">Cancelar</a>
+                <a href="{% url 'report_showreport' report_id %}" class="btn btn-secondary btn-block">Cancelar</a>
             </div>
         </div>
     </form>

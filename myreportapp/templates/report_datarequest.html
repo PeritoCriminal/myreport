@@ -1,13 +1,15 @@
 {% extends 'base.html' %}
 {% block center_content %}
 <div class="container mt-5 ml-5 mr-5">
-    <form method="post" class="mx-auto" style="max-width: 600px;" onsubmit="return checkInputs();">
+    <form method="post" id="formdatarequest" class="mx-auto" style="max-width: 600px;">
         {% csrf_token %} 
         
         <div class="form-group report-title">
             <input type="text" id="section_request" name="section_request" required class="form-control custom-input" value="{{ section_request }}" title="{{ section_request }}">
         </div>
-
+        <div class="form-group">
+            <input type="checkbox" id="to_nice_text" checked><label for="to_nice_text" class="pl-3">Ajustar textos?</label>
+        </div> 
         <div class="form-group">
             <label for="requesting_authority">Autoridade Requisitante:</label>
             <input type="text" id="requesting_authority" name="requesting_authority" required class="form-control custom-input" value="{{ requesting_authority }}">
@@ -44,9 +46,55 @@
 
 {% block scripts %}
 <script>
-
-    document.querySelector('#requesting_authority').focus();
-
+    const formdatarequest = document.querySelector('#formdatarequest');
+    const to_nice_text = document.querySelector('#to_nice_text');
+    const section_request = document.querySelector('#section_request');
+    const requesting_authority = document.querySelector('#requesting_authority');
+    const examination_objective = document.querySelector('#examination_objective');
+    const call_date = document.querySelector('#call_date');
+    const call_time = document.querySelector('#call_time');
+    const submit_btn = document.querySelector('#submit_btn');
     
+    requesting_authority.focus();
+
+    section_request.addEventListener('change', (e)=>{
+        if(to_nice_text.checked){
+            e.target.value = toNiceName(e.target.value);
+        }
+    });
+
+    requesting_authority.addEventListener('change', (e)=>{
+        if(to_nice_text.checked){
+            e.target.value = toNiceName(e.target.value);
+        }
+    });
+
+    examination_objective.addEventListener('change', (e)=>{
+        if(to_nice_text.checked){
+            e.target.value = toNiceName(e.target.value);
+        }
+    });
+
+    function checkInputs() {        
+        if(!validDate(call_date.value)){
+            alert('Data inválida!');
+            call_date.focus();
+            return false;
+        }
+        if(!validHour(call_time.value)){
+            alert('Hora inválida!');
+            call_time.focus();
+            return false;
+        }
+        return true;
+    }
+
+    submit_btn.addEventListener('click', (e)=>{
+       e.preventDefault();
+       if(checkInputs()){
+            formdatarequest.submit();
+       }
+    });
+
 </script>
 {% endblock scripts %}

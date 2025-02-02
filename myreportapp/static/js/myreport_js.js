@@ -54,3 +54,31 @@ function adjustProtocol(someString, someDate) {
     return `${someString}/${year}`;
 }
 
+
+function validDate(someValue) {
+    if (!someValue) return false;
+    let isoFormat = /^\d{4}-\d{2}-\d{2}$/;
+    let brFormat = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (isoFormat.test(someValue)) {
+        let date = new Date(someValue);
+        return !isNaN(date.getTime());
+    }     
+    if (brFormat.test(someValue)) {
+        let [day, month, year] = someValue.split('/').map(Number);
+        let date = new Date(year, month - 1, day);
+        return date.getFullYear() === year && (date.getMonth() + 1) === month && date.getDate() === day;
+    }
+    return false;
+}
+
+function validHour(someTime) {
+    if (!someTime) return false;
+    let timeFormat = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    if (timeFormat.test(someTime)) {
+        let [hours, minutes] = someTime.split(":").map(Number);
+        return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
+    }
+    return false;
+}
+
+

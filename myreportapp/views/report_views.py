@@ -16,6 +16,7 @@ def report_dataheader_view(request, report_id=None):
             raise Http404("Você não tem permissão para acessar este relatório.")
 
     if request.method == 'POST':
+        section_dataservice = request.POST.get('section_dataservice', '').strip()
         report_number = request.POST.get('report_number', '').strip()
         protocol_number = request.POST.get('protocol_number', '').strip()
         designation_date = request.POST.get('designation_date', now().date())
@@ -24,6 +25,7 @@ def report_dataheader_view(request, report_id=None):
         photographer = request.POST.get('photographer', '').strip()
 
         if report:
+            report.section_dataservice = section_dataservice
             report.report_number = report_number
             report.protocol_number = protocol_number
             report.designation_date = designation_date
@@ -34,6 +36,9 @@ def report_dataheader_view(request, report_id=None):
         else:
             report = ReportModel.objects.create(
                 user=current_user,
+                institute_director = current_user.director,
+                institute_unit = current_user.unit,
+                forensic_team_base = current_user.team,
                 expert_display_name=current_user.display_name,
                 report_number=report_number,
                 protocol_number=protocol_number,
@@ -54,12 +59,14 @@ def report_dataheader_view(request, report_id=None):
 
 
     context = {
+    'report_id': report.id if report else '',
+    'section_dataservice': report.section_dataservice if report else 'Dados do Atendimento',
     'report_photographer': report.photographer if report else '',
     'report_number': report.report_number if report else '',
     'protocol_number': report.protocol_number if report else '',
     'designation_date': report.designation_date.isoformat() if report and report.designation_date else now().date().isoformat(),
     'service_date': report.service_date.isoformat() if report and report.service_date else now().date().isoformat(),
-    'service_time': report.service_time.isoformat() if report and report.service_time else '00:00',
+    'service_time': report.service_time.strftime('%H:%M') if report and report.service_time else '00:00',
     }
 
     return render(request, 'report_dataheader.html', context)

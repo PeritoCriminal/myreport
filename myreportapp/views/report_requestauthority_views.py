@@ -37,7 +37,7 @@ def report_requestauthority_view(request, report_id=None):
         report.call_date = call_date
         report.call_time = call_time
         report.save()
-        return redirect(reverse('report_showreport', kwargs={'report_id': report.id}))  # Substitua 'success_page' pela URL de sucesso apropriada.
+        return redirect(reverse('report_showreport', kwargs={'report_id': report.id}))
 
     # Contexto para renderização inicial da página
     context = {
@@ -46,7 +46,7 @@ def report_requestauthority_view(request, report_id=None):
         'requesting_authority': report.requesting_authority if report else '',
         'examination_objective': report.examination_objective if report else '',
         'call_date': report.call_date.isoformat() if report and report.call_date else now().date().isoformat(),
-        'call_time': report.call_time.isoformat() if report and report.call_time else '00:00',
+        'call_time': report.call_time.strftime('%H:%M') if report and report.call_time else '00:00',
     }
 
     return render(request, 'report_datarequest.html', context)

@@ -47,6 +47,7 @@ def report_fromuser_view(request, report_id=None):
 
 
     context = {
+    'report_id': report.id,
     'expert_display_name': report.expert_display_name if report else current_user.display_name,
     'institute_director': report.institute_director if report else current_user.director,
     'institute_unit': report.institute_unit if report else current_user.unit,

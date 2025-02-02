@@ -1,9 +1,18 @@
 {% extends 'base.html' %}
 {% block center_content %}
 <div class="container mt-5 ml-5 mr-5">
-    <h2 class="mb-4 text-center pl-4 pr-4">Dados do Atendimento</h2>
     <form method="post" class="mx-auto" style="max-width: 600px;" onsubmit="return checkInputs();">
         {% csrf_token %}
+        <div class="form-group report-title">
+            <input type="text" id="section_dataservice" name="section_dataservice" required class="form-control custom-input" value="{{ section_dataservice }}" title="{{ section_dataservice }}">
+        </div>
+        <div class="form-group">
+            <input type="checkbox" id="to_nice_text" checked><label for="to_nice_text" class="pl-3">Ajustar textos?</label>
+        </div>        
+        <div class="form-group">
+            <label for="designation_date">Data de Designação:</label>
+            <input type="date" id="designation_date" name="designation_date" class="form-control custom-input" value="{{  designation_date }}">
+        </div>
         <div class="form-group">
             <label for="report_number">Número do Laudo:</label>
             <input type="text" id="report_number" name="report_number" required class="form-control custom-input" value="{{ report_number }}">
@@ -11,10 +20,6 @@
         <div class="form-group">
             <label for="protocol_number">Número do Protocolo:</label>
             <input type="text" id="protocol_number" name="protocol_number" required class="form-control custom-input" value="{{ protocol_number }}">
-        </div>
-        <div class="form-group">
-            <label for="designation_date">Data de Designação:</label>
-            <input type="date" id="designation_date" name="designation_date" class="form-control custom-input" value="{{  designation_date }}">
         </div>
         <div class="form-group">
             <label for="service_date">Data de Atendimento:</label>
@@ -31,7 +36,7 @@
         <div class="form-row">
             <div class="col">
                 <button type="submit" id="submit_btn" class="btn btn-primary btn-block">
-                    {% if post.id %}
+                    {% if report_id %}
                         Atualizar
                     {% else %}
                         Criar
@@ -39,7 +44,7 @@
                 </button>
             </div>
             <div class="col">
-                <a href="{% url 'home' %}" class="btn btn-secondary btn-block">Cancelar</a>
+                <a href="{% url 'report_showreport' report_id %}" class="btn btn-secondary btn-block">Cancelar</a>
             </div>
         </div>
     </form>
@@ -49,62 +54,70 @@
 {% block scripts %}
 <script>
 
-    document.querySelector('#report_number').focus();
-    document.querySelector('#photographer').addEventListener('change', (e) => {
-        e.target.value = toNiceName(e.target.value);
+    const section_dataservice = document.querySelector('#section_dataservice')
+    const to_nice_text = document.querySelector('#to_nice_text');
+    const report_number = document.querySelector('#report_number');
+    const protocol_number = document.querySelector('#protocol_number');
+    const photographer = document.querySelector('#photographer');
+    const service_date = document.querySelector('#service_date');
+    const service_time = document.querySelector('#service_time');
+    const designation_date = document.querySelector('#designation_date');
+
+    designation_date.focus();
+
+    section_dataservice.addEventListener('change', (e) => {
+        if(to_nice_text.checked){
+            e.target.value = toNiceName(e.target.value);
+        }
     });
-    document.querySelector('#designation_date').addEventListener('blur', (e) => {
-        const reportNumberElement = document.querySelector('#report_number');
-        const protocoltNumberElement = document.querySelector('#protocol_number');
-        const designationDateElement = document.querySelector('#designation_date');    
-        reportNumberElement.value = adjustProtocol(reportNumberElement.value, designationDateElement.value);
-        protocoltNumberElement.value = adjustProtocol(protocoltNumberElement.value, designationDateElement.value);
+    
+    report_number.addEventListener('change', (e)=>{
+        if(to_nice_text.checked){
+            e.target.value = adjustProtocol(e.target.value, designation_date.value);
+        }
+    });
+
+    protocol_number.addEventListener('change', (e)=>{
+        if(to_nice_text.checked){
+            e.target.value = adjustProtocol(e.target.value, designation_date.value);
+        }
+    });
+
+    photographer.addEventListener('change', (e) => {
+        if(to_nice_text.checked){
+            e.target.value = toNiceName(e.target.value);
+        }
+    });
+
+    /*
+    designation_date.addEventListener('blur', (e) => {    
+        report_number.value = adjustProtocol(report_number.value, designation_date.value);
+        protocol_number.value = adjustProtocol(protocol_number.value, designation_date.value);
     });    
+    */
 
     function checkInputs() {
-        const fields = [
-            { id: 'report_number', message: 'O número do laudo é obrigatório.' },
-            { id: 'protocol_number', message: 'O número do protocolo é obrigatório.' },
-            { id: 'designation_date', message: 'A data de designação é obrigatória.', type: 'date' },
-            { id: 'service_date', message: 'A data de atendimento é obrigatória.', type: 'date' },
-            { id: 'service_time', message: 'O horário de atendimento é obrigatório.', type: 'time' }
-        ];
-
-        for (let field of fields) {
-            const element = document.getElementById(field.id);
-            const value = element.value.trim();
-
-            if (!value) {
-                alert(field.message);
-                element.focus();
-                return false;
-            }
-
-            if (field.type === 'date' && !isValidDate(value)) {
-                alert(`${field.message} Insira uma data válida no formato AAAA-MM-DD.`);
-                element.focus();
-                return false;
-            }
-
-            if (field.type === 'time' && !isValidTime(value)) {
-                alert(`${field.message} Insira um horário válido no formato HH:MM.`);
-                element.focus();
-                return false;
-            }
+        
+        if(!validDate(designation_date.value)){
+            alert('Data inválida!');
+            designation_date.focus();
+            return false;
         }
+
+        if(!validDate(service_date.value)){
+            alert('Data inválida!');
+            service_date.focus();
+            return false;
+        }
+
+        if(!validHour(service_time.value)){
+            alert('Hora inválida!');
+            service_time.focus();
+            return false;
+        }
+
         return true;
     }
 
-    function isValidDate(value) {
-        const regex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!regex.test(value)) return false;
-        const date = new Date(value);
-        return !isNaN(date.getTime());
-    }
-
-    function isValidTime(value) {
-        const regex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-        return regex.test(value);
-    }
 </script>
 {% endblock scripts %}

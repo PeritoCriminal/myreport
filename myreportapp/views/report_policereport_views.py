@@ -22,14 +22,6 @@ def report_policereport_view(request, report_id=None):  # Sempre terá um ID
         occurrence_date = request.POST.get('occurrence_date', now().date())
         occurrence_time = request.POST.get('occurrence_time', '00:00:00')
 
-        # Validações básicas antes de salvar
-        if not police_report_number or not police_station or not incident_nature:
-            context = {
-                'error': "Todos os campos obrigatórios devem ser preenchidos.",
-                'report': report
-            }
-            return render(request, 'report_datapolicereport.html', context)
-
         # Atualiza os dados do relatório
         report.has_police_report = True
         report.section_police_report = section_police_report
@@ -50,7 +42,7 @@ def report_policereport_view(request, report_id=None):  # Sempre terá um ID
         'incident_nature': report.incident_nature if report else '',
         'designation_date': report.designation_date.isoformat() if report and report.designation_date else now().date().isoformat(),
         'occurrence_date': report.occurrence_date.isoformat() if report and report.occurrence_date else now().date().isoformat(),
-        'occurrence_time': report.occurrence_time.isoformat() if report and report.occurrence_time else '00:00',
+        'occurrence_time': report.occurrence_time.strftime('%H:%M') if report and report.occurrence_time else '00:00',
     }
 
     return render(request, 'report_datapolicereport.html', context)
