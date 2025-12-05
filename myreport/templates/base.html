@@ -1,0 +1,49 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MyReport | Sistema EPCL{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    
+    {% block head %}
+    {% endblock %} 
+</head>
+<body> 
+    
+    <header class="w-full bg-gray-800 text-white shadow-lg p-4 flex justify-between items-center">
+        <a href="/" class="text-xl font-bold tracking-wider">MyReport</a>
+        
+        <div class="header-actions">
+            {% block header_actions %}
+                {% if user.is_authenticated %}
+                    <p class="text-success my-0 me-3">
+                        Usuário logado: {{ user.username }} 
+                    </p>
+
+                {% else %}
+                    <p class='text-danger my-0'>Usuário não logado</p>
+                {% endif %}
+            {% endblock %}
+        </div>
+    </header>
+
+    <main id="main-content" class="container mx-auto p-4 md:p-8">
+        {% block content %}
+            
+        {% endblock %}
+    </main>
+    
+    <footer class="w-full bg-gray-100 text-gray-600 text-center p-3 text-sm mt-8">
+        MyReport &copy; {% now "Y" %} - Todos os direitos reservados
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    {% block scripts %}
+    {% endblock %}
+</body>
+</html>
