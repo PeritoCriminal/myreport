@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
+import dj_database_url
 
 from pathlib import Path
 
@@ -78,16 +79,28 @@ WSGI_APPLICATION = 'myreport.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'myreport_db',
-        'USER': 'myreport_user',
-        'PASSWORD': 'Lombroso@2023',
-        'HOST': 'localhost',
-        'PORT': '5432',
+# Se tiver DATABASE_URL (caso do Render), usa o banco remoto
+if os.environ.get("DATABASE_URL"):
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.environ["DATABASE_URL"],
+            conn_max_age=600,
+            ssl_require=True,  # Render/Postgres com SSL
+        )
     }
-}
+
+# Se NÃO tiver DATABASE_URL, usa o Postgres local
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": "myreport_db",
+            "USER": "myreport_user",
+            "PASSWORD": "Lombroso@2023",
+            "HOST": "localhost",
+            "PORT": "5432",
+        }
+    }
 
 
 # Password validation
