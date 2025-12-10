@@ -17,11 +17,6 @@
     <header class="w-full bg-gray-800 text-white shadow-lg p-4 flex justify-between items-center">
         <a href="/" class="text-xl font-bold tracking-wider">MyReport</a>
     
-    {% comment %}
-        Colocar o bloco abaixo ao lado direito da pagina.
-        Dessa forma, o myreport vai aparecer do à esquerda, e o usuário ficará à direita,
-        mantendo a responsividade.
-    {% endcomment %}
         <div class="header-actions">
             {% block header_actions %}
                 {% if user.is_authenticated %}
@@ -30,12 +25,9 @@
                     </p>
 
                 {% else %}
-                    {% comment %}
-                    O formulário para que o usuário possa preencher usuário e senha e as opções
-                    entrar ou cadastrar-se.
-                    Não sei se esse formulário é automaticamente gerado pelo modelform do django. 
-                    Dá pra fazer isso?
-                    {% endcomment %}
+                    <p class="text-danger my-0 me-3">
+                        Usuário não logado.
+                    </p>
                 {% endif %}
             {% endblock %}
         </div>
