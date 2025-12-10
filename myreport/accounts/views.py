@@ -3,6 +3,8 @@
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
+from django.contrib.auth.views import LoginView
+from django.contrib.auth import logout
 from .models import User
 from .forms import UserRegistrationForm
 
@@ -32,12 +34,15 @@ class UserRegisterView(CreateView):
         return super().dispatch(request, *args, **kwargs)
 
 
-
-
-from django.contrib.auth.views import LoginView
-
-
 class UserLoginView(LoginView):
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
 
+
+def user_logout(request):
+    """
+    Faz logout do usuário e redireciona para a home.
+    Aceita GET e POST.
+    """
+    logout(request)
+    return redirect("home:index")

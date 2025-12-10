@@ -92,8 +92,11 @@ STATICFILES_DIRS = [
     BASE_DIR / 'myreport' / 'static',
 ]
 
+MEDIA_URL = "/users/"
+MEDIA_ROOT = BASE_DIR / "users"
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "home:index"  # após login bem-sucedido
+LOGIN_REDIRECT_URL = "home:index"
 LOGOUT_REDIRECT_URL = "accounts:login"

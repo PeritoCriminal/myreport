@@ -6,8 +6,8 @@ import os
 
 
 def user_profile_image_path(instance, filename):
-    # Ex: users/<uuid>/profile/<filename>
-    return f"users/{instance.id}/profile/{filename}"
+    # vai gerar: users/<uuid>/profile/<arquivo> dentro de MEDIA_ROOT
+    return f"{instance.id}/profile/{filename}"
 
 
 def user_background_image_path(instance, filename):
