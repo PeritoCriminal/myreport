@@ -2,7 +2,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 import uuid
-import os
 
 
 def user_profile_image_path(instance, filename):
@@ -16,7 +15,7 @@ def user_background_image_path(instance, filename):
 class User(AbstractUser):
     """
     Modelo de usuário estendido para o sistema EPCL.
-    Baseado em AbstractUser (mantém username, email, etc.).
+    Baseado em AbstractUser.
     """
 
     id = models.UUIDField(
@@ -25,18 +24,32 @@ class User(AbstractUser):
         editable=False
     )
 
-    # Nome exibido no sistema — não precisa ser o username
+    # Nome exibido no sistema
     display_name = models.CharField(
         max_length=100,
         blank=True,
         help_text="Nome exibido na interface."
     )
 
+    # Papéis possíveis
+    ROLE_PERITO = "PERITO"
+    ROLE_DELEGADO = "DELEGADO"
+    ROLE_ESCRIVAO = "ESCRIVAO"
+    ROLE_FOTOGRAFO = "FOTOGRAFO"
+
+    ROLE_CHOICES = (
+        (ROLE_PERITO, "Perito Criminal"),
+        (ROLE_DELEGADO, "Delegado de Polícia"),
+        (ROLE_ESCRIVAO, "Escrivão"),
+        (ROLE_FOTOGRAFO, "Fotógrafo Técnico Pericial"),
+    )
+
     # Papel do usuário no sistema
     role = models.CharField(
-        max_length=50,
+        max_length=20,
+        choices=ROLE_CHOICES,
         blank=True,
-        help_text="Função do usuário (ex.: Perito Criminal, Estagiário, ADM)."
+        help_text="Função do usuário no sistema."
     )
 
     # Imagem de perfil (quadrada)

@@ -1,16 +1,14 @@
 # accounts/views.py
 
+from django.contrib.auth import logout
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, UpdateView
-from django.contrib.auth.views import LoginView
-from django.contrib.auth import logout
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.views import PasswordChangeView
-from django.urls import reverse_lazy
 
+from .forms import UserRegistrationForm, UserProfileEditForm
 from .models import User
-from .forms import UserRegistrationForm
 
 
 class UserRegisterView(CreateView):
@@ -30,18 +28,14 @@ class UserRegisterView(CreateView):
 
 
 class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
-    """
-    Edição de perfil do usuário logado
-    Reaproveita o MESMO template e o MESMO form
-    """
     model = User
-    form_class = UserRegistrationForm
-    template_name = "accounts/register.html"
+    form_class = UserProfileEditForm   # <-- AQUI
+    template_name = "accounts/profile_edit.html"
     success_url = reverse_lazy("home:index")
 
     def get_object(self, queryset=None):
-        # Garante que o usuário edite apenas o próprio perfil
         return self.request.user
+    
 
 
 class UserLoginView(LoginView):
@@ -65,4 +59,3 @@ class UserPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     template_name = "accounts/password_change.html"
     form_class = UserSetPasswordForm
     success_url = reverse_lazy("accounts:profile_edit")  # ou home:index
-

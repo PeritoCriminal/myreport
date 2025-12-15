@@ -1,0 +1,13 @@
+{% extends 'accounts/_user_form_base.html' %}
+
+{% block form_title %}Editar perfil{% endblock %}
+
+{% block username_help %}
+  <div class="form-text">O nome de usuário não pode ser alterado.</div>
+{% endblock %}
+
+{% block form_actions %}
+  <a href="{% url 'home:index' %}" class="btn btn-outline-secondary">Cancelar</a>
+  <a href="{% url 'accounts:password_change' %}" class="btn btn-outline-warning">Alterar senha</a>
+  <button type="submit" class="btn btn-primary">Salvar alterações</button>
+{% endblock %}

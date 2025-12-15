@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="container mt-4" style="max-width: 820px;">
+    <h2 class="mb-4">
+      {% block form_title %}
+
+      {% endblock %}
+    </h2>
+
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      <!-- Username -->
+      <div class="mb-3">
+        <label class="form-label">{{ form.username.label }}</label>
+        {{ form.username }}
+        {{ form.username.errors }}
+        {% block username_help %}
+
+        {% endblock %}
+      </div>
+
+      <!-- Display name -->
+      <div class="mb-3">
+        <label class="form-label">{{ form.display_name.label }}</label>
+        {{ form.display_name }}
+        {{ form.display_name.errors }}
+      </div>
+
+      <!-- Email -->
+      <div class="mb-3">
+        <label class="form-label">{{ form.email.label }}</label>
+        {{ form.email }}
+        {{ form.email.errors }}
+      </div>
+
+      <!-- Role -->
+      <div class="mb-3">
+        <label class="form-label">{{ form.role.label }}</label>
+        {{ form.role }}
+        {{ form.role.errors }}
+      </div>
+
+      <hr class="my-4" />
+
+      <!-- Profile image -->
+      <div class="mb-3">
+        <label class="form-label">{{ form.profile_image.label }}</label>
+        {{ form.profile_image }}
+        {{ form.profile_image.errors }}
+      </div>
+
+      <!-- Profile editor -->
+      <div id="profile-editor" class="img-editor-wrap mb-4" style="display:none;">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+              <strong>Ajuste da foto de perfil</strong>
+            </div>
+
+            <div class="d-flex flex-column align-items-start gap-2">
+              <canvas id="profileCanvas" width="420" height="420" style="width:100%; max-width:420px; border:1px solid rgba(255,255,255,.15); border-radius:.5rem; touch-action:none;"></canvas>
+
+              <div class="d-flex flex-wrap gap-2">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom perfil">
+                  <button type="button" id="btnProfileZoomOut" class="btn btn-outline-light">−</button>
+                  <button type="button" id="btnProfileZoomIn" class="btn btn-outline-light">+</button>
+                </div>
+
+                <button type="button" id="btnProfileCenter" class="btn btn-outline-light btn-sm">Centralizar</button>
+                <button type="button" id="btnProfileReset" class="btn btn-outline-secondary btn-sm">Resetar</button>
+                <button type="button" id="btnProfileApply" class="btn btn-success btn-sm">Aplicar</button>
+              </div>
+
+              <small class="text-muted">Pan: arrastar a imagem dentro do canvas.</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Background image -->
+      <div class="mb-3">
+        <label class="form-label">{{ form.background_image.label }}</label>
+        {{ form.background_image }}
+        {{ form.background_image.errors }}
+      </div>
+
+      <!-- Background editor -->
+      <div id="bg-editor" class="img-editor-wrap mb-4" style="display:none;">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+              <strong>Ajuste da imagem de fundo</strong>
+            </div>
+
+            <div class="d-flex flex-column align-items-start gap-2">
+              <canvas id="bgCanvas" width="1200" height="400" style="width:100%; border:1px solid rgba(255,255,255,.15); border-radius:.5rem; touch-action:none;"></canvas>
+
+              <div class="d-flex flex-wrap gap-2">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom fundo">
+                  <button type="button" id="btnBgZoomOut" class="btn btn-outline-light">−</button>
+                  <button type="button" id="btnBgZoomIn" class="btn btn-outline-light">+</button>
+                </div>
+
+                <button type="button" id="btnBgCenter" class="btn btn-outline-light btn-sm">Centralizar</button>
+                <button type="button" id="btnBgReset" class="btn btn-outline-secondary btn-sm">Resetar</button>
+                <button type="button" id="btnBgApply" class="btn btn-success btn-sm">Aplicar</button>
+              </div>
+
+              <small class="text-muted">Pan: arrastar a imagem dentro do canvas.</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-4" />
+
+      {% block extra_fields %}
+
+      {% endblock %}
+
+      <div class="d-flex gap-2 mt-4">
+        {% block form_actions %}
+
+        {% endblock %}
+      </div>
+    </form>
+  </div>
+
+  {% block form_scripts %}
+    <script>
+      ;(function () {
+        function clamp(v, a, b) {
+          return Math.max(a, Math.min(b, v))
+        }
+      
+        function createEditor(cfg) {
+          const input = document.getElementById(cfg.inputId)
+          const wrap = document.getElementById(cfg.wrapId)
+          const canvas = document.getElementById(cfg.canvasId)
+          const ctx = canvas.getContext('2d')
+      
+          const btnZoomIn = document.getElementById(cfg.btnZoomInId)
+          const btnZoomOut = document.getElementById(cfg.btnZoomOutId)
+          const btnCenter = document.getElementById(cfg.btnCenterId)
+          const btnReset = document.getElementById(cfg.btnResetId)
+          const btnApply = document.getElementById(cfg.btnApplyId)
+      
+          if (!input || !wrap || !canvas) return
+      
+          let img = new Image()
+          let loaded = false
+      
+          let scale = 1
+          let minScale = 1
+          const maxScale = cfg.maxScale ?? 6
+      
+          let ox = 0,
+            oy = 0
+      
+          let dragging = false
+          let startX = 0,
+            startY = 0
+          let startOX = 0,
+            startOY = 0
+      
+          function fitToCanvas() {
+            const sx = canvas.width / img.width
+            const sy = canvas.height / img.height
+      
+            // cobre o canvas inteiro
+            minScale = Math.max(sx, sy)
+            scale = minScale
+      
+            const w = img.width * scale
+            const h = img.height * scale
+      
+            ox = (canvas.width - w) / 2
+            oy = (canvas.height - h) / 2
+          }
+      
+          function bound() {
+            const w = img.width * scale
+            const h = img.height * scale
+      
+            const minX = canvas.width - w
+            const minY = canvas.height - h
+      
+            if (w <= canvas.width) ox = (canvas.width - w) / 2
+            else ox = clamp(ox, minX, 0)
+      
+            if (h <= canvas.height) oy = (canvas.height - h) / 2
+            else oy = clamp(oy, minY, 0)
+          }
+      
+          function draw() {
+            if (!loaded) return
+      
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            ctx.imageSmoothingEnabled = true
+      
+            const w = img.width * scale
+            const h = img.height * scale
+            ctx.drawImage(img, ox, oy, w, h)
+      
+            // moldura
+            ctx.save()
+            ctx.strokeStyle = 'rgba(0,0,0,.35)'
+            ctx.lineWidth = 2
+            ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2)
+            ctx.restore()
+          }
+      
+          function center() {
+            if (!loaded) return
+            const w = img.width * scale
+            const h = img.height * scale
+            ox = (canvas.width - w) / 2
+            oy = (canvas.height - h) / 2
+            bound()
+            draw()
+          }
+      
+          function reset() {
+            if (!loaded) return
+            fitToCanvas()
+            bound()
+            draw()
+          }
+      
+          function zoomBy(factor) {
+            if (!loaded) return
+      
+            const cx = canvas.width / 2
+            const cy = canvas.height / 2
+      
+            // coordenada do ponto central no bitmap
+            const ix = (cx - ox) / scale
+            const iy = (cy - oy) / scale
+      
+            const next = clamp(scale * factor, minScale, maxScale)
+            if (next === scale) return
+      
+            scale = next
+      
+            // mantém o ponto central fixo
+            ox = cx - ix * scale
+            oy = cy - iy * scale
+      
+            bound()
+            draw()
+          }
+      
+          function loadFile(file) {
+            const url = URL.createObjectURL(file)
+            img = new Image()
+            img.onload = () => {
+              loaded = true
+              wrap.style.display = 'block'
+              fitToCanvas()
+              bound()
+              draw()
+              URL.revokeObjectURL(url)
+            }
+            img.src = url
+          }
+      
+          input.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0]
+            if (!file) return
+            loadFile(file)
+          })
+      
+          // pan (mouse)
+          canvas.addEventListener('mousedown', (e) => {
+            if (!loaded) return
+            dragging = true
+            startX = e.clientX
+            startY = e.clientY
+            startOX = ox
+            startOY = oy
+            e.preventDefault()
+          })
+      
+          window.addEventListener('mousemove', (e) => {
+            if (!dragging) return
+            ox = startOX + (e.clientX - startX)
+            oy = startOY + (e.clientY - startY)
+            bound()
+            draw()
+          })
+      
+          window.addEventListener('mouseup', () => {
+            dragging = false
+          })
+      
+          // pan (touch)
+          canvas.addEventListener(
+            'touchstart',
+            (e) => {
+              if (!loaded) return
+              if (e.touches.length !== 1) return
+              dragging = true
+              startX = e.touches[0].clientX
+              startY = e.touches[0].clientY
+              startOX = ox
+              startOY = oy
+            },
+            { passive: true }
+          )
+      
+          canvas.addEventListener(
+            'touchmove',
+            (e) => {
+              if (!dragging) return
+              if (e.touches.length !== 1) return
+              ox = startOX + (e.touches[0].clientX - startX)
+              oy = startOY + (e.touches[0].clientY - startY)
+              bound()
+              draw()
+            },
+            { passive: true }
+          )
+      
+          canvas.addEventListener(
+            'touchend',
+            () => {
+              dragging = false
+            },
+            { passive: true }
+          )
+      
+          // botões
+          btnZoomIn && btnZoomIn.addEventListener('click', () => zoomBy(cfg.zoomStep ?? 1.12))
+          btnZoomOut && btnZoomOut.addEventListener('click', () => zoomBy(1 / (cfg.zoomStep ?? 1.12)))
+          btnCenter && btnCenter.addEventListener('click', center)
+          btnReset && btnReset.addEventListener('click', reset)
+      
+          btnApply &&
+            btnApply.addEventListener('click', async () => {
+              if (!loaded) return
+      
+              const blob = await new Promise((resolve) => canvas.toBlob(resolve, cfg.mimeType ?? 'image/jpeg', cfg.quality ?? 0.9))
+              if (!blob) return
+      
+              const originalName = input.files && input.files[0] && input.files[0].name ? input.files[0].name : cfg.defaultName ?? 'image.jpg'
+      
+              const base = originalName.replace(/\.[^/.]+$/, '')
+              const finalName = (cfg.suffix ? base + cfg.suffix : base + '_crop') + (cfg.ext ?? '.jpg')
+      
+              const newFile = new File([blob], finalName, { type: blob.type })
+              const dt = new DataTransfer()
+              dt.items.add(newFile)
+              input.files = dt.files
+            })
+        }
+      
+        // Perfil
+        createEditor({
+          inputId: 'id_profile_image',
+          wrapId: 'profile-editor',
+          canvasId: 'profileCanvas',
+          btnZoomInId: 'btnProfileZoomIn',
+          btnZoomOutId: 'btnProfileZoomOut',
+          btnCenterId: 'btnProfileCenter',
+          btnResetId: 'btnProfileReset',
+          btnApplyId: 'btnProfileApply',
+          defaultName: 'profile.jpg',
+          suffix: '_profile',
+          ext: '.jpg',
+          zoomStep: 1.12,
+          maxScale: 6
+        })
+      
+        // Fundo
+        createEditor({
+          inputId: 'id_background_image',
+          wrapId: 'bg-editor',
+          canvasId: 'bgCanvas',
+          btnZoomInId: 'btnBgZoomIn',
+          btnZoomOutId: 'btnBgZoomOut',
+          btnCenterId: 'btnBgCenter',
+          btnResetId: 'btnBgReset',
+          btnApplyId: 'btnBgApply',
+          defaultName: 'background.jpg',
+          suffix: '_bg',
+          ext: '.jpg',
+          zoomStep: 1.12,
+          maxScale: 6
+        })
+      })()
+    </script>
+  {% endblock %}
+{% endblock %}
