@@ -1,43 +1,70 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-4" style="max-width: 820px;">
+  <div class="container mt-4" style="max-width: 820px;">
+    <h2 class="mb-4">Postagens</h2>
 
-  <h2 class="mb-4">Postagens</h2>
-
-  {% for post in posts %}
-    <div class="card mb-3">
+    <!-- Formulário de criação de post -->
+    <div class="card mb-4">
       <div class="card-body">
+        <form id="post-form" method="post" enctype="multipart/form-data" action="{% url 'social_net:post_create' %}">
+          {% csrf_token %}
 
-        <h5 class="card-title mb-1">{{ post.title }}</h5>
+          <div id="post-form-errors"></div>
 
-        <small class="text-muted">
-          {{ post.user.get_full_name|default:post.user.username }} ·
-          {{ post.created_at|date:"d/m/Y H:i" }}
-        </small>
+          <div class="mb-2">{{ form.title }}</div>
+          <div class="mb-2">{{ form.text }}</div>
 
-        {% if post.text %}
-          <p class="card-text mt-3">{{ post.text|linebreaksbr }}</p>
-        {% endif %}
-
-        {% if post.media %}
-          <div class="mt-3">
-            <a href="{{ post.media.url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
-              Abrir mídia
-            </a>
-
-            {# tenta exibir como imagem; se não for imagem, apenas não renderiza corretamente, mas o link acima resolve #}
-            <div class="mt-2">
-              <img src="{{ post.media.url }}" class="img-fluid rounded" alt="Mídia do post">
-            </div>
+          <div class="mb-2">
+            <label class="form-label mb-1">Mídia</label>
+            {{ form.media }}
           </div>
-        {% endif %}
 
+          <div class="text-end">
+            <button class="btn btn-primary btn-sm" type="submit">Publicar</button>
+          </div>
+        </form>
       </div>
     </div>
-  {% empty %}
-    <p class="text-muted">Nenhuma postagem encontrada.</p>
-  {% endfor %}
 
-</div>
+    <!-- Lista de posts -->
+    <div id="feed">
+      {% for post in posts %}
+        {% include 'social_net/partials/post_item.html' %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <script>
+    ;(function () {
+      const form = document.getElementById('post-form')
+      const feed = document.getElementById('feed')
+      const errorsWrap = document.getElementById('post-form-errors')
+    
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        errorsWrap.innerHTML = ''
+    
+        const resp = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          body: new FormData(form)
+        })
+    
+        if (resp.ok) {
+          const data = await resp.json()
+          feed.insertAdjacentHTML('afterbegin', data.html) // Insere o post no topo do feed
+          form.reset()
+          return
+        }
+    
+        const data = await resp.json().catch(() => null)
+        if (data && data.errors_html) {
+          errorsWrap.innerHTML = data.errors_html
+        } else {
+          errorsWrap.innerHTML = '<div class="alert alert-danger py-2 my-2">Erro ao publicar.</div>'
+        }
+      })
+    })()
+  </script>
 {% endblock %}
