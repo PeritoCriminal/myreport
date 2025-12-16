@@ -4,7 +4,8 @@ from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
+from django.urls.exceptions import NoReverseMatch
 from django.views.generic import CreateView, UpdateView
 
 from .forms import UserRegistrationForm, UserProfileEditForm
@@ -41,6 +42,18 @@ class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
 class UserLoginView(LoginView):
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
+
+    def get_success_url(self):
+        # respeita ?next=... quando existir
+        next_url = self.get_redirect_url()
+        if next_url:
+            return next_url
+
+        # tenta ir para a listagem de posts; se falhar, cai no home
+        try:
+            return reverse("social_net:post_list")
+        except NoReverseMatch:
+            return reverse("home:index")  # ajuste para o name real da sua home
 
 
 def user_logout(request):
