@@ -6,10 +6,22 @@
     {% comment %}
 
     <div class="d-flex align-items-center justify-content-between mb-3">
-      <h2 class="mb-0">Postagens</h2>
+      <h2 class="mb-0">Postagens</h2> Isso aqui não legal, então comentei...
     </div>
     {% endcomment %}
-    <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#postFormCollapse" aria-expanded="false" aria-controls="postFormCollapse">Nova postagem</button>
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#postFormCollapse" aria-expanded="false" aria-controls="postFormCollapse">Nova postagem</button>
+
+      <form method="get" class="d-inline">
+        <div class="input-group" style="max-width: 260px;">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="search" name="q" class="form-control" placeholder="Buscar" value="{{ request.GET.q }}" />
+        </div>
+      </form>
+    </div>
+
+    {# Aqui ao lado do btn, acrescentar um campo de busca com uma lupa #}
 
     {# Form de criação #}
 

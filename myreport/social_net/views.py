@@ -17,12 +17,18 @@ class PostListView(LoginRequiredMixin, ListView):
     ordering = ["-created_at"]  # opcional, só pra deixar explícito
 
     def get_queryset(self):
-        return (
+        qs = (
             Post.objects
             .filter(is_active=True)
             .select_related("user")
             .order_by("-created_at")
         )
+
+        q = self.request.GET.get("q")
+        if q:
+            qs = qs.filter(title__icontains=q)
+
+        return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
