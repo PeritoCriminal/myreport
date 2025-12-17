@@ -1,70 +1,90 @@
+{# templates/social_net/post_list.html #}
 {% extends 'base.html' %}
 
 {% block content %}
   <div class="container mt-4" style="max-width: 820px;">
-    <h2 class="mb-4">Postagens</h2>
+    {% comment %}
 
-    <!-- Formulário de criação de post -->
-    <div class="card mb-4">
-      <div class="card-body">
-        <form id="post-form" method="post" enctype="multipart/form-data" action="{% url 'social_net:post_create' %}">
-          {% csrf_token %}
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="mb-0">Postagens</h2>
+    </div>
+    {% endcomment %}
+    <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#postFormCollapse" aria-expanded="false" aria-controls="postFormCollapse">Nova postagem</button>
 
-          <div id="post-form-errors"></div>
+    {# Form de criação #}
 
-          <div class="mb-2">{{ form.title }}</div>
-          <div class="mb-2">{{ form.text }}</div>
+    <div class="collapse" id="postFormCollapse">
+      <div class="card mb-3">
+        <div class="card-body">
+          <form id="post-form" method="post" enctype="multipart/form-data" action="{% url 'social_net:post_create' %}">
+            {% csrf_token %}
 
-          <div class="mb-2">
-            <label class="form-label mb-1">Mídia</label>
-            {{ form.media }}
-          </div>
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+            {% endif %}
 
-          <div class="text-end">
-            <button class="btn btn-primary btn-sm" type="submit">Publicar</button>
-          </div>
-        </form>
+            {% if form.errors %}
+              <div class="alert alert-danger py-2">
+                <ul class="mb-0">
+                  {% for field in form %}
+                    {% for error in field.errors %}
+                      <li>
+                        <strong>{{ field.label }}:</strong> {{ error }}
+                      </li>
+                    {% endfor %}
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+
+            <div class="mb-2">{{ form.title }}</div>
+            <div class="mb-2">{{ form.text }}</div>
+
+            <div class="mb-2">
+              <label class="form-label mb-1">Mídia</label>
+              {{ form.media }}
+            </div>
+
+            <div class="text-end">
+              <button class="btn btn-primary btn-sm" type="submit">Publicar</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
-    <!-- Lista de posts -->
-    <div id="feed">
-      {% for post in posts %}
-        {% include 'social_net/partials/post_item.html' %}
-      {% endfor %}
-    </div>
-  </div>
+    {# Lista paginada #}
+    {% for post in posts %}
+      {% include 'social_net/partials/post_item.html' with post=post %}
+    {% empty %}
+      <div class="alert alert-secondary">Nenhuma postagem encontrada.</div>
+    {% endfor %}
 
-  <script>
-    ;(function () {
-      const form = document.getElementById('post-form')
-      const feed = document.getElementById('feed')
-      const errorsWrap = document.getElementById('post-form-errors')
-    
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault()
-        errorsWrap.innerHTML = ''
-    
-        const resp = await fetch(form.action, {
-          method: 'POST',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' },
-          body: new FormData(form)
-        })
-    
-        if (resp.ok) {
-          const data = await resp.json()
-          feed.insertAdjacentHTML('afterbegin', data.html) // Insere o post no topo do feed
-          form.reset()
-          return
-        }
-    
-        const data = await resp.json().catch(() => null)
-        if (data && data.errors_html) {
-          errorsWrap.innerHTML = data.errors_html
-        } else {
-          errorsWrap.innerHTML = '<div class="alert alert-danger py-2 my-2">Erro ao publicar.</div>'
-        }
-      })
-    })()
-  </script>
+    {# Paginação #}
+    {% if is_paginated %}
+      <nav class="mt-3" aria-label="Paginação de postagens">
+        <ul class="pagination justify-content-center mb-0">
+          <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+            {% if page_obj.has_previous %}
+              <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Anterior">&laquo;</a>
+            {% else %}
+              <span class="page-link" aria-label="Anterior">&laquo;</span>
+            {% endif %}
+          </li>
+
+          <li class="page-item disabled">
+            <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+          </li>
+
+          <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+            {% if page_obj.has_next %}
+              <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Próxima">&raquo;</a>
+            {% else %}
+              <span class="page-link" aria-label="Próxima">&raquo;</span>
+            {% endif %}
+          </li>
+        </ul>
+      </nav>
+    {% endif %}
+  </div>
 {% endblock %}

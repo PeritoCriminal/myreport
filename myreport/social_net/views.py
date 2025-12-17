@@ -14,6 +14,7 @@ class PostListView(LoginRequiredMixin, ListView):
     template_name = "social_net/post_list.html"
     context_object_name = "posts"
     paginate_by = 10
+    ordering = ["-created_at"]  # opcional, só pra deixar explícito
 
     def get_queryset(self):
         return (
@@ -26,7 +27,14 @@ class PostListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["form"] = PostForm()
+
+        # opcional: deixar mais fácil montar botões/contador no template
+        ctx["paginator"] = ctx.get("paginator")
+        ctx["page_obj"] = ctx.get("page_obj")
+        ctx["is_paginated"] = ctx.get("is_paginated")
+
         return ctx
+
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):

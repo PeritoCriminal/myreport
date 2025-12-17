@@ -14,8 +14,30 @@
 
     {% if post.media %}
       <div class="mt-2">
-        <a href="{{ post.media.url }}" target="_blank" rel="noopener">Abrir mídia</a>
+        {% with post.media.url|lower as media_url %}
+
+          {% if ".jpg" in media_url or ".jpeg" in media_url or ".png" in media_url or ".webp" in media_url %}
+            <img src="{{ post.media.url }}" class="img-fluid rounded" alt="Imagem do post">
+
+          {% elif ".mp4" in media_url or ".webm" in media_url %}
+            <video class="w-100 rounded" controls>
+              <source src="{{ post.media.url }}">
+              Seu navegador não suporta vídeo.
+            </video>
+
+          {% elif ".mp3" in media_url or ".wav" in media_url or ".ogg" in media_url or ".m4a" in media_url %}
+            <audio class="w-100" controls>
+              <source src="{{ post.media.url }}">
+              Seu navegador não suporta áudio.
+            </audio>
+
+          {% else %}
+            <a href="{{ post.media.url }}" target="_blank" rel="noopener">Abrir mídia</a>
+          {% endif %}
+
+        {% endwith %}
       </div>
     {% endif %}
+
   </div>
 </div>
