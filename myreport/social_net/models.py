@@ -18,7 +18,7 @@ class Post(models.Model):
         related_name="posts",
     )
 
-    title = models.CharField("Título", max_length=120)
+    title = models.CharField("Título", max_length=120, blank=True)
     text = models.TextField("Texto", blank=True)
 
     media = models.FileField(
