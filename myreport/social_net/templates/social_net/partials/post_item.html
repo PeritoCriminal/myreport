@@ -52,20 +52,13 @@
       <div class="d-flex gap-3 align-items-center flex-wrap">
         {# Like (fetch) #}
         <button type="button" class="btn btn-sm btn-light d-flex align-items-center gap-1 js-like-btn" data-like-url="{% url 'social_net:post_like' post.id %}" title="Curtir">
-          <i class="bi {% if post.has_liked %}
-              
-              
-              bi-heart-fill
-
-
-            {% else %}
-              
-              
-              bi-heart
-
-
-            {% endif %}">
-
+          <i class="bi
+          {% if post.has_liked %}              
+            bi-heart-fill text-danger
+            {% else %}              
+            bi-heart
+            {% endif %}
+            ">
           </i>
           <span class="likes-count">{{ post.likes.count }}</span>
         </button>
@@ -73,24 +66,20 @@
         {# Rating (fetch + dropdown) #}
         <div class="dropdown js-rating-container">
           <button class="btn btn-sm btn-light d-flex align-items-center gap-1 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Avaliar">
-            <i class="bi {% if post.has_rated %}
-                
-                
-                bi-star-fill
-
-
+            <i class="bi
+              {% if post.has_rated %}
+                  bi-star-fill text-warning
               {% else %}
-                
-                
-                bi-star
-
-
-              {% endif %} js-rating-icon">
-
-            </i>
+                  bi-star
+              {% endif %}
+              js-rating-icon">
+          </i>
+          {% if post.user_rating_value %}
+            <span class="text-muted">Avaliar ({{ post.user_rating_value }})</span>
+            {% else %}
             <span class="text-muted">Avaliar</span>
+          {% endif %}
           </button>
-
           <ul class="dropdown-menu dropdown-menu-end p-2">
             {% for i in rating_range %}
               <li>
@@ -99,19 +88,10 @@
                   <span class="d-flex align-items-center gap-1">
                     {% for _ in stars_5 %}
                       <i class="bi {% if forloop.counter <= i %}
-                          
-                          
                           bi-star-fill
-
-
                         {% else %}
-                          
-                          
                           bi-star
-
-
                         {% endif %}">
-
                       </i>
                     {% endfor %}
                   </span>

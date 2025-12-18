@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Exists, OuterRef, Prefetch
+from django.db.models import Exists, OuterRef, Prefetch,Subquery
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -39,6 +39,11 @@ class PostListView(LoginRequiredMixin, ListView):
             .order_by("-created_at")
         )
 
+        # Subquery para obter o valor da avaliação (value) do usuário logado para a Postagem atual
+        user_rating_value_sq = PostRating.objects.filter(
+            post_id=OuterRef("pk"), user_id=user.pk
+        ).values("value")[:1]
+
         qs = (
             Post.objects.filter(is_active=True)
             .select_related("user")
@@ -49,6 +54,8 @@ class PostListView(LoginRequiredMixin, ListView):
                 has_rated=Exists(
                     PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
                 ),
+                # NOVO: Anota o valor da avaliação do usuário logado (pode ser NULL/None se não avaliou)
+                user_rating_value=Subquery(user_rating_value_sq),
             )
             .prefetch_related(Prefetch("comments", queryset=comments_qs))
             .order_by("-updated_at")
