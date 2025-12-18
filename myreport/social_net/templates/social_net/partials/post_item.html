@@ -1,10 +1,14 @@
 {# templates/social_net/partials/post_item.html #}
+
 <div class="card mb-3">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center gap-2">
         {% if post.user.profile_image %}
-          <img src="{{ post.user.profile_image.url }}" alt="Foto de perfil" class="rounded-circle border shadow-sm" style="width:64px; height:64px; object-fit:cover;" />
+          <img src="{{ post.user.profile_image.url }}"
+               alt="Foto de perfil"
+               class="rounded-circle border shadow-sm"
+               style="width:64px; height:64px; object-fit:cover;" />
         {% else %}
           <div class="rounded-circle bg-secondary" style="width:32px; height:32px;"></div>
         {% endif %}
@@ -28,11 +32,11 @@
             <img src="{{ post.media.url }}" class="img-fluid rounded" alt="Imagem do post" />
           {% elif '.mp4' in media_url or '.webm' in media_url %}
             <video class="w-100 rounded" controls>
-              <source src="{{ post.media.url }}" />Seu navegador não suporta vídeo.
+              <source src="{{ post.media.url }}" />
             </video>
           {% elif '.mp3' in media_url or '.wav' in media_url or '.ogg' in media_url or '.m4a' in media_url %}
             <audio class="w-100" controls>
-              <source src="{{ post.media.url }}" />Seu navegador não suporta áudio.
+              <source src="{{ post.media.url }}" />
             </audio>
           {% else %}
             <a href="{{ post.media.url }}" target="_blank" rel="noopener">Abrir mídia</a>
@@ -40,5 +44,62 @@
         {% endwith %}
       </div>
     {% endif %}
+  </div>
+
+  {# Barra de ações #}
+  <div class="card-footer bg-white border-top">
+    <div class="d-flex justify-content-between align-items-center">
+      <div class="d-flex gap-3 align-items-center">
+
+        {# Like (fetch) #}
+        <button type="button"
+                class="btn btn-sm btn-light d-flex align-items-center gap-1 js-like-btn"
+                data-like-url="{% url 'social_net:post_like' post.id %}"
+                title="Curtir">
+          <i class="bi {% if post.has_liked %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+          <span class="likes-count">{{ post.likes.count }}</span>
+        </button>
+
+        {# Rating (fetch + dropdown) #}
+        <div class="dropdown js-rating-container">
+          <button class="btn btn-sm btn-light d-flex align-items-center gap-1 dropdown-toggle"
+                  type="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  title="Avaliar">
+            <i class="bi {% if post.has_rated %}bi-star-fill{% else %}bi-star{% endif %} js-rating-icon"></i>
+            <span class="text-muted">Avaliar</span>
+          </button>
+
+          <ul class="dropdown-menu dropdown-menu-end p-2">
+            {% for i in rating_range %}
+              <li>
+                <button type="button"
+                        class="dropdown-item d-flex align-items-center gap-2 js-rate-btn"
+                        data-rate-url="{% url 'social_net:post_rate' post.id %}"
+                        data-value="{{ i }}">
+                  <span class="text-nowrap">{{ i }}</span>
+                  <span class="d-flex align-items-center gap-1">
+                    {% for _ in stars_5 %}
+                      <i class="bi {% if forloop.counter <= i %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+                    {% endfor %}
+                  </span>
+                </button>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        {# Comentários (placeholder visual) #}
+        <button class="btn btn-sm btn-light d-flex align-items-center gap-1"
+                type="button"
+                data-post-id="{{ post.id }}"
+                title="Comentar">
+          <i class="bi bi-chat"></i>
+          <span>{{ post.comments.count }}</span>
+        </button>
+
+      </div>
+    </div>
   </div>
 </div>
