@@ -12,16 +12,11 @@
     </title>
 
     <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-      crossorigin="anonymous"
-    />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
 
-
-    {% block head %}{% endblock %}
+    {% block head %}
+    {% endblock %}
   </head>
 
   <body class="d-flex flex-column min-vh-100">
@@ -29,91 +24,52 @@
       <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
           <!-- Logo -->
-          <a class="navbar-brand fw-bold" href="{% url 'home:index' %}">
-            MyReport<span class="text-primary">/EPCL</span>
-          </a>
+          <a class="navbar-brand fw-bold" href="{% url 'home:index' %}">MyReport<span class="text-primary">/EPCL</span></a>
 
           <!-- Botão hambúrguer -->
-          <button
-            class="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarMain"
-            aria-controls="navbarMain"
-            aria-expanded="false"
-            aria-label="Alternar navegação"
-          >
-            <span class="navbar-toggler-icon"></span>
-          </button>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Alternar navegação"><span class="navbar-toggler-icon"></span></button>
 
           <div class="collapse navbar-collapse" id="navbarMain">
             <!-- Navegação esquerda -->
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-              {% block main_nav %}{% endblock %}
+              {% block main_nav %}
+              {% endblock %}
             </ul>
 
             <!-- Ações do usuário (direita) -->
             <div class="d-flex align-items-center gap-3">
               {% block header_actions %}
                 {% if user.is_authenticated %}
-
                   <!-- Dropdown do usuário (foto + nome) -->
                   <div class="dropdown">
-                    <a
-                      class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle"
-                      href="#"
-                      role="button"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
+                    <a class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                       {% if user.profile_image %}
-                        <img
-                          src="{{ user.profile_image.url }}"
-                          class="rounded-circle border"
-                          width="40"
-                          height="40"
-                          alt="Foto de perfil"
-                          style="object-fit: cover;"
-                        />
+                        <img src="{{ user.profile_image.url }}" class="rounded-circle border" width="40" height="40" alt="Foto de perfil" style="object-fit: cover;" />
                       {% else %}
-                        <img
-                          src="{% static 'img/default-profile.png' %}"
-                          class="rounded-circle border"
-                          width="40"
-                          height="40"
-                          alt="Foto de perfil padrão"
-                          style="object-fit: cover;"
-                        />
+                        <img src="{% static 'img/default-profile.png' %}" class="rounded-circle border" width="40" height="40" alt="Foto de perfil padrão" style="object-fit: cover;" />
                       {% endif %}
 
-                      <span class="text-light small">
-                        Olá, <strong>{{ user.display_name }}</strong>
-                      </span>
+                      <span class="text-light small">Olá, <strong>{{ user.display_name }}</strong></span>
                     </a>
 
                     <ul class="dropdown-menu dropdown-menu-end shadow">
                       <li>
-                        <a class="dropdown-item" href="{% url 'accounts:profile_edit' %}">
-                          Editar perfil
-                        </a>
+                        <a class="dropdown-item" href="{% url 'accounts:profile_edit' %}">Editar perfil</a>
                       </li>
 
                       <li>
-                        <a class="dropdown-item" href="{% url 'accounts:password_change' %}">
-                          Alterar senha
-                        </a>
+                        <a class="dropdown-item" href="{% url 'accounts:password_change' %}">Alterar senha</a>
                       </li>
 
-                      <li><hr class="dropdown-divider" /></li>
+                      <li>
+                        <hr class="dropdown-divider" />
+                      </li>
 
                       <li>
-                        <a class="dropdown-item" href="{% url 'accounts:logout' %}">
-                          Sair
-                        </a>
+                        <a class="dropdown-item" href="{% url 'accounts:logout' %}">Sair</a>
                       </li>
                     </ul>
                   </div>
-
                 {% else %}
                   <a href="{% url 'accounts:login' %}" class="btn btn-outline-light btn-sm">Entrar</a>
                   <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-sm">Criar conta</a>
@@ -127,21 +83,19 @@
 
     <main id="main-content" class="flex-grow-1">
       <div class="container py-4 py-md-5">
-        {% block content %}{% endblock %}
+        {% block content %}
+        {% endblock %}
       </div>
     </main>
 
     <footer class="bg-light text-muted text-center py-3 mt-auto border-top">
-      <small>MyReport &copy;{% now 'Y' %}— Todos os direitos reservados</small>
+      <small class="text-muted">MyReport &copy;{% now 'Y' %}• Todos os direitos reservados • Idealizado por Capristo</small>
     </footer>
 
     <!-- Bootstrap JS -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-      crossorigin="anonymous"
-    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
-    {% block scripts %}{% endblock %}
+    {% block scripts %}
+    {% endblock %}
   </body>
 </html>
