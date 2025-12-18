@@ -1,0 +1,10 @@
+{% for comment in comments %}
+  {% include "social_net/partials/comment_item.html" with comment=comment %}
+  {% for reply in comment.replies.all %}
+    <div class="ms-4">
+      {% include "social_net/partials/comment_item.html" with comment=reply %}
+    </div>
+  {% endfor %}
+{% empty %}
+  <small class="text-muted">Nenhum comentário ainda.</small>
+{% endfor %}

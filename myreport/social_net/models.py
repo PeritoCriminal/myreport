@@ -4,6 +4,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 def post_media_path(instance, filename: str) -> str:
@@ -51,7 +52,7 @@ class Post(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["-updated_at"]
         indexes = [
             models.Index(fields=["user", "created_at"]),
         ]
@@ -176,3 +177,15 @@ class PostComment(models.Model):
 
     def __str__(self) -> str:
         return f"Comment: {self.post_id} / {self.user_id}"
+    
+    def save(self, *args, **kwargs):
+        """
+        Salva o comentário e atualiza o campo `updated_at` da postagem associada.
+
+        Mantém o comportamento de `auto_now` do Post coerente com interações
+        relevantes (comentários) sem depender de signals.
+        """
+        super().save(*args, **kwargs)
+
+        Post.objects.filter(pk=self.post_id).update(updated_at=timezone.now())
+

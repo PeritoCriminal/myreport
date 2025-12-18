@@ -1,16 +1,13 @@
 {# templates/social_net/partials/post_item.html #}
 
-<div class="card mb-3">
+<div class="card mb-3" id="post-{{ post.id }}">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center gap-2">
         {% if post.user.profile_image %}
-          <img src="{{ post.user.profile_image.url }}"
-               alt="Foto de perfil"
-               class="rounded-circle border shadow-sm"
-               style="width:64px; height:64px; object-fit:cover;" />
+          <img src="{{ post.user.profile_image.url }}" alt="Foto de perfil" class="rounded-circle border shadow-sm" style="width:64px; height:64px; object-fit:cover;" />
         {% else %}
-          <div class="rounded-circle bg-secondary" style="width:32px; height:32px;"></div>
+          <div class="rounded-circle bg-secondary" style="width:64px; height:64px;"></div>
         {% endif %}
 
         <strong>{{ post.user }}</strong>
@@ -19,7 +16,9 @@
       <small class="text-muted">{{ post.created_at }}</small>
     </div>
 
-    <h6 class="mt-2 mb-2">{{ post.title }}</h6>
+    {% if post.title %}
+      <h6 class="mt-2 mb-2">{{ post.title }}</h6>
+    {% endif %}
 
     {% if post.text %}
       <p class="mb-2">{{ post.text|linebreaksbr }}</p>
@@ -46,42 +45,74 @@
     {% endif %}
   </div>
 
-  {# Barra de ações #}
+  {# Barra de ações + comentários #}
   <div class="card-footer bg-white border-top">
+    {# 1) Barra de ícones #}
     <div class="d-flex justify-content-between align-items-center">
-      <div class="d-flex gap-3 align-items-center">
-
+      <div class="d-flex gap-3 align-items-center flex-wrap">
         {# Like (fetch) #}
-        <button type="button"
-                class="btn btn-sm btn-light d-flex align-items-center gap-1 js-like-btn"
-                data-like-url="{% url 'social_net:post_like' post.id %}"
-                title="Curtir">
-          <i class="bi {% if post.has_liked %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+        <button type="button" class="btn btn-sm btn-light d-flex align-items-center gap-1 js-like-btn" data-like-url="{% url 'social_net:post_like' post.id %}" title="Curtir">
+          <i class="bi {% if post.has_liked %}
+              
+              
+              bi-heart-fill
+
+
+            {% else %}
+              
+              
+              bi-heart
+
+
+            {% endif %}">
+
+          </i>
           <span class="likes-count">{{ post.likes.count }}</span>
         </button>
 
         {# Rating (fetch + dropdown) #}
         <div class="dropdown js-rating-container">
-          <button class="btn btn-sm btn-light d-flex align-items-center gap-1 dropdown-toggle"
-                  type="button"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  title="Avaliar">
-            <i class="bi {% if post.has_rated %}bi-star-fill{% else %}bi-star{% endif %} js-rating-icon"></i>
+          <button class="btn btn-sm btn-light d-flex align-items-center gap-1 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Avaliar">
+            <i class="bi {% if post.has_rated %}
+                
+                
+                bi-star-fill
+
+
+              {% else %}
+                
+                
+                bi-star
+
+
+              {% endif %} js-rating-icon">
+
+            </i>
             <span class="text-muted">Avaliar</span>
           </button>
 
           <ul class="dropdown-menu dropdown-menu-end p-2">
             {% for i in rating_range %}
               <li>
-                <button type="button"
-                        class="dropdown-item d-flex align-items-center gap-2 js-rate-btn"
-                        data-rate-url="{% url 'social_net:post_rate' post.id %}"
-                        data-value="{{ i }}">
+                <button type="button" class="dropdown-item d-flex align-items-center gap-2 js-rate-btn" data-rate-url="{% url 'social_net:post_rate' post.id %}" data-value="{{ i }}">
                   <span class="text-nowrap">{{ i }}</span>
                   <span class="d-flex align-items-center gap-1">
                     {% for _ in stars_5 %}
-                      <i class="bi {% if forloop.counter <= i %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+                      <i class="bi {% if forloop.counter <= i %}
+                          
+                          
+                          bi-star-fill
+
+
+                        {% else %}
+                          
+                          
+                          bi-star
+
+
+                        {% endif %}">
+
+                      </i>
                     {% endfor %}
                   </span>
                 </button>
@@ -90,15 +121,63 @@
           </ul>
         </div>
 
-        {# Comentários (placeholder visual) #}
-        <button class="btn btn-sm btn-light d-flex align-items-center gap-1"
-                type="button"
-                data-post-id="{{ post.id }}"
-                title="Comentar">
-          <i class="bi bi-chat"></i>
-          <span>{{ post.comments.count }}</span>
-        </button>
+        {# Comentários: abre/fecha somente o FORM #}
+        <button class="btn btn-sm btn-light js-comments-toggle" data-bs-toggle="collapse" data-bs-target="#commentFormBox-{{ post.id }}" aria-controls="commentFormBox-{{ post.id }}" aria-expanded="false" data-post-id="{{ post.id }}" title="Comentar"><i class="bi bi-chat"></i></button>
+        {# Deletar (inativar) - apenas autor #}
+        {% if request.user.id == post.user_id %}
+          <button type="button" class="btn btn-sm btn-light js-post-delete" data-delete-url="{% url 'social_net:post_delete' post.id %}" data-post-id="{{ post.id }}" title="Excluir postagem"><i class="bi bi-trash"></i></button>
+        {% endif %}
+      </div>
+    </div>
 
+    {# 2) Form de comentário (oculto inicialmente) - fica abaixo da barra e acima da lista #}
+    <div class="collapse mt-2" id="commentFormBox-{{ post.id }}">
+      <div class="card card-body p-2">
+        <form class="comment-form" data-post-id="{{ post.id }}" action="{% url 'social_net:comment_create' post.id %}" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="parent" value="" />
+
+          <div class="comment-errors mb-2"></div>
+
+          <textarea name="text" class="form-control" rows="2" placeholder="Escreva um comentário..."></textarea>
+
+          <div class="d-flex justify-content-between align-items-center mt-2">
+            <input type="file" name="image" class="form-control form-control-sm" style="max-width: 240px;" />
+
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary btn-cancel-comment" data-bs-target="#commentFormBox-{{ post.id }}">Cancelar</button>
+              <button type="submit" class="btn btn-sm btn-primary">Enviar</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# 3) Lista dos 5 últimos comentários (SEMPRE visível) #}
+    <div class="mt-2 ps-4 border-start">
+      <div id="commentsList-{{ post.id }}" class="js-comments-list" data-post-id="{{ post.id }}">
+        {% if post.last_comments %}
+          {% for c in post.last_comments %}
+            <div class="py-2 border-bottom" id="comment-{{ c.id }}">
+              <div class="d-flex justify-content-between">
+                <strong>{{ c.user }}</strong>
+                <small class="text-muted">{{ c.created_at }}</small>
+              </div>
+
+              {% if c.text %}
+                <div class="mt-1">{{ c.text|linebreaksbr }}</div>
+              {% endif %}
+
+              {% if c.image %}
+                <div class="mt-4">
+                  <img src="{{ c.image.url }}" class="img-fluid rounded w-50 d-block ms-auto" alt="Imagem do comentário" />
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <small class="text-muted">Nenhum comentário ainda.</small>
+        {% endif %}
       </div>
     </div>
   </div>

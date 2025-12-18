@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -11,25 +11,33 @@ from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, ListView
 
-from .forms import PostForm
-from .models import Post, PostLike, PostRating
+from .forms import PostCommentForm, PostForm
+from .models import Post, PostComment, PostLike, PostRating
 
 
 class PostListView(LoginRequiredMixin, ListView):
     """
-    Exibe a lista paginada de postagens ativas, com suporte a busca por título
-    e marcação no queryset indicando se o usuário autenticado já curtiu e/ou
-    já avaliou cada postagem.
+    Lista postagens ativas com paginação e busca por título.
+
+    Anota no queryset se o usuário autenticado já curtiu e/ou avaliou cada postagem.
+    Também pré-carrega comentários (nível raiz) e expõe os 5 mais recentes em
+    `post.last_comments` para renderização direta no template.
     """
 
     model = Post
     template_name = "social_net/post_list.html"
     context_object_name = "posts"
     paginate_by = 10
-    ordering = ["-created_at"]
+    ordering = ["-updated_at"]
 
     def get_queryset(self):
         user = self.request.user
+
+        comments_qs = (
+            PostComment.objects.filter(is_active=True, parent__isnull=True)
+            .select_related("user")
+            .order_by("-created_at")
+        )
 
         qs = (
             Post.objects.filter(is_active=True)
@@ -42,10 +50,11 @@ class PostListView(LoginRequiredMixin, ListView):
                     PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
                 ),
             )
-            .order_by("-created_at")
+            .prefetch_related(Prefetch("comments", queryset=comments_qs))
+            .order_by("-updated_at")
         )
 
-        q = self.request.GET.get("q")
+        q = (self.request.GET.get("q") or "").strip()
         if q:
             qs = qs.filter(title__icontains=q)
 
@@ -53,16 +62,24 @@ class PostListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+
+        posts = ctx["posts"]
+        for post in posts:
+            post.last_comments = list(post.comments.all())[:5]
+
         ctx["form"] = PostForm()
         ctx["rating_range"] = range(1, 6)
         ctx["stars_5"] = range(1, 6)
         return ctx
 
 
+
 class PostCreateView(LoginRequiredMixin, CreateView):
     """
-    Cria uma nova postagem para o usuário autenticado.
-    Quando requisitado via AJAX, retorna HTML do item renderizado e sinaliza sucesso.
+    Cria uma nova postagem do usuário autenticado.
+
+    Quando a requisição é AJAX, retorna JSON com o HTML do item renderizado
+    para inserção dinâmica no feed.
     """
 
     model = Post
@@ -77,6 +94,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
             post.has_liked = False
             post.has_rated = False
+            post.last_comments = []
             html = render_to_string(
                 "social_net/partials/post_item.html",
                 {"post": post},
@@ -98,16 +116,37 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
+
+@login_required
+@require_POST
+def post_delete(request, post_id):
+    """
+    Inativa uma postagem do usuário autenticado (soft delete).
+
+    Retorna JSON para remoção do card no front.
+    """
+    post = get_object_or_404(Post, id=post_id, is_active=True)
+
+    if post.user_id != request.user.id:
+        return JsonResponse({"success": False, "error": "forbidden"}, status=403)
+
+    post.is_active = False
+    post.save(update_fields=["is_active"])
+
+    return JsonResponse({"success": True, "post_id": str(post.id)})
+
+
+
 @login_required
 @require_POST
 def post_like(request, post_id):
     """
-    Alterna a curtida do usuário autenticado para a postagem informada e retorna JSON
-    com o estado final e a contagem atualizada.
+    Alterna a curtida do usuário autenticado na postagem informada.
+
+    Retorna JSON com o estado final (`liked`) e a contagem atualizada.
     """
 
     post = get_object_or_404(Post, id=post_id, is_active=True)
-
     like_qs = PostLike.objects.filter(post=post, user=request.user)
 
     if like_qs.exists():
@@ -130,8 +169,9 @@ def post_like(request, post_id):
 @require_POST
 def post_rate(request, post_id):
     """
-    Registra ou atualiza a avaliação (1 a 5) do usuário autenticado para a postagem
-    informada e retorna JSON com o estado final.
+    Registra ou atualiza a avaliação (1 a 5) do usuário autenticado na postagem.
+
+    Retorna JSON indicando sucesso e o valor aplicado.
     """
 
     post = get_object_or_404(Post, id=post_id, is_active=True)
@@ -141,7 +181,7 @@ def post_rate(request, post_id):
     except (TypeError, ValueError):
         return JsonResponse({"success": False, "error": "invalid_value"}, status=400)
 
-    if value < 1 or value > 5:
+    if not (1 <= value <= 5):
         return JsonResponse({"success": False, "error": "out_of_range"}, status=400)
 
     PostRating.objects.update_or_create(
@@ -157,3 +197,85 @@ def post_rate(request, post_id):
             "rating_value": value,
         }
     )
+
+
+class PostCommentListView(LoginRequiredMixin, ListView):
+    """
+    Lista comentários (nível raiz) de uma postagem, ordenados por data de criação.
+
+    Esta view serve para renderização parcial (HTML) quando necessário.
+    """
+
+    model = PostComment
+    template_name = "social_net/partials/comment_list.html"
+    context_object_name = "comments"
+
+    def get_queryset(self):
+        post = get_object_or_404(Post, pk=self.kwargs["post_id"], is_active=True)
+        return (
+            PostComment.objects.filter(post=post, is_active=True, parent__isnull=True)
+            .select_related("user")
+            .prefetch_related("replies__user")
+            .order_by("created_at")
+        )
+
+
+class PostCommentCreateView(LoginRequiredMixin, CreateView):
+    """
+    Cria comentário em uma postagem, com suporte a resposta encadeada (parent).
+
+    Quando a requisição é AJAX, retorna JSON com o HTML do comentário renderizado
+    para inserção dinâmica na lista já exibida.
+    """
+
+    model = PostComment
+    form_class = PostCommentForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.post_obj = get_object_or_404(Post, pk=kwargs["post_id"], is_active=True)
+        self.parent_obj = None
+
+        parent_id = (request.POST.get("parent") or request.GET.get("parent") or "").strip()
+        if parent_id:
+            self.parent_obj = get_object_or_404(
+                PostComment,
+                pk=parent_id,
+                post=self.post_obj,
+                is_active=True,
+            )
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        comment = form.save(commit=False)
+        comment.post = self.post_obj
+        comment.user = self.request.user
+        comment.parent = self.parent_obj
+        comment.save()
+
+        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+            html = render_to_string(
+                "social_net/partials/comment_item.html",
+                {"comment": comment},
+                request=self.request,
+            )
+            return JsonResponse(
+                {
+                    "success": True,
+                    "html": html,
+                    "parent": str(comment.parent_id) if comment.parent_id else None,
+                }
+            )
+
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+            errors_html = render_to_string(
+                "social_net/partials/comment_form_errors.html",
+                {"form": form},
+                request=self.request,
+            )
+            return JsonResponse({"success": False, "errors_html": errors_html}, status=400)
+
+        return super().form_invalid(form)

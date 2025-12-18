@@ -1,0 +1,16 @@
+<div class="py-2 border-bottom" id="comment-{{ comment.id }}">
+  <div class="d-flex justify-content-between">
+    <strong>{{ comment.user }}</strong>
+    <small class="text-muted">{{ comment.created_at }}</small>
+  </div>
+
+  {% if comment.text %}
+    <div class="mt-1">{{ comment.text|linebreaksbr }}</div>
+  {% endif %}
+
+  {% if comment.image %}
+    <div class="mt-2">
+      <img src="{{ comment.image.url }}" class="img-fluid rounded w-50" alt="Imagem do comentário">
+    </div>
+  {% endif %}
+</div>
