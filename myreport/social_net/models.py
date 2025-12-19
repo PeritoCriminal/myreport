@@ -1,12 +1,21 @@
 # social_net/models.py
 import os
 import uuid
+from io import BytesIO
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import models
+from django.db.models.signals import pre_save 
+from django.dispatch import receiver         
 from django.utils import timezone
 
+from PIL import Image, ImageOps
 
+
+# =========================
+# Paths
+# =========================
 def post_media_path(instance, filename: str) -> str:
     """
     Retorna o caminho de armazenamento do arquivo de mídia associado a uma postagem.
@@ -20,9 +29,72 @@ def comment_image_path(instance, filename: str) -> str:
     Retorna o caminho de armazenamento da imagem associada a um comentário.
     """
     ext = os.path.splitext(filename)[1].lower()
-    return f"{instance.post_id}/comments/{instance.id}{ext}"
+    return f"{instance.post_id}/comments/{instance.id}/{uuid.uuid4()}{ext}"
 
 
+# =========================
+# Image optimization helper
+# =========================
+def _optimize_image_field(
+    instance,
+    field_name: str,
+    *,
+    max_side: int = 1920,
+    quality: int = 85,
+) -> bool:
+    """
+    Otimiza uma imagem (se o arquivo for imagem legível pelo Pillow):
+    - corrige orientação EXIF;
+    - converte para RGB;
+    - redimensiona mantendo proporção (sem aumentar);
+    - regrava como JPEG com compressão;
+    Retorna True se otimizou e substituiu o arquivo, senão False.
+    """
+    f = getattr(instance, field_name, None)
+    if not f:
+        return False
+
+    try:
+        f.open("rb")
+        img = Image.open(f)
+        img.load()
+    except Exception:
+        # Não é imagem (ou não legível) => não mexe
+        return False
+    finally:
+        try:
+            f.close()
+        except Exception:
+            pass
+
+    # Processamento e otimização da imagem
+    img = ImageOps.exif_transpose(img)
+
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
+    # Redimensionamento
+    img.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+
+    # Cria buffer de saída
+    out = BytesIO()
+    img.save(out, format="JPEG", quality=quality, optimize=True)
+    out.seek(0)
+
+    # Gera novo nome (mantendo o caminho, mas garantindo extensão .jpg)
+    old_name = f.name or ""
+    dir_name = os.path.dirname(old_name)
+    base = os.path.splitext(os.path.basename(old_name))[0] or uuid.uuid4().hex
+    new_name = f"{dir_name}/{base}.jpg" if dir_name else f"{base}.jpg"
+
+    # Substitui o arquivo (sem salvar o model ainda - importante para pre_save)
+    getattr(instance, field_name).save(new_name, ContentFile(out.read()), save=False)
+    return True
+
+
+# =========================
+# Models
+# =========================
 class Post(models.Model):
     """
     Representa uma postagem criada por um usuário, podendo conter texto e um arquivo de mídia opcional.
@@ -51,6 +123,10 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Limites de imagem (para exibição com qualidade em tela 19")
+    IMAGE_MAX_SIDE = 1920
+    IMAGE_QUALITY = 85
+
     class Meta:
         ordering = ["-updated_at"]
         indexes = [
@@ -61,6 +137,13 @@ class Post(models.Model):
 
     def __str__(self) -> str:
         return f"{self.title or 'Post'} ({self.user_id})"
+
+    def save(self, *args, **kwargs):
+        """
+        Salva a postagem. A otimização de imagem foi movida para o signal pre_save.
+        """
+        # A otimização ocorre no pre_save. Aqui, apenas o salvamento principal.
+        super().save(*args, **kwargs)
 
 
 class PostLike(models.Model):
@@ -160,6 +243,10 @@ class PostComment(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Limites de imagem (para exibição com qualidade em tela 19")
+    IMAGE_MAX_SIDE = 1920
+    IMAGE_QUALITY = 85
+
     class Meta:
         ordering = ["created_at"]
         verbose_name = "Comentário"
@@ -177,15 +264,53 @@ class PostComment(models.Model):
 
     def __str__(self) -> str:
         return f"Comment: {self.post_id} / {self.user_id}"
-    
+
     def save(self, *args, **kwargs):
         """
-        Salva o comentário e atualiza o campo `updated_at` da postagem associada.
-
-        Mantém o comportamento de `auto_now` do Post coerente com interações
-        relevantes (comentários) sem depender de signals.
+        Salva o comentário. A otimização e a atualização do updated_at do Post
+        foram movidas para os signals pre_save e post_save.
         """
         super().save(*args, **kwargs)
 
-        Post.objects.filter(pk=self.post_id).update(updated_at=timezone.now())
 
+# =========================
+# Signals para otimização e updated_at
+# =========================
+
+@receiver(pre_save, sender=Post)
+def optimize_post_media(sender, instance, **kwargs):
+    """
+    Otimiza a imagem do Post ANTES de ser salva no storage,
+    evitando que o arquivo original (grande) seja salvo primeiro.
+    """
+    _optimize_image_field(
+        instance,
+        "media",
+        max_side=instance.IMAGE_MAX_SIDE,
+        quality=instance.IMAGE_QUALITY,
+    )
+
+
+@receiver(pre_save, sender=PostComment)
+def optimize_comment_image(sender, instance, **kwargs):
+    """
+    Otimiza a imagem do Comentário ANTES de ser salva no storage,
+    evitando que o arquivo original (grande) seja salvo primeiro.
+    """
+    _optimize_image_field(
+        instance,
+        "image",
+        max_side=instance.IMAGE_MAX_SIDE,
+        quality=instance.IMAGE_QUALITY,
+    )
+    
+@receiver(models.signals.post_save, sender=PostComment)
+def update_post_on_comment_save(sender, instance, created, **kwargs):
+    """
+    Atualiza o campo 'updated_at' da Postagem para trazê-la para o topo
+    sempre que um novo comentário for salvo (criado ou modificado).
+    """
+    if created or instance.pk is not None:
+        # Usa Post.objects.filter().update para evitar carregar o objeto
+        # Post e evitar um loop de save recursivo.
+        Post.objects.filter(pk=instance.post_id).update(updated_at=timezone.now())

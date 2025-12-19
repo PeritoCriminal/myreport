@@ -11,16 +11,45 @@
     </div>
     {% endcomment %}
 
-    <div class="d-flex align-items-center gap-2 mb-3">
-      <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#postFormCollapse" aria-expanded="false" aria-controls="postFormCollapse">Nova postagem</button>
+    <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
 
-      <form method="get" class="d-inline">
-        <div class="input-group" style="max-width: 260px;">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input type="search" name="q" class="form-control" placeholder="Buscar" value="{{ request.GET.q }}" />
-        </div>
-      </form>
+  {# Barra de busca à esquerda #}
+  <form method="get" class="flex-grow-1 me-2">
+    <div class="input-group" style="max-width: 520px;">
+      <span class="input-group-text">
+        <i class="bi bi-search"></i>
+      </span>
+      <input
+        type="search"
+        name="q"
+        class="form-control"
+        placeholder="Buscar"
+        value="{{ request.GET.q }}"
+      />
     </div>
+  </form>
+
+  {# Botão "+" à direita #}
+  <button
+  type="button"
+  class="btn btn-outline-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+  style="
+    width:48px;
+    height:48px;
+    background-color: rgba(13,110,253,.5);
+  "
+  data-bs-toggle="collapse"
+  data-bs-target="#postFormCollapse"
+  aria-expanded="false"
+  aria-controls="postFormCollapse"
+  title="Incluir nova postagem"
+>
+  <span class="fs-4 lh-1 fw-bold">+</span>
+</button>
+
+
+</div>
+
 
     {# Form de criação #}
 
