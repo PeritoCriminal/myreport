@@ -7,9 +7,9 @@ from django.db.models import Exists, OuterRef, Prefetch,Subquery
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, ListView
+from django.views.generic import CreateView, ListView, DetailView
 
 from .forms import PostCommentForm, PostForm
 from .models import Post, PostComment, PostLike, PostRating
@@ -77,6 +77,46 @@ class PostListView(LoginRequiredMixin, ListView):
         ctx["form"] = PostForm()
         ctx["rating_range"] = range(1, 6)
         ctx["stars_5"] = range(1, 6)
+        return ctx
+
+
+# social_net/views.py
+
+class PostDetailView(LoginRequiredMixin, DetailView):
+    """
+    Exibe o detalhe de uma postagem específica, incluindo seu conteúdo completo
+    e a listagem de todos os comentários associados.
+
+    A view atua como ponto canônico da postagem, podendo ser acessada a partir
+    do feed geral, da página pessoal do autor ou por link direto. Apenas postagens
+    ativas são exibidas.
+
+    Os comentários são recuperados em ordem cronológica crescente e acompanhados
+    de um formulário para inserção de novos comentários.
+    """
+    model = Post
+    template_name = "social_net/post_detail.html"
+    context_object_name = "post"
+
+    def get_queryset(self):
+        return (
+            Post.objects
+            .filter(is_active=True)
+            .select_related("user")
+        )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        ctx["comments"] = (
+            PostComment.objects
+            .filter(post=self.object, is_active=True)
+            .select_related("user")
+            .order_by("created_at")
+        )
+
+        ctx["comment_form"] = PostCommentForm()
+
         return ctx
 
 
@@ -240,49 +280,27 @@ class PostCommentCreateView(LoginRequiredMixin, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.post_obj = get_object_or_404(Post, pk=kwargs["post_id"], is_active=True)
-        self.parent_obj = None
-
-        parent_id = (request.POST.get("parent") or request.GET.get("parent") or "").strip()
-        if parent_id:
-            self.parent_obj = get_object_or_404(
-                PostComment,
-                pk=parent_id,
-                post=self.post_obj,
-                is_active=True,
-            )
-
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        comment = form.save(commit=False)
-        comment.post = self.post_obj
-        comment.user = self.request.user
-        comment.parent = self.parent_obj
-        comment.save()
+        form.instance.post = self.post_obj
+        form.instance.user = self.request.user
+        response = super().form_valid(form)
 
-        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
             html = render_to_string(
                 "social_net/partials/comment_item.html",
-                {"comment": comment},
+                {"comment": self.object, "user": self.request.user},
                 request=self.request,
             )
-            return JsonResponse(
-                {
-                    "success": True,
-                    "html": html,
-                    "parent": str(comment.parent_id) if comment.parent_id else None,
-                }
-            )
+            return JsonResponse({"success": True, "html": html}, status=200)
 
-        return super().form_valid(form)
-
+        return response
+    
     def form_invalid(self, form):
-        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
-            errors_html = render_to_string(
-                "social_net/partials/comment_form_errors.html",
-                {"form": form},
-                request=self.request,
-            )
-            return JsonResponse({"success": False, "errors_html": errors_html}, status=400)
-
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "errors": form.errors}, status=400)
         return super().form_invalid(form)
+
+    def get_success_url(self):
+        return reverse("social_net:post_detail", kwargs={"pk": self.post_obj.pk})

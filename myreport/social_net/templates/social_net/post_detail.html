@@ -1,0 +1,72 @@
+{# templates/social_net/post_detail.html #}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="container mt-4" style="max-width: 820px;">
+    {# ===================== Post ===================== #}
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <strong>{{ post.user }}</strong>
+          <small class="text-muted">{{ post.created_at }}</small>
+        </div>
+
+        {% if post.title %}
+          <h5 class="mb-2">{{ post.title }}</h5>
+        {% endif %}
+
+        <p class="mb-3">{{ post.text|linebreaksbr }}</p>
+
+        {% if post.media %}
+          <div class="mb-3">
+            {% with url=post.media.url|lower %}
+              {% if '.jpg' in url or '.jpeg' in url or '.png' in url or '.webp' in url %}
+                <img src="{{ post.media.url }}" class="img-fluid rounded" alt="Imagem da postagem" />
+              {% elif '.mp4' in url or '.webm' in url or '.ogg' in url %}
+                <video controls class="img-fluid rounded">
+                  <source src="{{ post.media.url }}" />Seu navegador não suporta vídeo HTML5.
+                </video>
+              {% endif %}
+            {% endwith %}
+          </div>
+        {% endif %}
+      </div>
+
+      {# ===================== Comentários ===================== #}
+      <div class="card mb-3">
+        <div class="card-body">
+          <h6 class="mb-3">Comentários ({{ comments.count }})</h6>
+
+          {% for comment in comments %}
+            <div class="mb-3 border-bottom pb-2">
+              <div class="d-flex justify-content-between align-items-start">
+                <strong>{{ comment.user }}</strong>
+                <small class="text-muted">{{ comment.created_at }}</small>
+              </div>
+
+              <p class="mb-1">{{ comment.text|linebreaksbr }}</p>
+
+              {% if comment.image %}
+                <div class="mt-2">
+                  <img src="{{ comment.image.url }}" alt="Imagem do comentário" class="img-fluid rounded border" />
+                </div>
+              {% endif %}
+            </div>
+          {% empty %}
+            <p class="text-muted mb-0">Nenhum comentário até o momento.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# ===================== Formulário de comentário ===================== #}
+      <div class="card">
+        <div class="card-body">
+          <h6 class="mb-2">Adicionar comentário</h6>
+
+          {% include 'social_net/partials/comment_form.html' with post=post force_open=True %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

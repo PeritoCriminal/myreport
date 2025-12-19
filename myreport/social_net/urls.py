@@ -3,6 +3,7 @@
 from django.urls import path
 from .views import (
     PostListView,
+    PostDetailView,
     PostCreateView,
     PostCommentListView,
     PostCommentCreateView,
@@ -15,6 +16,7 @@ app_name = "social_net"
 
 urlpatterns = [
     path("posts/", PostListView.as_view(), name="post_list"),
+    path("post/<uuid:pk>/", PostDetailView.as_view(), name="post_detail"),
     path("posts/create/", PostCreateView.as_view(), name="post_create"),
     path("posts/<uuid:post_id>/delete/", post_delete, name="post_delete"),
     path("posts/<uuid:post_id>/rate/", post_rate, name="post_rate"),

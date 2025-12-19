@@ -16,9 +16,13 @@
       <small class="text-muted">{{ post.created_at }}</small>
     </div>
 
-    {% if post.title %}
-      <h6 class="mt-2 mb-2">{{ post.title }}</h6>
-    {% endif %}
+    <a href="{% url 'social_net:post_detail' post.pk %}" class="text-decoration-none text-dark">
+      {% if post.title %}
+        <h5 class="mb-1">{{ post.title }}</h5>
+      {% else %}
+        <p class="mb-1">{{ post.text|truncatechars:80 }}</p>
+      {% endif %}
+    </a>
 
     {% if post.text %}
       <p class="mb-2">{{ post.text|linebreaksbr }}</p>
@@ -110,28 +114,7 @@
       </div>
     </div>
 
-    {# 2) Form de comentário (oculto inicialmente) - fica abaixo da barra e acima da lista #}
-    <div class="collapse mt-2" id="commentFormBox-{{ post.id }}">
-      <div class="card card-body p-2">
-        <form class="comment-form" data-post-id="{{ post.id }}" action="{% url 'social_net:comment_create' post.id %}" method="post" enctype="multipart/form-data">
-          {% csrf_token %}
-          <input type="hidden" name="parent" value="" />
-
-          <div class="comment-errors mb-2"></div>
-
-          <textarea name="text" class="form-control" rows="2" placeholder="Escreva um comentário..."></textarea>
-
-          <div class="d-flex justify-content-between align-items-center mt-2">
-            <input type="file" name="image" class="form-control form-control-sm" style="max-width: 240px;" />
-
-            <div class="d-flex gap-2">
-              <button type="button" class="btn btn-sm btn-outline-secondary btn-cancel-comment" data-bs-target="#commentFormBox-{{ post.id }}">Cancelar</button>
-              <button type="submit" class="btn btn-sm btn-primary">Enviar</button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+    {% include "social_net/partials/comment_form.html" with post=post %}
 
     {# 3) Lista dos 5 últimos comentários (SEMPRE visível) #}
     <div class="mt-2 ps-4 border-start">
@@ -155,6 +138,9 @@
               {% endif %}
             </div>
           {% endfor %}
+          <a href="{% url 'social_net:post_detail' post.pk %}" class="small">
+            Ver todos os comentários
+          </a>
         {% else %}
           <small class="text-muted">Nenhum comentário ainda.</small>
         {% endif %}
