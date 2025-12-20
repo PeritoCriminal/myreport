@@ -49,6 +49,12 @@
       <!-- Profile image -->
       <div class="mb-3">
         <label class="form-label">{{ form.profile_image.label }}</label>
+
+        <!-- Preview (circular) -->
+        <div class="mt-2">
+          <img id="profilePreview" class="rounded-circle border shadow-sm" style="width:120px; height:120px; object-fit:cover; display:none;" alt="Pré-visualização da foto de perfil" />
+        </div>
+
         {{ form.profile_image }}
         {{ form.profile_image.errors }}
       </div>
@@ -62,17 +68,14 @@
             </div>
 
             <div class="d-flex flex-column align-items-start gap-2">
-              <canvas id="profileCanvas" width="420" height="420" style="width:100%; max-width:420px; border:1px solid rgba(255,255,255,.15); border-radius:.5rem; touch-action:none;"></canvas>
+              <canvas id="profileCanvas" width="420" height="420" style="width:100%; max-width:420px; border:1px solid rgba(255,255,255,.15); border-radius:50%; touch-action:none;"></canvas>
 
-              <div class="d-flex flex-wrap gap-2">
-                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom perfil">
-                  <button type="button" id="btnProfileZoomOut" class="btn btn-outline-light">−</button>
-                  <button type="button" id="btnProfileZoomIn" class="btn btn-outline-light">+</button>
-                </div>
-
-                <button type="button" id="btnProfileCenter" class="btn btn-outline-light btn-sm">Centralizar</button>
-                <button type="button" id="btnProfileReset" class="btn btn-outline-secondary btn-sm">Resetar</button>
-                <button type="button" id="btnProfileApply" class="btn btn-success btn-sm">Aplicar</button>
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <button type="button" id="btnProfileZoomIn" class="btn btn-outline-secondary btn-sm">+</button>
+                <button type="button" id="btnProfileZoomOut" class="btn btn-outline-secondary btn-sm">−</button>
+                <button type="button" id="btnProfileCenter" class="btn btn-outline-secondary btn-sm">Centralizar</button>
+                <button type="button" id="btnProfileReset" class="btn btn-outline-secondary btn-sm">Reset</button>
+                <button type="button" id="btnProfileApply" class="btn btn-primary btn-sm">Aplicar</button>
               </div>
 
               <small class="text-muted">Pan: arrastar a imagem dentro do canvas.</small>
@@ -99,15 +102,12 @@
             <div class="d-flex flex-column align-items-start gap-2">
               <canvas id="bgCanvas" width="1200" height="400" style="width:100%; border:1px solid rgba(255,255,255,.15); border-radius:.5rem; touch-action:none;"></canvas>
 
-              <div class="d-flex flex-wrap gap-2">
-                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom fundo">
-                  <button type="button" id="btnBgZoomOut" class="btn btn-outline-light">−</button>
-                  <button type="button" id="btnBgZoomIn" class="btn btn-outline-light">+</button>
-                </div>
-
-                <button type="button" id="btnBgCenter" class="btn btn-outline-light btn-sm">Centralizar</button>
-                <button type="button" id="btnBgReset" class="btn btn-outline-secondary btn-sm">Resetar</button>
-                <button type="button" id="btnBgApply" class="btn btn-success btn-sm">Aplicar</button>
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <button type="button" id="btnBgZoomIn" class="btn btn-outline-secondary btn-sm">+</button>
+                <button type="button" id="btnBgZoomOut" class="btn btn-outline-secondary btn-sm">−</button>
+                <button type="button" id="btnBgCenter" class="btn btn-outline-secondary btn-sm">Centralizar</button>
+                <button type="button" id="btnBgReset" class="btn btn-outline-secondary btn-sm">Reset</button>
+                <button type="button" id="btnBgApply" class="btn btn-primary btn-sm">Aplicar</button>
               </div>
 
               <small class="text-muted">Pan: arrastar a imagem dentro do canvas.</small>
@@ -137,6 +137,12 @@
           return Math.max(a, Math.min(b, v))
         }
       
+        function dist(t1, t2) {
+          const dx = t1.clientX - t2.clientX
+          const dy = t1.clientY - t2.clientY
+          return Math.hypot(dx, dy)
+        }
+      
         function createEditor(cfg) {
           const input = document.getElementById(cfg.inputId)
           const wrap = document.getElementById(cfg.wrapId)
@@ -150,6 +156,9 @@
           const btnApply = document.getElementById(cfg.btnApplyId)
       
           if (!input || !wrap || !canvas) return
+      
+          // Preview (somente para o perfil, se existir)
+          const profilePreview = document.getElementById('profilePreview')
       
           let img = new Image()
           let loaded = false
@@ -167,11 +176,14 @@
           let startOX = 0,
             startOY = 0
       
+          // pinch
+          let pinching = false
+          let pinchStartDist = 0
+          let pinchStartScale = 1
+      
           function fitToCanvas() {
             const sx = canvas.width / img.width
             const sy = canvas.height / img.height
-      
-            // cobre o canvas inteiro
             minScale = Math.max(sx, sy)
             scale = minScale
       
@@ -231,24 +243,18 @@
             draw()
           }
       
-          function zoomBy(factor) {
+          function zoomBy(factor, anchorX = canvas.width / 2, anchorY = canvas.height / 2) {
             if (!loaded) return
       
-            const cx = canvas.width / 2
-            const cy = canvas.height / 2
-      
-            // coordenada do ponto central no bitmap
-            const ix = (cx - ox) / scale
-            const iy = (cy - oy) / scale
+            const ix = (anchorX - ox) / scale
+            const iy = (anchorY - oy) / scale
       
             const next = clamp(scale * factor, minScale, maxScale)
             if (next === scale) return
       
             scale = next
-      
-            // mantém o ponto central fixo
-            ox = cx - ix * scale
-            oy = cy - iy * scale
+            ox = anchorX - ix * scale
+            oy = anchorY - iy * scale
       
             bound()
             draw()
@@ -271,8 +277,30 @@
           input.addEventListener('change', (e) => {
             const file = e.target.files && e.target.files[0]
             if (!file) return
+      
+            // Preview circular (perfil)
+            if (profilePreview && cfg.inputId === 'id_profile_image') {
+              profilePreview.src = URL.createObjectURL(file)
+              profilePreview.style.display = 'block'
+            }
+      
             loadFile(file)
           })
+      
+          // zoom no wheel / trackpad (desktop)
+          canvas.addEventListener(
+            'wheel',
+            (e) => {
+              if (!loaded) return
+              e.preventDefault()
+              const rect = canvas.getBoundingClientRect()
+              const ax = ((e.clientX - rect.left) / rect.width) * canvas.width
+              const ay = ((e.clientY - rect.top) / rect.height) * canvas.height
+              const factor = e.deltaY < 0 ? cfg.zoomStep ?? 1.12 : 1 / (cfg.zoomStep ?? 1.12)
+              zoomBy(factor, ax, ay)
+            },
+            { passive: false }
+          )
       
           // pan (mouse)
           canvas.addEventListener('mousedown', (e) => {
@@ -297,40 +325,82 @@
             dragging = false
           })
       
-          // pan (touch)
+          // touch: pan + pinch (IMPORTANTE: passive:false)
           canvas.addEventListener(
             'touchstart',
             (e) => {
               if (!loaded) return
-              if (e.touches.length !== 1) return
-              dragging = true
-              startX = e.touches[0].clientX
-              startY = e.touches[0].clientY
-              startOX = ox
-              startOY = oy
+      
+              if (e.touches.length === 1) {
+                dragging = true
+                pinching = false
+                startX = e.touches[0].clientX
+                startY = e.touches[0].clientY
+                startOX = ox
+                startOY = oy
+                e.preventDefault()
+                return
+              }
+      
+              if (e.touches.length === 2) {
+                dragging = false
+                pinching = true
+                pinchStartDist = dist(e.touches[0], e.touches[1])
+                pinchStartScale = scale
+                e.preventDefault()
+              }
             },
-            { passive: true }
+            { passive: false }
           )
       
           canvas.addEventListener(
             'touchmove',
             (e) => {
-              if (!dragging) return
-              if (e.touches.length !== 1) return
-              ox = startOX + (e.touches[0].clientX - startX)
-              oy = startOY + (e.touches[0].clientY - startY)
-              bound()
-              draw()
+              if (!loaded) return
+      
+              if (dragging && e.touches.length === 1) {
+                ox = startOX + (e.touches[0].clientX - startX)
+                oy = startOY + (e.touches[0].clientY - startY)
+                bound()
+                draw()
+                e.preventDefault()
+                return
+              }
+      
+              if (pinching && e.touches.length === 2) {
+                const d = dist(e.touches[0], e.touches[1])
+                if (!pinchStartDist) return
+      
+                // fator relativo ao início do pinch
+                const factor = d / pinchStartDist
+                const next = clamp(pinchStartScale * factor, minScale, maxScale)
+                if (next === scale) return
+      
+                // âncora: centro entre os dois dedos
+                const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2
+                const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2
+                const rect = canvas.getBoundingClientRect()
+                const ax = ((cx - rect.left) / rect.width) * canvas.width
+                const ay = ((cy - rect.top) / rect.height) * canvas.height
+      
+                // aplica zoom mantendo âncora
+                const rel = next / scale
+                zoomBy(rel, ax, ay)
+      
+                e.preventDefault()
+              }
             },
-            { passive: true }
+            { passive: false }
           )
       
           canvas.addEventListener(
             'touchend',
             () => {
               dragging = false
+              pinching = false
+              pinchStartDist = 0
             },
-            { passive: true }
+            { passive: false }
           )
       
           // botões

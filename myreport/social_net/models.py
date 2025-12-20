@@ -29,7 +29,8 @@ def comment_image_path(instance, filename: str) -> str:
     Retorna o caminho de armazenamento da imagem associada a um comentário.
     """
     ext = os.path.splitext(filename)[1].lower()
-    return f"{instance.post_id}/comments/{instance.id}/{uuid.uuid4()}{ext}"
+    return f"{instance.post_id}/comments/{uuid.uuid4()}{ext}"
+           
 
 
 # =========================
@@ -53,7 +54,9 @@ def _optimize_image_field(
     f = getattr(instance, field_name, None)
     if not f:
         return False
-
+    if not f.name.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+        return False
+    
     try:
         f.open("rb")
         img = Image.open(f)
