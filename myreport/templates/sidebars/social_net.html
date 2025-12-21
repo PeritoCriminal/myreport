@@ -1,26 +1,25 @@
 <div class="mb-3 pb-3 border-bottom">
-  {% include "partials/user_menu.html" %}
+  {% include 'partials/user_menu.html' %}
 </div>
 
 <h6 class="text-uppercase text-muted mb-3">Social</h6>
 
 <ul class="nav nav-pills flex-column gap-1">
   <li class="nav-item">
-    <a class="nav-link {% if request.resolver_match.url_name == 'post_list' %}active{% endif %}"
-       href="{% url 'social_net:post_list' %}">
-      <i class="bi bi-house"></i> Feed
-    </a>
+    <a class="nav-link {% if request.resolver_match.url_name == 'post_list' %}active{% endif %}" href="{% url 'social_net:post_list' %}"><i class="bi bi-house"></i> Feed</a>
   </li>
 
   <li class="nav-item">
-    <a class="nav-link" href="#">
-      <i class="bi bi-plus-circle"></i> Nova postagem
-    </a>
+    {% if request.resolver_match.url_name == 'post_list' %}
+      {# Se já estiver no feed (post_list), mantém o data-bs-dismiss para fechar o offcanvas E abrir o collapse na mesma página. #}
+      <a class="nav-link" href="#postFormCollapse" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="postFormCollapse" data-bs-dismiss="offcanvas"><i class="bi bi-plus-circle"></i> Nova postagem</a>
+    {% else %}
+      {# Se estiver em outra página, APENAS NAVEGA. A navegação fecha o offcanvas automaticamente. #}
+      <a class="nav-link" href="{% url 'social_net:post_list' %}?new=1"><i class="bi bi-plus-circle"></i> Nova postagem</a>
+    {% endif %}
   </li>
 
   <li class="nav-item">
-    <a class="nav-link" href="#">
-      <i class="bi bi-search"></i> Buscar
-    </a>
+    <a class="nav-link" href="#"><i class="bi bi-search"></i> Buscar</a>
   </li>
 </ul>
