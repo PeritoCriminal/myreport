@@ -28,7 +28,7 @@
           <a class="navbar-brand fw-bold" href="{% url 'home:index' %}">MyReport<span class="text-primary">/EPCL</span></a>
 
           {# Botão hambúrguer #}
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Alternar navegação"><span class="navbar-toggler-icon"></span></button>
+          <button class="btn btn-outline-light d-md-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar"><i class="bi bi-list"></i></button>
 
           <div class="collapse navbar-collapse" id="navbarMain">
             {# Navegação esquerda #}
@@ -83,13 +83,36 @@
       </nav>
     </header>
 
+    {# Sidebar Offcanvas (Mobile) #}
+    {# Sidebar Offcanvas (Mobile) #}
+    <div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
+      <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title" id="mobileSidebarLabel">MyReport<span class="text-primary">/EPCL</span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+      </div>
+
+      <div class="offcanvas-body">
+        {# Menu contextual por app #}
+        {% with app=request.resolver_match.app_name %}
+          {% if app == 'social_net' %}
+            {% include 'sidebars/social_net.html' %}
+          {% elif app == 'appreport' %}
+            {% include 'sidebars/report.html' %}
+          {% elif app == 'files' %}
+            {% include 'sidebars/files.html' %}
+          {% else %}
+            {% include 'sidebars/default.html' %}
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+
     {% block page_header %}
 
     {% endblock %}
 
     <main class="flex-grow-1">
       <div class="d-flex">
-
         {# Sidebar esquerda #}
         <aside class="border-end bg-light d-none d-md-block" style="width: 320px; min-height: 100vh;">
           <div class="p-3">
