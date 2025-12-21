@@ -80,44 +80,103 @@ class PostListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-# social_net/views.py
+
+from django.db.models import Count, Exists, OuterRef, Subquery, Q
+from django.views.generic import DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+from .models import Post, PostComment, PostLike, PostRating
+from .forms import PostCommentForm
+
 
 class PostDetailView(LoginRequiredMixin, DetailView):
-    """
-    Exibe o detalhe de uma postagem específica, incluindo seu conteúdo completo
-    e a listagem de todos os comentários associados.
-
-    A view atua como ponto canônico da postagem, podendo ser acessada a partir
-    do feed geral, da página pessoal do autor ou por link direto. Apenas postagens
-    ativas são exibidas.
-
-    Os comentários são recuperados em ordem cronológica crescente e acompanhados
-    de um formulário para inserção de novos comentários.
+    """ 
+    Exibe o detalhe de uma postagem específica, incluindo seu conteúdo completo 
+    e a listagem de todos os comentários associados. A view atua como ponto canônico 
+    da postagem, podendo ser acessada a partir do feed geral, da página pessoal do 
+    autor ou por link direto. Apenas postagens ativas são exibidas. Os comentários 
+    são recuperados em ordem cronológica crescente e acompanhados de um formulário 
+    para inserção de novos comentários. 
     """
     model = Post
     template_name = "social_net/post_detail.html"
     context_object_name = "post"
 
     def get_queryset(self):
+        user = self.request.user
+
+        # valor da avaliação do usuário logado para esta postagem (None se não existir)
+        user_rating_value_sq = (
+            PostRating.objects
+            .filter(post_id=OuterRef("pk"), user_id=user.pk)
+            .values("value")[:1]
+        )
+
         return (
             Post.objects
             .filter(is_active=True)
             .select_related("user")
+            .annotate(
+                has_liked=Exists(
+                    PostLike.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
+                ),
+                has_rated=Exists(
+                    PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
+                ),
+                user_rating_value=Subquery(user_rating_value_sq),
+            )
         )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        post = self.object
 
-        ctx["comments"] = (
+        comments_qs = (
             PostComment.objects
-            .filter(post=self.object, is_active=True)
+            .filter(post=post, is_active=True)
             .select_related("user")
             .order_by("created_at")
         )
 
+        # Contagem total de curtidas (evita hits extras no template)
+        likes_count = PostLike.objects.filter(post=post).count()
+
+        # Contagem por estrelas (1..5) num único query
+        # retorna algo como: [{'value': 5, 'total': 3}, {'value': 4, 'total': 1}, ...]
+        rating_rows = (
+            PostRating.objects
+            .filter(post=post)
+            .values("value")
+            .annotate(total=Count("id"))
+        )
+
+        rating_counts = {i: 0 for i in range(1, 6)}
+        for row in rating_rows:
+            rating_counts[int(row["value"])] = int(row["total"])
+
+        rating_total = sum(rating_counts.values())
+        rating_sum = sum(star * qty for star, qty in rating_counts.items())
+        rating_avg = (rating_sum / rating_total) if rating_total else 0
+
+        ctx["comments"] = comments_qs
+        ctx["comments_count"] = comments_qs.count()
+
         ctx["comment_form"] = PostCommentForm()
 
+        # Curtidas
+        ctx["likes_count"] = likes_count
+
+        # Avaliações
+        ctx["rating_counts"] = rating_counts          # dict: 1..5
+        ctx["rating_total"] = rating_total            # total de avaliações
+        ctx["rating_avg"] = rating_avg                # média (0 se não houver)
+        ctx["user_rating_value"] = post.user_rating_value  # 1..5 ou None
+
+        # Se você usa no template para desenhar estrelas
+        ctx["stars_5"] = range(1, 6)
+
         return ctx
+
 
 
 
