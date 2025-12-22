@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Exists, OuterRef, Prefetch,Subquery
-from django.http import JsonResponse
+from django.db.models import Exists, OuterRef, Prefetch,Subquery, Count, Q  
+from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
@@ -13,6 +13,8 @@ from django.views.generic import CreateView, ListView, DetailView
 
 from .forms import PostCommentForm, PostForm
 from .models import Post, PostComment, PostLike, PostRating
+
+
 
 
 class PostListView(LoginRequiredMixin, ListView):
@@ -80,13 +82,6 @@ class PostListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-
-from django.db.models import Count, Exists, OuterRef, Subquery, Q
-from django.views.generic import DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
-
-from .models import Post, PostComment, PostLike, PostRating
-from .forms import PostCommentForm
 
 
 class PostDetailView(LoginRequiredMixin, DetailView):
@@ -196,19 +191,27 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         post = form.save(commit=False)
         post.user = self.request.user
         post.save()
+        self.object = post
 
         if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
             post.has_liked = False
             post.has_rated = False
             post.last_comments = []
+            post.user_rating_value = None
+
             html = render_to_string(
                 "social_net/partials/post_item.html",
-                {"post": post},
+                {
+                    "post": post,
+                    "rating_range": range(1, 6),
+                    "stars_5": range(1, 6),
+                },
                 request=self.request,
             )
-            return JsonResponse({"success": True, "html": html})
+            return JsonResponse({"success": True, "html": html}, status=200)
 
-        return super().form_valid(form)
+        # Evita salvar duas vezes (não chama super().form_valid)
+        return HttpResponseRedirect(self.get_success_url())
 
     def form_invalid(self, form):
         if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
@@ -220,6 +223,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
             return JsonResponse({"success": False, "errors_html": errors_html}, status=400)
 
         return super().form_invalid(form)
+
 
 
 
@@ -240,6 +244,7 @@ def post_delete(request, post_id):
     post.save(update_fields=["is_active"])
 
     return JsonResponse({"success": True, "post_id": str(post.id)})
+
 
 
 
@@ -269,6 +274,8 @@ def post_like(request, post_id):
             "likes_count": post.likes.count(),
         }
     )
+
+
 
 
 @login_required
@@ -305,6 +312,8 @@ def post_rate(request, post_id):
     )
 
 
+
+
 class PostCommentListView(LoginRequiredMixin, ListView):
     """
     Lista comentários (nível raiz) de uma postagem, ordenados por data de criação.
@@ -324,6 +333,8 @@ class PostCommentListView(LoginRequiredMixin, ListView):
             .prefetch_related("replies__user")
             .order_by("created_at")
         )
+
+
 
 
 class PostCommentCreateView(LoginRequiredMixin, CreateView):
