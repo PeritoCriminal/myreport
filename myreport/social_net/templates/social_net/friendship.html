@@ -6,7 +6,98 @@
 {% endblock %}
 
 {% block content %}
+  <div class="container mt-4" style="max-width: 920px;">
 
-    <p>Todos os usuários </p>
-    
+    <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
+      <h5 class="mb-0">Usuários</h5>
+
+      <form method="get" class="flex-grow-1 d-flex justify-content-end">
+        <div class="input-group" style="max-width: 420px;">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input
+            type="search"
+            name="q"
+            class="form-control"
+            placeholder="Buscar por nome ou usuário"
+            value="{{ request.GET.q }}"
+          />
+          {% if request.GET.q %}
+            <a class="btn btn-outline-secondary" href="{% url 'social_net:friendship' %}">Limpar</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+
+    <div class="row g-3">
+      {% for u in users %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+
+              {% if u.profile_image %}
+                <img
+                  src="{{ u.profile_image.url }}"
+                  alt="Foto de perfil"
+                  class="rounded-circle border shadow-sm"
+                  style="width:64px; height:64px; object-fit:cover;"
+                />
+              {% else %}
+                <div class="rounded-circle bg-secondary" style="width:64px; height:64px;"></div>
+              {% endif %}
+
+              <div class="flex-grow-1">
+                <strong>{{ u.display_name|default:u.username }}</strong><br />
+                <small class="text-muted">@{{ u.username }}</small>
+              </div>
+            </div>
+
+            <div class="card-footer bg-white border-top text-end">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-primary js-send-friend-request"
+                data-user-id="{{ u.id }}"
+              >
+                Conectar
+              </button>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="col-12">
+          <div class="alert alert-secondary mb-0">
+            Nenhum usuário encontrado.
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+      <nav class="mt-4" aria-label="Paginação de usuários">
+        <ul class="pagination justify-content-center mb-0">
+
+          <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+            {% if page_obj.has_previous %}
+              <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">&laquo;</a>
+            {% else %}
+              <span class="page-link">&laquo;</span>
+            {% endif %}
+          </li>
+
+          <li class="page-item disabled">
+            <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+          </li>
+
+          <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+            {% if page_obj.has_next %}
+              <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">&raquo;</a>
+            {% else %}
+              <span class="page-link">&raquo;</span>
+            {% endif %}
+          </li>
+
+        </ul>
+      </nav>
+    {% endif %}
+
+  </div>
 {% endblock %}

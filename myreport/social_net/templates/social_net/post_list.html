@@ -2,6 +2,11 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block page_header %}
+  {% include 'accounts/partials/profile_header.html' %}
+{% endblock %}
+
+
 {% block content %}
   <div class="container-fluid mt-4 px-0" style="max-width: 820px">
     {% comment %}

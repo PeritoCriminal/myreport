@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block page_header %}
+  {% include 'accounts/partials/profile_header.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4" style="max-width: 420px;">
     <h2 class="mb-4">Login</h2>
