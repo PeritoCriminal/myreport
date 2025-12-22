@@ -9,6 +9,17 @@
     <a class="nav-link {% if request.resolver_match.url_name == 'post_list' %}active{% endif %}" href="{% url 'social_net:post_list' %}"><i class="bi bi-house"></i> Feed</a>
   </li>
 
+
+  <li class="nav-item">
+    <a class="nav-link" href="{% url "accounts:user_list" %}">
+      <i class="bi bi-people"></i> Pessoas
+    </a>
+  </li>
+
+  {% comment %}
+    
+  {# Comandos que acho que não vou implementar aqui, mas por enquanto vamos deixar comentados #}
+  {# Comando para abrir formulário para nova postagem, já tem na página do feed, no cabeçalho #}
   <li class="nav-item">
     {% if request.resolver_match.url_name == 'post_list' %}
       {# Se já estiver no feed (post_list), mantém o data-bs-dismiss para fechar o offcanvas E abrir o collapse na mesma página. #}
@@ -19,7 +30,10 @@
     {% endif %}
   </li>
 
+  {# Comando de busca, não faz sentido se o feed não está aberto, mas por enquanto fica aq. #}
   <li class="nav-item">
     <a class="nav-link" href="#"><i class="bi bi-search"></i> Buscar</a>
   </li>
+  
+  {% endcomment %}
 </ul>

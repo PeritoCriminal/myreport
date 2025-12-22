@@ -6,7 +6,8 @@ from .views import (
     UserLoginView, 
     user_logout, 
     UserProfileUpdateView, 
-    UserPasswordChangeView, 
+    UserPasswordChangeView,
+    AllUserListView, 
 )
 
 app_name = 'accounts'
@@ -17,4 +18,5 @@ urlpatterns = [
     path("password/change/", UserPasswordChangeView.as_view(), name="password_change"),
     path("login/", UserLoginView.as_view(template_name="accounts/login.html"), name="login"),
     path("logout/", user_logout, name="logout"),
+    path("users/", AllUserListView.as_view(), name="user_list"),
 ]
