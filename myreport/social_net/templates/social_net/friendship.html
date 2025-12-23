@@ -55,7 +55,7 @@
               <button
                 type="button"
                 class="btn btn-sm btn-outline-primary js-send-friend-request"
-                data-user-id="{{ u.id }}"
+                data-url="{% url 'social_net:friendship_request' u.id %}"
               >
                 Conectar
               </button>
@@ -100,4 +100,8 @@
     {% endif %}
 
   </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'js/social_net/friendship.js' %}"></script>
 {% endblock %}

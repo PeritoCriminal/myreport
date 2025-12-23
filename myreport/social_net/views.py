@@ -13,6 +13,7 @@ from django.views.generic import CreateView, ListView, DetailView
 
 from .forms import PostCommentForm, PostForm
 from .models import Post, PostComment, PostLike, PostRating
+from accounts.models import Friendship, User
 
 
 
@@ -374,3 +375,111 @@ class PostCommentCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse("social_net:post_detail", kwargs={"pk": self.post_obj.pk})
+
+
+
+
+@login_required
+def send_friend_request(request, user_id):
+    """
+    Envia uma solicitação de amizade do usuário logado para outro usuário.
+    """
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "invalid_method"}, status=405)
+
+    from_user = request.user
+    to_user = get_object_or_404(User, id=user_id)
+
+    if from_user.id == to_user.id:
+        return JsonResponse({"success": False, "error": "self_request"}, status=400)
+
+    # Evita duplicidade (qualquer direção)
+    exists = Friendship.objects.filter(
+        from_user=from_user,
+        to_user=to_user,
+    ).exists() or Friendship.objects.filter(
+        from_user=to_user,
+        to_user=from_user,
+    ).exists()
+
+    if exists:
+        return JsonResponse(
+            {"success": False, "error": "already_exists"},
+            status=400,
+        )
+
+    Friendship.objects.create(
+        from_user=from_user,
+        to_user=to_user,
+        status=Friendship.Status.PENDING,
+    )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "status": "pending",
+            "message": "Solicitação enviada",
+        }
+    )
+
+
+
+@login_required
+def friendship_accept(request, friendship_id: int):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "invalid_method"}, status=405)
+
+    fr = get_object_or_404(Friendship, id=friendship_id)
+
+    # Só o destinatário pode aceitar
+    if fr.to_user_id != request.user.id:
+        return JsonResponse({"success": False, "error": "forbidden"}, status=403)
+
+    # Só aceita se estiver pendente
+    if fr.status != Friendship.Status.PENDING:
+        return JsonResponse({"success": False, "error": "not_pending"}, status=400)
+
+    fr.status = Friendship.Status.ACCEPTED
+    fr.responded_at = getattr(fr, "responded_at", None)  # se existir no model
+    if hasattr(fr, "responded_at"):
+        from django.utils import timezone
+        fr.responded_at = timezone.now()
+        fr.save(update_fields=["status", "responded_at"])
+    else:
+        fr.save(update_fields=["status"])
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"success": True, "status": "accepted"}, status=200)
+
+    return HttpResponseRedirect(reverse("social_net:friendship"))
+
+
+
+
+@login_required
+def friendship_decline(request, friendship_id: int):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "invalid_method"}, status=405)
+
+    fr = get_object_or_404(Friendship, id=friendship_id)
+
+    # Só o destinatário pode recusar
+    if fr.to_user_id != request.user.id:
+        return JsonResponse({"success": False, "error": "forbidden"}, status=403)
+
+    # Só recusa se estiver pendente
+    if fr.status != Friendship.Status.PENDING:
+        return JsonResponse({"success": False, "error": "not_pending"}, status=400)
+
+    fr.status = Friendship.Status.DECLINED
+    if hasattr(fr, "responded_at"):
+        from django.utils import timezone
+        fr.responded_at = timezone.now()
+        fr.save(update_fields=["status", "responded_at"])
+    else:
+        fr.save(update_fields=["status"])
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"success": True, "status": "declined"}, status=200)
+
+    return HttpResponseRedirect(reverse("social_net:friendship"))
