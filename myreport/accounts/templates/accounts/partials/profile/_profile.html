@@ -1,1 +1,44 @@
-<h1>Perfil</h1>
+{# accounts/templates/accounts/partials/profile/_profile.html #}
+
+<div class="container mt-5" style="max-width: 820px;">
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-4">
+
+      <h4 class="mb-4">Informações do Perfil</h4>
+
+      <dl class="row">
+        
+        {# NOME DE EXIBIÇÃO #}
+        {% if profile_user.display_name %}
+          <dt class="col-sm-3">Nome Exibido</dt>
+          <dd class="col-sm-9">
+            <strong>{{ profile_user.display_name }}</strong>
+          </dd>
+        {% endif %}
+
+        {# NOME DE USUÁRIO (USERNAME) #}
+        <dt class="col-sm-3">Usuário</dt>
+        <dd class="col-sm-9 text-muted">@{{ profile_user.username }}</dd>
+
+        {# PAPEL (ROLE) #}
+        {% if profile_user.role %}
+          <dt class="col-sm-3">Papel/Função</dt>
+          <dd class="col-sm-9">
+            {# O método get_FOO_display() é nativo do Django para campos choices #}
+            {{ profile_user.get_role_display }}
+          </dd>
+        {% endif %}
+        
+        {# DATA DE CADASTRO #}
+        <dt class="col-sm-3">Membro desde</dt>
+        <dd class="col-sm-9">
+          {{ profile_user.date_joined|date:"d/m/Y" }}
+        </dd>
+
+        {# ADICIONE MAIS CAMPOS AQUI, SE NECESSÁRIO #}
+        
+      </dl>
+      
+    </div>
+  </div>
+</div>
