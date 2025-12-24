@@ -2,43 +2,109 @@
 
 {% with owner=post.user|default:user %}
 <div class="position-relative mb-5">
+
   <div
-    class="w-100"
+    class="w-100 position-relative"
     style="
       height: 220px;
       background-image: url('{% if owner.background_image %}{{ owner.background_image.url }}{% else %}{% static 'img/backgroundimage.jpg' %}{% endif %}');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-    ">
+    "
+  >
+
+    {# Faixa de comandos sobreposta #}
+    <div class="position-absolute start-0 end-0" style="bottom: 0;">
+      <div class="px-3 py-2" style="background: rgba(0,0,0,.35);">
+        <div class="d-flex justify-content-end gap-3 flex-wrap">
+
+          <a
+            href="{% url 'accounts:user_profile' owner.id %}?tab=profile"
+            class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
+                  {% if active_tab == 'profile' %}btn-primary{% else %}btn-light{% endif %}"
+            title="Perfil"
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+          >
+            <i class="bi bi-person"></i>
+            <span class="d-none d-md-inline">Perfil</span>
+          </a>
+
+          <a
+            href="{% url 'accounts:user_profile' owner.id %}?tab=posts"
+            class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
+                  {% if active_tab == 'posts' %}btn-primary{% else %}btn-light{% endif %}"
+            title="Postagens"
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+          >
+            <i class="bi bi-grid-3x3-gap"></i>
+            <span class="d-none d-md-inline">Postagens</span>
+          </a>
+
+          <a
+            href="{% url 'accounts:user_profile' owner.id %}?tab=articles"
+            class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
+                  {% if active_tab == 'articles' %}btn-primary{% else %}btn-light{% endif %}"
+            title="Artigos"
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+          >
+            <i class="bi bi-journal-text"></i>
+            <span class="d-none d-md-inline">Artigos</span>
+          </a>
+
+          <a
+            href="{% url 'accounts:user_profile' owner.id %}?tab=groups"
+            class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
+                  {% if active_tab == 'groups' %}btn-primary{% else %}btn-light{% endif %}"
+            title="Grupos"
+            data-bs-toggle="tooltip"
+            data-bs-placement="top"
+          >
+            <i class="bi bi-people"></i>
+            <span class="d-none d-md-inline">Grupos</span>
+          </a>
+
+        </div>
+      </div>
+    </div>
+
+
   </div>
 
   <div
     class="position-absolute start-50 translate-middle-x"
     style="bottom: -56px;"
   >
-
-
     {% if owner.profile_image %}
       <img
         src="{{ owner.profile_image.url }}"
         alt="Foto de perfil"
-        class="rounded-circle border border-4 border-white bg-white"
+        class="rounded-circle border border-4 border-white bg-white shadow-sm"
         style="width:112px; height:112px; object-fit:cover;"
       >
     {% elif profile_image and profile_image.url %}
       <img
         src="{{ profile_image.url }}"
         alt="Foto de perfil"
-        class="rounded-circle border border-4 border-white bg-white"
+        class="rounded-circle border border-4 border-white bg-white shadow-sm"
         style="width:112px; height:112px; object-fit:cover;"
       >
     {% endif %}
-
-
-
-
-
   </div>
+
 </div>
+
+{# Bootstrap tooltip init (uma vez por página; se já existir no base, remova daqui) #}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(function (el) {
+      new bootstrap.Tooltip(el);
+    });
+  });
+</script>
+
 {% endwith %}

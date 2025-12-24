@@ -3,15 +3,17 @@
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, PasswordChangeView
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.urls.exceptions import NoReverseMatch
-from django.views.generic import CreateView, UpdateView
-from django.db.models import Q
+from django.views.generic import CreateView, UpdateView, TemplateView
+from django.db.models import Q, Avg, Count, Exists, OuterRef, Subquery
 from django.views.generic import ListView
 
 from .forms import UserRegistrationForm, UserProfileEditForm, UserSetPasswordForm
 from .models import User
+
+from social_net.models import Post, PostLike, PostRating
 
 
 
@@ -105,3 +107,73 @@ class AllUserListView(LoginRequiredMixin, ListView):
                 Q(username__icontains=q)
             )
         return qs
+
+
+
+
+# accounts/views.py
+
+
+
+
+
+
+class UserProfileView(LoginRequiredMixin, TemplateView):
+    template_name = "accounts/user_profile.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.profile_user = get_object_or_404(User, pk=kwargs["user_id"], is_active=True)
+        return super().dispatch(request, *args, **kwargs)
+
+    def _get_active_tab(self) -> str:
+        tab = (self.request.GET.get("tab") or "posts").strip().lower()
+        allowed = {"profile", "posts", "articles", "groups"}
+        return tab if tab in allowed else "posts"
+
+    def _get_posts_queryset(self):
+        viewer = self.request.user
+        author = self.profile_user
+
+        user_rating_value_sq = (
+            PostRating.objects
+            .filter(post_id=OuterRef("pk"), user_id=viewer.pk)
+            .values("value")[:1]
+        )
+
+        return (
+            Post.objects
+            .filter(is_active=True, user=author)
+            .select_related("user")
+            .annotate(
+                has_liked=Exists(
+                    PostLike.objects.filter(post_id=OuterRef("pk"), user_id=viewer.pk)
+                ),
+                has_rated=Exists(
+                    PostRating.objects.filter(post_id=OuterRef("pk"), user_id=viewer.pk)
+                ),
+                user_rating_value=Subquery(user_rating_value_sq),
+
+                likes_count=Count("likes", distinct=True),
+                rating_total=Count("ratings", distinct=True),
+                rating_avg=Avg("ratings__value"),
+            )
+            .order_by("-created_at")
+        )
+
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        active_tab = self._get_active_tab()
+        ctx["active_tab"] = active_tab
+        ctx["profile_user"] = self.profile_user
+        ctx["stars_5"] = range(1, 6)
+
+        if active_tab == "posts":
+            ctx["posts"] = self._get_posts_queryset()
+
+        # futuramente:
+        # if active_tab == "articles": ctx["articles"] = ...
+        # if active_tab == "groups": ctx["groups"] = ...
+
+        return ctx

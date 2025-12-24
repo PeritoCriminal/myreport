@@ -1,12 +1,16 @@
+
+{% comment %}
+{# comentando porque acho que não vamos usar #}
 <div class="mb-3 pb-3 border-bottom">
   {% include 'partials/user_menu.html' %}
 </div>
+{% endcomment %}
 
-<h6 class="text-uppercase text-muted mb-3">Social</h6>
+<h6 class="text-uppercase text-muted mb-3"> Social</h6>
 
 <ul class="nav nav-pills flex-column gap-1">
   <li class="nav-item">
-    <a class="nav-link {% if request.resolver_match.url_name == 'post_list' %}active{% endif %}" href="{% url 'social_net:post_list' %}"><i class="bi bi-house"></i> Feed</a>
+    <a class="nav-link {% if request.resolver_match.url_name == 'post_list' %}active{% endif %}" href="{% url 'social_net:post_list' %}"><i class="bi bi-list-ul"></i> Feed</a>
   </li>
 
 

@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
       {% block title %}
-        MyReport | Sistema EPCL
+        MyReport
       {% endblock %}
     </title>
 
@@ -16,7 +16,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
 
     {% block head %}
-      {# Aqui no base.html, se eu quiser que a iamgem myreport/static/img/backgroundimage.jpeg seja exibida se não houver outra incluída nos demais templates #}
+    
     {% endblock %}
   </head>
 
@@ -25,7 +25,7 @@
       <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
           {# Logo #}
-          <a class="navbar-brand fw-bold" href="{% url 'home:index' %}">MyReport<span class="text-primary">/EPCL</span></a>
+          <a class="navbar-brand fw-bold" href="{% url 'home:index' %}">MyReport</a>
 
           {# Botão hambúrguer #}
           <button class="btn btn-outline-light d-md-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar"><i class="bi bi-list"></i></button>
@@ -86,7 +86,7 @@
     {# Sidebar Offcanvas (Mobile) #}
     <div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
       <div class="offcanvas-header border-bottom">
-        <h5 class="offcanvas-title" id="mobileSidebarLabel">MyReport<span class="text-primary">/EPCL</span></h5>
+        <h5 class="offcanvas-title" id="mobileSidebarLabel">MyReport</h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
       </div>
 
@@ -113,7 +113,7 @@
     <main class="flex-grow-1">
       <div class="d-flex">
         {# Sidebar esquerda #}
-        <aside class="border-end bg-light d-none d-md-block" style="width: 320px; min-height: 100vh;">
+        <aside class="border-end bg-light d-none d-md-block" style="width: 240px; min-height: 100vh;">
           <div class="p-3">
             {% with app=request.resolver_match.app_name %}
               {% if app == 'social_net' %}
