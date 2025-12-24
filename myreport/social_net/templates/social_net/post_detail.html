@@ -3,7 +3,8 @@
 {% load static %}
 
 {% block page_header %}
-  {% include 'accounts/partials/profile_header.html' %}
+  {# Adicionado 'with owner=post.user' para exibir o autor da postagem #}
+  {% include 'accounts/partials/profile_header.html' with owner=post.user %}
 {% endblock %}
 
 {% block content %}

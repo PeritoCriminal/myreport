@@ -1,6 +1,7 @@
 {% load static %}
 
-{% with owner=post.user|default:user %}
+{# CORRIGIDO: Prioriza o 'owner' passado (de user_profile.html ou post_detail.html), caso contrário, usa o 'user' logado. Removeu a dependência direta de 'post' #}
+{% with owner=owner|default:user %}
 <div class="position-relative mb-5">
 
   <div
