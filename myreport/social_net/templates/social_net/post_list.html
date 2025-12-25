@@ -6,32 +6,9 @@
   {% include 'accounts/partials/profile_header.html' %}
 {% endblock %}
 
-
 {% block content %}
   <div class="container-fluid mt-4 px-0" style="max-width: 820px">
-    {% comment %}
-
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <h2 class="mb-0">Postagens</h2> Isso aqui não legal, então comentei...
-    </div>
-    {% endcomment %}
-
-    <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
-      {# Barra de busca à esquerda #}
-      <form method="get" class="flex-grow-1 me-2">
-        <div class="input-group" style="max-width: 520px;">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input type="search" name="q" class="form-control" placeholder="Buscar" value="{{ request.GET.q }}" />
-        </div>
-      </form>
-
-      {# Botão "+" à direita #}
-      <button type="button" class="btn btn-outline-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="
-    width:48px;
-    height:48px;
-    background-color: rgba(13,110,253,.5);
-  " data-bs-toggle="collapse" data-bs-target="#postFormCollapse" aria-expanded="false" aria-controls="postFormCollapse" title="Incluir nova postagem"><span class="fs-4 lh-1 fw-bold">+</span></button>
-    </div>
+    {% include "partials/action_header.html" with show_search=True search_placeholder="Buscar postagens" action_label="Nova postagem" action_toggle="collapse" action_target="#postFormCollapse" %}
 
     {# Form de criação #}
     <div class="collapse" id="postFormCollapse">
@@ -65,7 +42,7 @@
               <label class="form-label mb-1">Mídia</label>
               {{ form.media }}
             </div>
-            
+
             <div class="text-end d-flex justify-content-end gap-2">
               <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCancelPost" data-bs-toggle="collapse" data-bs-target="#postFormCollapse">Cancelar</button>
 

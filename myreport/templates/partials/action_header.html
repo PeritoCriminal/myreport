@@ -1,0 +1,33 @@
+<div class="d-flex align-items-center justify-content-between mb-3 gap-2">
+  {% if show_search %}
+    <form method="get" class="flex-grow-1 me-2">
+      <div class="input-group" style="max-width: 520px;">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="search" name="q" class="form-control"
+               placeholder="{{ search_placeholder|default:'Buscar' }}"
+               value="{{ request.GET.q }}" />
+      </div>
+    </form>
+  {% endif %}
+
+  {% if action_url %}
+  <a href="{{ action_url }}" class="btn btn-primary" title="{{ action_label }}">
+    <i class="bi bi-plus-lg"></i> {{ action_label }}
+  </a>
+{% else %}
+  <button
+    type="button"
+    class="btn btn-primary"
+    {% if action_toggle %}
+      data-bs-toggle="{{ action_toggle }}"
+      data-bs-target="{{ action_target }}"
+      aria-expanded="false"
+      aria-controls="{{ action_target|slice:'1:' }}"
+    {% endif %}
+    title="{{ action_label }}"
+  >
+    <i class="bi bi-plus-lg"></i> {{ action_label }}
+  </button>
+{% endif %}
+
+</div>

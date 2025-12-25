@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h4 class="mb-1">{{ group.name }}</h4>
+    <div class="text-muted">
+      {% if not group.is_active %}<span class="badge text-bg-secondary">Inativo</span>{% endif %}
+      <span class="ms-2">{{ members_count }} membro(s)</span>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    {% if is_member %}
+      <form method="post" action="{% url 'groups:group_leave' group.id %}">
+        {% csrf_token %}
+        <button class="btn btn-outline-danger" type="submit">
+          <i class="bi bi-box-arrow-right"></i> Sair
+        </button>
+      </form>
+    {% else %}
+      <form method="post" action="{% url 'groups:group_join' group.id %}">
+        {% csrf_token %}
+        <button class="btn btn-success" type="submit" {% if not group.is_active %}disabled{% endif %}>
+          <i class="bi bi-box-arrow-in-right"></i> Entrar
+        </button>
+      </form>
+    {% endif %}
+
+    {% if is_creator and group.is_active %}
+      <form method="post" action="{% url 'groups:group_deactivate' group.id %}">
+        {% csrf_token %}
+        <button class="btn btn-outline-secondary" type="submit">
+          <i class="bi bi-slash-circle"></i> Inativar
+        </button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="text-muted">Criador: {{ group.creator }}</div>
+    <div class="text-muted">Criado em: {{ group.created_at }}</div>
+  </div>
+</div>
+{% endblock %}

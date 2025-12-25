@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h4 class="mb-3">Novo grupo</h4>
+
+<form method="post" class="card">
+  {% csrf_token %}
+  <div class="card-body">
+    {{ form.as_p }}
+    <button class="btn btn-primary" type="submit">
+      <i class="bi bi-check2"></i> Criar
+    </button>
+    <a class="btn btn-link" href="{% url 'groups:group_list' %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

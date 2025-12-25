@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Grupos</h4>
+  {% include "partials/action_header.html" with show_search=True search_placeholder="Buscar grupo" action_label="Novo grupo" action_url=group_create_url %}
+
+</div>
+
+<div class="list-group">
+  {% for g in groups %}
+    <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+       href="{% url 'groups:group_detail' g.id %}">
+      <div>
+        <div class="fw-semibold">{{ g.name }}</div>
+        <small class="text-muted">
+          {% if not g.is_active %}Inativo · {% endif %}
+          {% if g.is_member %}Você é membro{% else %}Você não é membro{% endif %}
+        </small>
+      </div>
+      <i class="bi bi-chevron-right"></i>
+    </a>
+  {% empty %}
+    <div class="text-muted">Nenhum grupo cadastrado.</div>
+  {% endfor %}
+</div>
+{% endblock %}
