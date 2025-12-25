@@ -1,0 +1,6 @@
+templates
+social_net
+  ├── partials (dir)
+  ├── friendship.html [.html]
+  ├── post_detail.html [.html]
+  └── post_list.html [.html]
