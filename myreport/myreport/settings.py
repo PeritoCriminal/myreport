@@ -100,8 +100,9 @@ STATICFILES_DIRS = [
     BASE_DIR / 'myreport' / 'static',
 ]
 
-MEDIA_URL = "/users/"
-MEDIA_ROOT = BASE_DIR / "users"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

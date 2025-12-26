@@ -4,6 +4,18 @@ from django.conf import settings
 from django.db import models
 
 
+
+
+def group_profile_image_path(instance, filename):
+    return f"groups/{instance.id}/profile/{filename}"
+
+
+def group_background_image_path(instance, filename):
+    return f"groups/{instance.id}/background/{filename}"
+
+
+
+
 class Group(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -15,6 +27,25 @@ class Group(models.Model):
     )
 
     name = models.CharField(max_length=120, unique=True, verbose_name="Nome")
+
+    description = models.TextField(
+        blank=True,
+        verbose_name="Descrição",
+    )
+
+    profile_image = models.ImageField(
+        upload_to=group_profile_image_path,
+        blank=True,
+        null=True,
+        verbose_name="Imagem de perfil",
+    )
+
+    background_image = models.ImageField(
+        upload_to=group_background_image_path,
+        blank=True,
+        null=True,
+        verbose_name="Imagem de fundo",
+    )
 
     is_active = models.BooleanField(default=True, verbose_name="Ativo")
 
@@ -28,6 +59,8 @@ class Group(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
 
 
 class GroupMembership(models.Model):

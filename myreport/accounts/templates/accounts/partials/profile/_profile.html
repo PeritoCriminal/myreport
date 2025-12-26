@@ -35,7 +35,23 @@
           {{ profile_user.date_joined|date:"d/m/Y" }}
         </dd>
 
-        {# ADICIONE MAIS CAMPOS AQUI, SE NECESSÁRIO #}
+        {# GRUPOS #}
+        <dt class="col-sm-3">Grupos</dt>
+        <dd class="col-sm-9">
+          {% if profile_user.group_memberships.all %}
+            <ul class="list-unstyled mb-0">
+              {% for membership in profile_user.group_memberships.all %}
+                {% if membership.group.is_active %}
+                  <li>{{ membership.group.name }}</li>
+                {% endif %}
+              {% endfor %}
+            </ul>
+          {% else %}
+            <span class="text-muted">Não participa de nenhum grupo</span>
+          {% endif %}
+        </dd>
+
+
         
       </dl>
       

@@ -16,7 +16,14 @@
         <div class="fw-semibold">{{ g.name }}</div>
         <small class="text-muted">
           {% if not g.is_active %}Inativo · {% endif %}
-          {% if g.is_member %}Você é membro{% else %}Você não é membro{% endif %}
+
+          {% if g.is_creator %}
+            Você é o criador
+          {% elif g.is_member %}
+            Você é membro
+          {% else %}
+            Você não é membro
+          {% endif %}
         </small>
       </div>
       <i class="bi bi-chevron-right"></i>

@@ -5,9 +5,12 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Exists, OuterRef
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, DetailView, ListView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from ..forms import GroupForm
+
+
 
 from ..models import Group, GroupMembership
 from ..services import inactivate_group
@@ -19,7 +22,7 @@ from django.urls import reverse
 # groups/views/group.py
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import BooleanField, Case, Exists, OuterRef, Q, Value, When
 from django.urls import reverse
 from django.views.generic import ListView
 
@@ -37,18 +40,23 @@ class GroupListView(LoginRequiredMixin, ListView):
 
         qs = Group.objects.all().order_by("-created_at")
 
-        # filtro de busca (mínimo)
         if q:
             qs = qs.filter(Q(name__icontains=q))
 
-        # marca se o usuário é membro
+        user = self.request.user
+
         qs = qs.annotate(
+            is_creator=Case(
+                When(creator_id=user.id, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
             is_member=Exists(
                 GroupMembership.objects.filter(
                     group_id=OuterRef("pk"),
-                    user=self.request.user,
+                    user=user,
                 )
-            )
+            ),
         )
         return qs
 
@@ -86,21 +94,38 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
 
 class GroupCreateView(LoginRequiredMixin, CreateView):
     model = Group
+    form_class = GroupForm
     template_name = "groups/group_form.html"
-    fields = ["name"]
     success_url = reverse_lazy("groups:group_list")
 
     def form_valid(self, form):
         form.instance.creator = self.request.user
         response = super().form_valid(form)
 
-        # criador vira membro automaticamente
         GroupMembership.objects.get_or_create(
             group=self.object,
             user=self.request.user,
         )
-
         return response
+
+
+
+
+
+class GroupUpdateView(LoginRequiredMixin, UpdateView):
+    model = Group
+    form_class = GroupForm
+    template_name = "groups/group_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if obj.creator_id != request.user.id:
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("groups:group_detail", kwargs={"pk": self.object.pk})
+
 
 
 
