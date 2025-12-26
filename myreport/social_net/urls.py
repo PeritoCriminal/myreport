@@ -10,6 +10,7 @@ from .views import (
     post_delete,
     post_rate,
     post_like,
+    comment_delete,
 )
 
 app_name = "social_net"
@@ -23,4 +24,5 @@ urlpatterns = [
     path("posts/<uuid:post_id>/like/", post_like, name="post_like"),
     path("posts/<uuid:post_id>/comments/", PostCommentListView.as_view(), name="comment_list"),
     path("posts/<uuid:post_id>/comments/create/", PostCommentCreateView.as_view(), name="comment_create"),
+    path("comments/<uuid:comment_id>/delete/", comment_delete, name="comment_delete",),
 ]

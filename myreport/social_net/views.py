@@ -374,3 +374,31 @@ class PostCommentCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse("social_net:post_detail", kwargs={"pk": self.post_obj.pk})
+
+
+
+
+# social_net/views.py
+
+@login_required
+@require_POST
+def comment_delete(request, comment_id):
+    """
+    Inativa (soft delete) um comentário do usuário autenticado.
+
+    Retorna JSON para remoção do comentário no front-end.
+    """
+    comment = get_object_or_404(PostComment, id=comment_id, is_active=True)
+
+    if comment.user_id != request.user.id:
+        return JsonResponse({"success": False, "error": "forbidden"}, status=403)
+
+    comment.is_active = False
+    comment.save(update_fields=["is_active"])
+
+    return JsonResponse(
+        {
+            "success": True,
+            "comment_id": str(comment.id),
+        }
+    )
