@@ -1,5 +1,11 @@
 from pathlib import Path
 
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  
+
+SESSION_COOKIE_AGE = 600
+
+SESSION_SAVE_EVERY_REQUEST = True
+
 AUTH_USER_MODEL = 'accounts.User'
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -100,5 +106,5 @@ MEDIA_ROOT = BASE_DIR / "users"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "home:index"
+LOGIN_REDIRECT_URL = 'social_net:post_list'
 LOGOUT_REDIRECT_URL = "home:index"

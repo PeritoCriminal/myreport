@@ -50,19 +50,16 @@ class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
 
 class UserLoginView(LoginView):
     template_name = "accounts/login.html"
-    redirect_authenticated_user = True
+    redirect_authenticated_user = True 
 
     def get_success_url(self):
-        # respeita ?next=... quando existir
-        next_url = self.get_redirect_url()
-        if next_url:
-            return next_url
-
-        # tenta ir para a listagem de posts; se falhar, cai no home
+        next_url = super().get_success_url()
+        
         try:
-            return reverse("social_net:post_list")
+            reverse(next_url) 
+            return next_url
         except NoReverseMatch:
-            return reverse("home:index")  # ajuste para o name real da sua home
+            return reverse("home:index")
 
 
 
@@ -74,7 +71,6 @@ def user_logout(request):
     """
     logout(request)
     return redirect("home:index")
-
 
 
 
@@ -107,13 +103,6 @@ class AllUserListView(LoginRequiredMixin, ListView):
                 Q(username__icontains=q)
             )
         return qs
-
-
-
-
-# accounts/views.py
-
-
 
 
 

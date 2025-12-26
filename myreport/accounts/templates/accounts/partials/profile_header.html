@@ -1,111 +1,114 @@
 {% load static %}
 
-{# CORRIGIDO: Prioriza o 'owner' passado (de user_profile.html ou post_detail.html), caso contrário, usa o 'user' logado. Removeu a dependência direta de 'post' #}
+{# Define 'owner' como o usuário passado ou o usuário logado #}
 {% with owner=owner|default:user %}
+
 <div class="position-relative mb-5">
+    {# Área de Background Image #}
+    <div
+        class="w-100 position-relative"
+        style="
+            height: 220px;
+            background-image: url('{% if owner.background_image %}{{ owner.background_image.url }}{% else %}{% static 'img/backgroundimage.jpg' %}{% endif %}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        "
+    >
+        {# Faixa de comandos sobreposta #}
+        <div class="position-absolute start-0 end-0" style="bottom: 0;">
+            <div class="px-3 py-2" style="background: rgba(0,0,0,.35);">
+                <div class="d-flex justify-content-end gap-3 flex-wrap">
+                    {% if owner.id %}
+                        {# Navegação: Perfil #}
+                        <a
+                            href="{% url 'accounts:user_profile' owner.id %}?tab=profile"
+                            class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
+                                    {% if active_tab == 'profile' %}btn-primary{% else %}btn-light{% endif %}"
+                            title="Perfil"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                        >
+                            <i class="bi bi-person"></i>
+                            <span class="d-none d-md-inline">Perfil</span>
+                        </a>
 
-  <div
-    class="w-100 position-relative"
-    style="
-      height: 220px;
-      background-image: url('{% if owner.background_image %}{{ owner.background_image.url }}{% else %}{% static 'img/backgroundimage.jpg' %}{% endif %}');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-    "
-  >
+                        {# Navegação: Postagens #}
+                        <a
+                            href="{% url 'accounts:user_profile' owner.id %}?tab=posts"
+                            class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
+                                    {% if active_tab == 'posts' %}btn-primary{% else %}btn-light{% endif %}"
+                            title="Postagens"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                        >
+                            <i class="bi bi-grid-3x3-gap"></i>
+                            <span class="d-none d-md-inline">Postagens</span>
+                        </a>
 
-    {# Faixa de comandos sobreposta #}
-    <div class="position-absolute start-0 end-0" style="bottom: 0;">
-      <div class="px-3 py-2" style="background: rgba(0,0,0,.35);">
-        <div class="d-flex justify-content-end gap-3 flex-wrap">
-          {% if owner.id %}
-            <a
-              href="{% url 'accounts:user_profile' owner.id %}?tab=profile"
-              class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
-                    {% if active_tab == 'profile' %}btn-primary{% else %}btn-light{% endif %}"
-              title="Perfil"
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-            >
-              <i class="bi bi-person"></i>
-              <span class="d-none d-md-inline">Perfil</span>
-            </a>
+                        {# Navegação: Artigos #}
+                        <a
+                            href="{% url 'accounts:user_profile' owner.id %}?tab=articles"
+                            class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
+                                    {% if active_tab == 'articles' %}btn-primary{% else %}btn-light{% endif %}"
+                            title="Artigos"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                        >
+                            <i class="bi bi-journal-text"></i>
+                            <span class="d-none d-md-inline">Artigos</span>
+                        </a>
 
-            <a
-              href="{% url 'accounts:user_profile' owner.id %}?tab=posts"
-              class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
-                    {% if active_tab == 'posts' %}btn-primary{% else %}btn-light{% endif %}"
-              title="Postagens"
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-            >
-              <i class="bi bi-grid-3x3-gap"></i>
-              <span class="d-none d-md-inline">Postagens</span>
-            </a>
-
-            <a
-              href="{% url 'accounts:user_profile' owner.id %}?tab=articles"
-              class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
-                    {% if active_tab == 'articles' %}btn-primary{% else %}btn-light{% endif %}"
-              title="Artigos"
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-            >
-              <i class="bi bi-journal-text"></i>
-              <span class="d-none d-md-inline">Artigos</span>
-            </a>
-
-            <a
-              href="{% url 'accounts:user_profile' owner.id %}?tab=groups"
-              class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
-                    {% if active_tab == 'groups' %}btn-primary{% else %}btn-light{% endif %}"
-              title="Grupos"
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-            >
-              <i class="bi bi-people"></i>
-              <span class="d-none d-md-inline">Grupos</span>
-            </a>
-            {% endif %}
+                        {# Navegação: Grupos #}
+                        <a
+                            href="{% url 'accounts:user_profile' owner.id %}?tab=groups"
+                            class="btn btn-sm d-flex align-items-center gap-2 shadow-sm
+                                    {% if active_tab == 'groups' %}btn-primary{% else %}btn-light{% endif %}"
+                            title="Grupos"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                        >
+                            <i class="bi bi-people"></i>
+                            <span class="d-none d-md-inline">Grupos</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-      </div>
     </div>
 
+    {# BLOCO DA IMAGEM E TEXTO DE PERFIL (POSICIONADO À ESQUERDA) #}
+    <div
+        class="position-absolute start-0 ms-3" 
+        style="bottom: -56px;"
+    >
+        <div class="d-flex align-items-center gap-3">
+            {# Imagem de Perfil #}
+            {% if owner.profile_image %}
+                <img
+                    src="{{ owner.profile_image.url }}"
+                    alt="Foto de perfil"
+                    class="rounded-circle border border-4 border-white bg-white shadow-sm"
+                    style="width:112px; height:112px; object-fit:cover;"
+                >
+            {% elif profile_image and profile_image.url %}
+                <img
+                    src="{{ profile_image.url }}"
+                    alt="Foto de perfil"
+                    class="rounded-circle border border-4 border-white bg-white shadow-sm"
+                    style="width:112px; height:112px; object-fit:cover;"
+                >
+            {% endif %}
 
-  </div>
-
-  <div
-    class="position-absolute start-50 translate-middle-x"
-    style="bottom: -56px;"
-  >
-    {% if owner.profile_image %}
-      <img
-        src="{{ owner.profile_image.url }}"
-        alt="Foto de perfil"
-        class="rounded-circle border border-4 border-white bg-white shadow-sm"
-        style="width:112px; height:112px; object-fit:cover;"
-      >
-    {% elif profile_image and profile_image.url %}
-      <img
-        src="{{ profile_image.url }}"
-        alt="Foto de perfil"
-        class="rounded-circle border border-4 border-white bg-white shadow-sm"
-        style="width:112px; height:112px; object-fit:cover;"
-      >
-    {% endif %}
-  </div>
-
+            {# Texto de Identificação #}
+            {# Exibe a identificação SOMENTE se a página NÃO for do usuário logado #}
+            {% if owner.id != user.id %}
+                <div class="pt-5 mt-5 d-none d-md-block"> 
+                    <h4 class="fw-bold m-0 text-truncate">Página pessoal de {{ owner.display_name|default:owner.username }}</h4>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
-
-{# Bootstrap tooltip init (uma vez por página; se já existir no base, remova daqui) #}
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.forEach(function (el) {
-      new bootstrap.Tooltip(el);
-    });
-  });
-</script>
 
 {% endwith %}

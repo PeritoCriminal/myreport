@@ -1,0 +1,15 @@
+{# templates/patials/sidebar_content.html #}
+
+{% with app=request.resolver_match.app_name %}
+  {% if app == 'social_net' %}
+    {% include 'sidebars/social_net.html' %}
+  {% elif app == 'appreport' %}
+    {% include 'sidebars/report.html' %}
+  {% elif app == 'files' %}
+    {% include 'sidebars/files.html' %}
+  {% elif app == 'accounts' %}
+    {% include 'sidebars/accounts.html' %}
+  {% else %}
+    {% include 'sidebars/default.html' %}
+  {% endif %}
+{% endwith %}
