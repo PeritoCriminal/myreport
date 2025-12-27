@@ -107,5 +107,5 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = 'social_net:post_list'
+LOGIN_REDIRECT_URL = "home:dashboard"
 LOGOUT_REDIRECT_URL = "home:index"

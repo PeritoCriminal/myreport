@@ -30,7 +30,7 @@ class UserRegisterView(CreateView):
     def dispatch(self, request, *args, **kwargs):
         # Usuário logado não deve acessar cadastro
         if request.user.is_authenticated:
-            return redirect("home:index")
+            return redirect("home:dashboard")
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -59,7 +59,7 @@ class UserLoginView(LoginView):
             reverse(next_url) 
             return next_url
         except NoReverseMatch:
-            return reverse("home:index")
+            return reverse("home:dashboard")
 
 
 

@@ -28,7 +28,7 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
           <div class="container">
             {# Logo #}
-            <a class="navbar-brand fw-bold" href="{% url 'home:index' %}">MyReport</a>
+            <a class="navbar-brand fw-bold" href="{% url 'home:dashboard' %}">MyReport</a>
 
             {# Botão hambúrguer - Visível apenas se houver sidebar para mostrar #}
             {% if user.is_authenticated and view_name != 'accounts:login' and view_name != 'accounts:register' and view_name != 'accounts:register_success' %}
