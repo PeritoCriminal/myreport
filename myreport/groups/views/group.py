@@ -14,6 +14,8 @@ from ..forms import GroupForm
 from ..models import Group, GroupMembership
 from ..services import inactivate_group
 
+from social_net.models import Post
+
 
 class GroupListView(LoginRequiredMixin, ListView):
     model = Group
@@ -53,6 +55,8 @@ class GroupListView(LoginRequiredMixin, ListView):
         return ctx
 
 
+
+
 class GroupDetailView(LoginRequiredMixin, DetailView):
     model = Group
     template_name = "groups/group_detail.html"
@@ -69,18 +73,35 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
         group = self.object
         user = self.request.user
 
-        ctx["is_member"] = GroupMembership.objects.filter(group=group, user=user).exists()
+        ctx["is_member"] = GroupMembership.objects.filter(
+            group=group,
+            user=user,
+        ).exists()
+
         ctx["is_creator"] = group.creator_id == user.id
 
         qs_memberships = (
-            group.memberships.select_related("user")
+            group.memberships
+            .select_related("user")
             .order_by("-joined_at")
         )
 
         ctx["members_count"] = qs_memberships.count()
         ctx["members"] = [m.user for m in qs_memberships]
 
+        # NOVO: publicações do grupo
+        qs_posts = (
+            Post.objects
+            .filter(is_active=True, group=group)
+            .select_related("user")
+            .order_by("-created_at")
+        )
+
+        ctx["posts"] = qs_posts
+        ctx["posts_count"] = qs_posts.count()
+
         return ctx
+
 
 
 
@@ -101,6 +122,8 @@ class GroupCreateView(LoginRequiredMixin, CreateView):
         return response
 
 
+
+
 class GroupUpdateView(LoginRequiredMixin, UpdateView):
     model = Group
     form_class = GroupForm
@@ -114,6 +137,8 @@ class GroupUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse("groups:group_detail", kwargs={"pk": self.object.pk})
+
+
 
 
 @require_POST

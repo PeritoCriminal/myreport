@@ -1,6 +1,7 @@
 templates
 social_net
   ├── partials (dir)
+  ├── folders_and_files.txt [.txt]
   ├── friendship.html [.html]
   ├── post_detail.html [.html]
   └── post_list.html [.html]

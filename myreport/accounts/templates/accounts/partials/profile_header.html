@@ -46,6 +46,11 @@
                             <span class="d-none d-md-inline">Postagens</span>
                         </a>
 
+                        {% comment %}
+                        {# Por enquanto não faz sentido manter esse btns. Vamos ver no futuro, tvz #}   
+                        
+
+
                         {# Navegação: Artigos #}
                         <a
                             href="{% url 'accounts:user_profile' owner.id %}?tab=articles"
@@ -71,6 +76,11 @@
                             <i class="bi bi-people"></i>
                             <span class="d-none d-md-inline">Grupos</span>
                         </a>
+
+
+                        {% endcomment %}
+
+
                     {% endif %}
                 </div>
             </div>

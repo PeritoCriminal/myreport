@@ -4,7 +4,7 @@ from __future__ import annotations
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Exists, OuterRef, Prefetch,Subquery, Count, Q  
-from django.http import JsonResponse, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponseRedirect, request
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
@@ -13,6 +13,7 @@ from django.views.generic import CreateView, ListView, DetailView
 
 from .forms import PostCommentForm, PostForm
 from .models import Post, PostComment, PostLike, PostRating
+from groups.models import GroupMembership
 
 
 
@@ -41,14 +42,21 @@ class PostListView(LoginRequiredMixin, ListView):
             .order_by("-created_at")
         )
 
-        # Subquery para obter o valor da avaliação (value) do usuário logado para a Postagem atual
-        user_rating_value_sq = PostRating.objects.filter(
-            post_id=OuterRef("pk"), user_id=user.pk
-        ).values("value")[:1]
+        user_groups_sq = GroupMembership.objects.filter(user_id=user.pk).values("group_id")
+
+        # Subquery para obter o valor da avaliação (value) do usuário logado para a postagem atual
+        user_rating_value_sq = (
+            PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
+            .values("value")[:1]
+        )
 
         qs = (
             Post.objects.filter(is_active=True)
-            .select_related("user")
+            .filter(
+                Q(group__isnull=True) |
+                Q(group_id__in=user_groups_sq)
+            )
+            .select_related("user", "group")
             .annotate(
                 has_liked=Exists(
                     PostLike.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
@@ -56,7 +64,6 @@ class PostListView(LoginRequiredMixin, ListView):
                 has_rated=Exists(
                     PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
                 ),
-                # NOVO: Anota o valor da avaliação do usuário logado (pode ser NULL/None se não avaliou)
                 user_rating_value=Subquery(user_rating_value_sq),
             )
             .prefetch_related(Prefetch("comments", queryset=comments_qs))
@@ -72,11 +79,10 @@ class PostListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        posts = ctx["posts"]
-        for post in posts:
+        for post in ctx["posts"]:
             post.last_comments = list(post.comments.all())[:5]
 
-        ctx["form"] = PostForm()
+        ctx["form"] = PostForm(user=self.request.user)
         ctx["rating_range"] = range(1, 6)
         ctx["stars_5"] = range(1, 6)
         return ctx
@@ -187,9 +193,25 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     form_class = PostForm
     success_url = reverse_lazy("social_net:post_list")
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         post = form.save(commit=False)
         post.user = self.request.user
+
+        # Regra: se escolheu grupo, precisa ser membro
+        if post.group_id:
+            is_member = GroupMembership.objects.filter(
+                user_id=self.request.user.pk,
+                group_id=post.group_id,
+            ).exists()
+            if not is_member:
+                form.add_error("group", "Você não é membro deste grupo.")
+                return self.form_invalid(form)
+
         post.save()
         self.object = post
 
@@ -206,11 +228,10 @@ class PostCreateView(LoginRequiredMixin, CreateView):
                     "rating_range": range(1, 6),
                     "stars_5": range(1, 6),
                 },
-                request=self.request,
+                request=self.request,  # garante `request` no template
             )
             return JsonResponse({"success": True, "html": html}, status=200)
 
-        # Evita salvar duas vezes (não chama super().form_valid)
         return HttpResponseRedirect(self.get_success_url())
 
     def form_invalid(self, form):
@@ -223,6 +244,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
             return JsonResponse({"success": False, "errors_html": errors_html}, status=400)
 
         return super().form_invalid(form)
+
 
 
 

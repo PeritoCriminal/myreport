@@ -1,29 +1,48 @@
 # social_net/forms.py
 import os
 from django import forms
+
 from .models import Post, PostComment
+from groups.models import Group, GroupMembership
 
 
 class PostForm(forms.ModelForm):
-    # Ajuste aqui, se quiser
     ALLOWED_VIDEO_EXTS = {".mp4", ".webm", ".mov", ".m4v"}
     MAX_VIDEO_SIZE_MB = 200  # limite simples (MB)
 
+    group = forms.ModelChoiceField(
+        label="Destino",
+        required=False,
+        queryset=Group.objects.none(),
+        empty_label="Público",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
     class Meta:
         model = Post
-        fields = ["title", "text", "media"]
+        fields = ["group", "title", "text", "media"]
         widgets = {
-            "title": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Título",
-            }),
-            "text": forms.Textarea(attrs={
-                "class": "form-control",
-                "rows": 3,
-                "placeholder": "Escreva algo...",
-            }),
-           "media": forms.ClearableFileInput(attrs={"accept": "image/*,video/*"}),
+            "title": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Título"}
+            ),
+            "text": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3, "placeholder": "Escreva algo..."}
+            ),
+            "media": forms.ClearableFileInput(attrs={"accept": "image/*,video/*"}),
         }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if user and getattr(user, "is_authenticated", False):
+            self.fields["group"].queryset = Group.objects.filter(
+                id__in=GroupMembership.objects.filter(user_id=user.pk).values("group_id")
+            ).order_by("name")
+
+    def clean_group(self):
+        group = self.cleaned_data.get("group")
+        user = getattr(self, "user", None)
+        return group
 
     def clean_media(self):
         f = self.cleaned_data.get("media")
@@ -36,7 +55,6 @@ class PostForm(forms.ModelForm):
         VIDEO_EXTS = self.ALLOWED_VIDEO_EXTS
 
         if ext in IMAGE_EXTS:
-            # imagem: aceita (otimização já ocorre depois)
             return f
 
         if ext in VIDEO_EXTS:
@@ -50,9 +68,8 @@ class PostForm(forms.ModelForm):
             return f
 
         allowed = ", ".join(sorted(IMAGE_EXTS | VIDEO_EXTS))
-        raise forms.ValidationError(
-            f"Formato de mídia não permitido. Use: {allowed}."
-        )
+        raise forms.ValidationError(f"Formato de mídia não permitido. Use: {allowed}.")
+
 
 
 

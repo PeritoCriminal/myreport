@@ -111,6 +111,15 @@ class Post(models.Model):
         related_name="posts",
     )
 
+    group = models.ForeignKey(
+        "groups.Group",
+        on_delete=models.CASCADE,
+        related_name="posts",
+        null=True,
+        blank=True,
+        verbose_name="Grupo",
+    )
+
     title = models.CharField("Título", max_length=120, blank=True)
     text = models.TextField("Texto", blank=True)
 
@@ -134,6 +143,7 @@ class Post(models.Model):
         ordering = ["-updated_at"]
         indexes = [
             models.Index(fields=["user", "created_at"]),
+            models.Index(fields=["group", "created_at"]),
         ]
         verbose_name = "Postagem"
         verbose_name_plural = "Postagens"

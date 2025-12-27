@@ -25,6 +25,45 @@
   </div>
 </div>
 
+{# NOVO: Publicações do grupo #}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">Publicações</span>
+    <span class="text-muted small">{{ posts_count }}</span>
+  </div>
+
+  <div class="list-group list-group-flush">
+    {% for post in posts %}
+      <a
+        class="list-group-item list-group-item-action"
+        href="{% url 'social_net:post_detail' post.pk %}"
+        title="Abrir postagem"
+      >
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div class="me-2">
+            {% if post.title %}
+              <div class="fw-semibold text-body">{{ post.title }}</div>
+              {% if post.text %}
+                <small class="text-muted d-block">{{ post.text|truncatechars:120 }}</small>
+              {% endif %}
+            {% else %}
+              <div class="text-body">{{ post.text|truncatechars:140 }}</div>
+            {% endif %}
+
+            <small class="text-muted d-block mt-1">
+              Por <strong class="text-body">{{ post.user.display_name|default:post.user.username }}</strong>
+            </small>
+          </div>
+
+          <small class="text-muted text-nowrap">{{ post.created_at }}</small>
+        </div>
+      </a>
+    {% empty %}
+      <div class="list-group-item text-muted">Nenhuma publicação encontrada.</div>
+    {% endfor %}
+  </div>
+</div>
+
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="fw-semibold">Membros</span>
