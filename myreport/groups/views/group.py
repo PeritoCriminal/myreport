@@ -3,18 +3,20 @@ from __future__ import annotations
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.db.models import BooleanField, Case, Exists, OuterRef, Q, Value, When
+from django.db.models import BooleanField, Case, Exists, OuterRef, Q, Value, When, Prefetch, Subquery
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.core.paginator import Paginator
 
 from ..forms import GroupForm
 from ..models import Group, GroupMembership
 from ..services import inactivate_group
 
-from social_net.models import Post
+from social_net.models import Post, PostComment, PostLike, PostRating
+from social_net.forms import PostForm
 
 
 class GroupListView(LoginRequiredMixin, ListView):
@@ -150,3 +152,105 @@ def group_deactivate_view(request, pk):
         raise Http404("Grupo não encontrado.")
     return redirect("groups:group_detail", pk=group.pk)
 
+
+
+
+class GroupFeedView(LoginRequiredMixin, DetailView):
+    """
+    Feed exclusivo de um grupo.
+
+    Exibe apenas postagens ativas vinculadas ao grupo,
+    permitindo criação de novas postagens já pré-selecionadas no grupo.
+    """
+
+    model = Group
+    template_name = "groups/group_feed.html"
+    context_object_name = "group"
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset=queryset)
+
+        if not obj.is_active and obj.creator_id != self.request.user.id:
+            raise Http404("Grupo não encontrado.")
+
+        return obj
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        group = self.object
+        user = self.request.user
+
+        # Permissão: somente membros ou criador
+        is_member = GroupMembership.objects.filter(
+            group=group,
+            user=user,
+        ).exists()
+
+        if not is_member and group.creator_id != user.id:
+            raise Http404("Grupo não encontrado.")
+
+        # Comentários (nível raiz)
+        comments_qs = (
+            PostComment.objects.filter(is_active=True, parent__isnull=True)
+            .select_related("user")
+            .order_by("-created_at")
+        )
+
+        # Subquery: nota do usuário logado
+        user_rating_value_sq = (
+            PostRating.objects
+            .filter(post_id=OuterRef("pk"), user_id=user.pk)
+            .values("value")[:1]
+        )
+
+        # Feed do grupo
+        qs = (
+            Post.objects
+            .filter(is_active=True, group=group)
+            .select_related("user", "group")
+            .annotate(
+                has_liked=Exists(
+                    PostLike.objects.filter(
+                        post_id=OuterRef("pk"),
+                        user_id=user.pk,
+                    )
+                ),
+                has_rated=Exists(
+                    PostRating.objects.filter(
+                        post_id=OuterRef("pk"),
+                        user_id=user.pk,
+                    )
+                ),
+                user_rating_value=Subquery(user_rating_value_sq),
+            )
+            .prefetch_related(Prefetch("comments", queryset=comments_qs))
+            .order_by("-updated_at")
+        )
+
+        # Busca
+        q = (self.request.GET.get("q") or "").strip()
+        if q:
+            qs = qs.filter(title__icontains=q)
+
+        # Paginação
+        paginator = Paginator(qs, 10)
+        page_obj = paginator.get_page(self.request.GET.get("page"))
+
+        ctx["posts"] = page_obj
+        ctx["page_obj"] = page_obj
+        ctx["is_paginated"] = page_obj.has_other_pages()
+
+        # Form de postagem já apontando para o grupo
+        ctx["form"] = PostForm(
+            user=user,
+            initial={"group": group},
+        )
+
+        ctx["rating_range"] = range(1, 6)
+        ctx["stars_5"] = range(1, 6)
+
+        # Últimos comentários (feed)
+        for post in ctx["posts"]:
+            post.last_comments = list(post.comments.all())[:5]
+
+        return ctx

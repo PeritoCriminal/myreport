@@ -5,6 +5,7 @@ from .views.group import (
     GroupDetailView,
     GroupListView,
     GroupUpdateView,
+    GroupFeedView,
     group_deactivate_view,
 )
 from .views.membership import group_join_view, group_leave_view
@@ -19,4 +20,5 @@ urlpatterns = [
     path("<uuid:pk>/join/", group_join_view, name="group_join"),
     path("<uuid:pk>/leave/", group_leave_view, name="group_leave"),
     path("<uuid:pk>/deactivate/", group_deactivate_view, name="group_deactivate"),
+    path("<uuid:pk>/feed/", GroupFeedView.as_view(), name="group_feed")
 ]

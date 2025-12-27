@@ -11,6 +11,17 @@
         {% endif %}
 
         <strong>{{ post.user }}</strong>
+
+        {% if post.group %}
+          <span class="badge text-bg-primary">
+            <i class="bi bi-people-fill"></i> {{ post.group.name }}
+          </span>
+        {% else %}
+          <span class="badge text-bg-secondary">
+            <i class="bi bi-globe"></i> Público
+          </span>
+        {% endif %}
+
       </div>
 
       <small class="text-muted">{{ post.created_at }}</small>
