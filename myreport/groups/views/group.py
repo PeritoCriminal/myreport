@@ -1,32 +1,18 @@
+# myreport/groups/views/group.py
 from __future__ import annotations
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.db.models import Exists, OuterRef
+from django.db.models import BooleanField, Case, Exists, OuterRef, Q, Value, When
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse, reverse_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
+
 from ..forms import GroupForm
-
-
-
 from ..models import Group, GroupMembership
 from ..services import inactivate_group
-
-
-from django.urls import reverse
-
-
-# groups/views/group.py
-
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import BooleanField, Case, Exists, OuterRef, Q, Value, When
-from django.urls import reverse
-from django.views.generic import ListView
-
-from ..models import Group, GroupMembership
 
 
 class GroupListView(LoginRequiredMixin, ListView):
@@ -67,8 +53,6 @@ class GroupListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-
-
 class GroupDetailView(LoginRequiredMixin, DetailView):
     model = Group
     template_name = "groups/group_detail.html"
@@ -77,19 +61,27 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
     def get_object(self, queryset=None):
         obj = super().get_object(queryset=queryset)
         if not obj.is_active and obj.creator_id != self.request.user.id:
-            # opcional: permitir visualizar inativo só ao criador
             raise Http404("Grupo não encontrado.")
         return obj
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         group = self.object
-        ctx["is_member"] = GroupMembership.objects.filter(
-            group=group, user=self.request.user
-        ).exists()
-        ctx["members_count"] = group.memberships.count()
-        ctx["is_creator"] = group.creator_id == self.request.user.id
+        user = self.request.user
+
+        ctx["is_member"] = GroupMembership.objects.filter(group=group, user=user).exists()
+        ctx["is_creator"] = group.creator_id == user.id
+
+        qs_memberships = (
+            group.memberships.select_related("user")
+            .order_by("-joined_at")
+        )
+
+        ctx["members_count"] = qs_memberships.count()
+        ctx["members"] = [m.user for m in qs_memberships]
+
         return ctx
+
 
 
 class GroupCreateView(LoginRequiredMixin, CreateView):
@@ -109,9 +101,6 @@ class GroupCreateView(LoginRequiredMixin, CreateView):
         return response
 
 
-
-
-
 class GroupUpdateView(LoginRequiredMixin, UpdateView):
     model = Group
     form_class = GroupForm
@@ -127,13 +116,12 @@ class GroupUpdateView(LoginRequiredMixin, UpdateView):
         return reverse("groups:group_detail", kwargs={"pk": self.object.pk})
 
 
-
-
 @require_POST
-def group_inactivate_view(request, pk):
+def group_deactivate_view(request, pk):
     group = get_object_or_404(Group, pk=pk)
     try:
         inactivate_group(group=group, user=request.user)
     except PermissionDenied:
         raise Http404("Grupo não encontrado.")
     return redirect("groups:group_detail", pk=group.pk)
+

@@ -1,47 +1,75 @@
+{# myreport/groups/templates/groups/group_detail.html #}
 {% extends "base.html" %}
 
+{% block page_header %}
+  {% include "groups/partials/group_header.html" with group=group %}
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-start mb-3">
-  <div>
-    <h4 class="mb-1">{{ group.name }}</h4>
-    <div class="text-muted">
-      {% if not group.is_active %}<span class="badge text-bg-secondary">Inativo</span>{% endif %}
-      <span class="ms-2">{{ members_count }} membro(s)</span>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+      {% if not group.is_active %}
+        <span class="badge text-bg-secondary">Inativo</span>
+      {% endif %}
+      <span class="text-muted">Criador: <strong class="text-body">{{ group.creator }}</strong></span>
+      <span class="text-muted">Criado em: <strong class="text-body">{{ group.created_at }}</strong></span>
+      <span class="text-muted">Membros: <strong class="text-body">{{ members_count }}</strong></span>
     </div>
-  </div>
 
-  <div class="d-flex gap-2">
-    {% if is_member %}
-      <form method="post" action="{% url 'groups:group_leave' group.id %}">
-        {% csrf_token %}
-        <button class="btn btn-outline-danger" type="submit">
-          <i class="bi bi-box-arrow-right"></i> Sair
-        </button>
-      </form>
-    {% else %}
-      <form method="post" action="{% url 'groups:group_join' group.id %}">
-        {% csrf_token %}
-        <button class="btn btn-success" type="submit" {% if not group.is_active %}disabled{% endif %}>
-          <i class="bi bi-box-arrow-in-right"></i> Entrar
-        </button>
-      </form>
-    {% endif %}
-
-    {% if is_creator and group.is_active %}
-      <form method="post" action="{% url 'groups:group_deactivate' group.id %}">
-        {% csrf_token %}
-        <button class="btn btn-outline-secondary" type="submit">
-          <i class="bi bi-slash-circle"></i> Inativar
-        </button>
-      </form>
+    {% if group.description %}
+      <hr>
+      <div>{{ group.description }}</div>
     {% endif %}
   </div>
 </div>
 
 <div class="card">
-  <div class="card-body">
-    <div class="text-muted">Criador: {{ group.creator }}</div>
-    <div class="text-muted">Criado em: {{ group.created_at }}</div>
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">Membros</span>
+    <span class="text-muted small">{{ members_count }}</span>
+  </div>
+
+  <div class="list-group list-group-flush">
+    {% for member in members %}
+      <div class="list-group-item d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          {% if member.profile_image %}
+            <img
+              src="{{ member.profile_image.url }}"
+              alt="Foto do membro"
+              class="rounded-circle border bg-white"
+              style="width: 36px; height: 36px; object-fit: cover;"
+            >
+          {% else %}
+            <div
+              class="rounded-circle border bg-white d-flex align-items-center justify-content-center"
+              style="width: 36px; height: 36px;"
+              aria-label="Membro sem foto"
+            >
+              <i class="bi bi-person text-muted"></i>
+            </div>
+          {% endif %}
+
+          <div class="d-flex flex-column lh-sm">
+            <span class="fw-semibold">{{ member.display_name|default:member.username }}</span>
+            <small class="text-muted">@{{ member.username }}</small>
+          </div>
+        </div>
+
+        <a
+          class="btn btn-sm btn-outline-primary"
+          href="{% url 'accounts:user_profile' member.id %}?tab=profile"
+          title="Ver perfil"
+        >
+          <i class="bi bi-box-arrow-up-right"></i>
+        </a>
+      </div>
+    {% empty %}
+      <div class="list-group-item text-muted">Nenhum membro encontrado.</div>
+    {% endfor %}
   </div>
 </div>
+
 {% endblock %}

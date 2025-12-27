@@ -100,8 +100,6 @@
                 >
             {% endif %}
 
-            {# Texto de Identificação #}
-            {# Exibe a identificação SOMENTE se a página NÃO for do usuário logado #}
             {% if owner.id != user.id %}
                 <div class="pt-5 mt-5 d-none d-md-block"> 
                     <h4 class="fw-bold m-0 text-truncate">Página pessoal de {{ owner.display_name|default:owner.username }}</h4>
