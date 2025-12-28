@@ -1,0 +1,56 @@
+<nav class="sidebar-nav">
+    {# Consigo aumentar o espaçamento gera para todas as linhas só com o bootstrap? #}
+  <ul class="list-unstyled m-0 p-0">
+
+    {% if request.resolver_match.url_name != 'dashboard' %}
+      <li class="mb-4">
+        <a href="{% url 'home:dashboard' %}" class="nav-item home-link">
+          <i class="bi bi-house-door"></i> Dashboard
+        </a>
+      </li>
+    {% endif %}
+
+    {# barra horizontal de separação #}
+    <li class="mb-4"><hr class="my-2"></li>
+
+    {# Feed #}
+    <li class="mb-4">
+      <a href="{% url 'social_net:post_list' %}" class="nav-item">
+        <i class="bi bi-newspaper"></i> Feed
+      </a>
+    </li>
+
+    {# Grupos #}
+    <li class="mb-4">
+      <a href="{% url 'groups:group_list' %}" class="nav-item">
+        <i class="bi bi-people"></i> Grupos
+      </a>
+    </li>
+
+    {# Pessoas #}
+    <li class="mb-4">
+      <a href="{% url 'accounts:user_list' %}" class="nav-item">
+        <i class="bi bi-person-lines-fill"></i> Pessoas
+      </a>
+    </li>
+
+    {# barra horizontal de separação #}
+    <li class="mb-4"><hr class="my-2"></li>
+
+    {# Meu perfil #}
+    <li class="mb-4">
+    <a href="{% url 'accounts:user_profile' request.user.id %}" class="nav-item">
+      <i class="bi bi-person-circle "></i> Meu perfil
+    </a>
+
+    </li>
+
+    {# Sair #}
+    <li class="mb-4">
+      <a href="{% url 'accounts:logout' %}" class="nav-item text-danger">
+        <i class="bi bi-box-arrow-right"></i> Sair
+      </a>
+    </li>
+
+  </ul>
+</nav>
