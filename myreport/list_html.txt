@@ -1,0 +1,151 @@
+myreport/
+├── accounts/
+│   ├── __pycache__/
+│   ├── migrations/
+│   │   ├── __pycache__/
+│   ├── templates/
+│   │   └── accounts/
+│   │       ├── partials/
+│   │       │   ├── profile/
+│   │       │   │   ├── _articles.html
+│   │       │   │   ├── _groups.html
+│   │       │   │   ├── _posts.html
+│   │       │   │   └── _profile.html
+│   │       │   └── profile_header.html
+│   │       ├── _user_form_base.html
+│   │       ├── login.html
+│   │       ├── logout.html
+│   │       ├── password_change.html
+│   │       ├── profile_edit.html
+│   │       ├── register.html
+│   │       └── user_profile.html
+├── groups/
+│   ├── __pycache__/
+│   ├── migrations/
+│   │   ├── __pycache__/
+│   ├── static/
+│   │   └── img/
+│   ├── templates/
+│   │   └── groups/
+│   │       ├── partials/
+│   │       │   └── group_header.html
+│   │       ├── group_detail.html
+│   │       ├── group_feed.html
+│   │       ├── group_form.html
+│   │       └── group_list.html
+│   ├── views/
+│   │   ├── __pycache__/
+├── home/
+│   ├── __pycache__/
+│   ├── migrations/
+│   │   ├── __pycache__/
+│   ├── static/
+│   │   └── home/
+│   │       ├── css/
+│   │       ├── img/
+│   │       └── js/
+│   ├── templates/
+│   │   ├── home/
+│   │   │   ├── dashboard.html
+│   │   │   └── index.html
+├── media/
+│   ├── 15b36230-b5c2-4657-83c6-14092e7389ad/
+│   │   ├── background/
+│   │   └── profile/
+│   ├── 171b3e7e-5dcd-44be-b2de-91fc65a4972c/
+│   │   ├── background/
+│   │   └── profile/
+│   ├── 61c162dd-4e5a-4024-9ccb-2e937f14a927/
+│   │   ├── background/
+│   │   └── profile/
+│   ├── 71bdf2f2-acb5-4d66-b27a-305dba53a019/
+│   │   ├── background/
+│   │   ├── posts/
+│   │   │   ├── 518a7213-7602-4057-9982-7bef2447020c/
+│   │   │   ├── 5b4e5678-f737-4317-a24c-60dd682ca239/
+│   │   │   ├── 96e8f791-9f55-4639-84ef-1aed55b9ee17/
+│   │   │   └── bff9be88-0dda-4085-9ef1-aed9a701ebf8/
+│   │   └── profile/
+│   └── groups/
+│       ├── 6029a6cc-0b19-4bc0-a0aa-5cffc44ed6fc/
+│       │   ├── background/
+│       │   └── profile/
+│       ├── 750d38ff-34ae-4447-a202-f2bcab6b01e0/
+│       │   ├── background/
+│       │   └── profile/
+│       └── 7ffaa0d8-ce69-4640-b90c-d1929775cd72/
+│           ├── background/
+│           └── profile/
+├── myreport/
+│   ├── __pycache__/
+│   ├── static/
+│   │   ├── css/
+│   │   ├── img/
+│   │   ├── js/
+├── social_net/
+│   ├── __pycache__/
+│   ├── migrations/
+│   │   ├── __pycache__/
+│   ├── static/
+│   │   ├── js/
+│   │   │   ├── social_net/
+│   ├── templates/
+│   │   ├── social_net/
+│   │   │   ├── partials/
+│   │   │   │   ├── comment_form.html
+│   │   │   │   ├── comment_form_errors.html
+│   │   │   │   ├── comment_item.html
+│   │   │   │   ├── comment_list.html
+│   │   │   │   ├── post_form_errors.html
+│   │   │   │   └── post_item.html
+│   │   │   ├── friendship.html
+│   │   │   ├── post_detail.html
+│   │   │   └── post_list.html
+├── templates/
+│   ├── partials/
+│   │   ├── action_header.html
+│   │   ├── sidebar_content.html
+│   │   └── user_menu.html
+│   ├── sidebars/
+│   │   ├── accounts.html
+│   │   ├── default.html
+│   │   └── social_net.html
+│   ├── base.html
+├── users/
+│   ├── 15b36230-b5c2-4657-83c6-14092e7389ad/
+│   │   ├── background/
+│   │   ├── posts/
+│   │   │   ├── 551f4ab4-ff07-4c1d-9736-99fa2fcf716c/
+│   │   │   ├── a3a5396c-92e0-44b9-acbe-264fe2602176/
+│   │   │   ├── e2d5cec4-f490-476e-b5e4-917d72be52cc/
+│   │   │   ├── e4cc9d64-6224-4b3d-bd21-b1d5a36856c5/
+│   │   │   ├── ef7b2c2c-1e30-4ebe-9300-de4233f012cc/
+│   │   │   └── f6001162-507b-4659-bcd3-c9d3f2453a25/
+│   │   └── profile/
+│   ├── 171b3e7e-5dcd-44be-b2de-91fc65a4972c/
+│   │   ├── background/
+│   │   └── profile/
+│   ├── 61c162dd-4e5a-4024-9ccb-2e937f14a927/
+│   │   ├── background/
+│   │   ├── posts/
+│   │   │   ├── 0d83930d-875f-4daf-8413-f7667b65ceea/
+│   │   │   ├── 66cf64e9-0384-4d6f-830f-d191e49c2f56/
+│   │   │   ├── a477ce29-5c00-4ddf-9e1a-a6acfc7760c2/
+│   │   │   └── f5415062-72e8-4e92-9e19-beef76e3e82c/
+│   │   └── profile/
+│   ├── 6e96e9ae-2bcc-4479-87e9-b3bd000c1929/
+│   │   └── comments/
+│   ├── 71bdf2f2-acb5-4d66-b27a-305dba53a019/
+│   │   ├── background/
+│   │   ├── posts/
+│   │   │   └── 6e96e9ae-2bcc-4479-87e9-b3bd000c1929/
+│   │   └── profile/
+│   ├── 8da091f7-7fd2-40f3-9038-5d0c0161acff/
+│   │   ├── background/
+│   │   └── profile/
+│   ├── f5415062-72e8-4e92-9e19-beef76e3e82c/
+│   │   └── comments/
+│   └── groups/
+│       └── 6029a6cc-0b19-4bc0-a0aa-5cffc44ed6fc/
+│           ├── background/
+│           └── profile/

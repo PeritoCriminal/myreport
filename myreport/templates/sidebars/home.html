@@ -1,0 +1,13 @@
+{# templates/sidebars/home.html #}
+
+<nav class="nav nav-pills flex-column gap-1">
+  <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'home:dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+
+  <a class="nav-link" href="{% url 'social_net:post_list' %}"><i class="bi bi-people"></i> Feed</a>
+
+  <a class="nav-link" href="{% url 'groups:group_list' %}"><i class="bi bi-diagram-3"></i> Grupos</a>
+
+  {% if request.user.is_authenticated %}
+    <a class="nav-link" href="{% url 'accounts:user_profile' user_id=request.user.id %}"><i class="bi bi-person-circle"></i> Meu perfil</a>
+  {% endif %}
+</nav>
