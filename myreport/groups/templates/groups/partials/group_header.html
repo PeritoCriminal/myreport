@@ -38,7 +38,7 @@
 
             <a
               href="{% url 'groups:group_feed' group.id %}"
-              class="btn btn-sm btn-outline-light d-flex align-items-center gap-2 shadow-sm"
+              class="btn btn-sm btn-light d-flex align-items-center gap-2 shadow-sm"
               title="Ver feed do grupo"
             >
               <i class="bi bi-list"></i>
@@ -50,7 +50,7 @@
             <form method="post" action="{% url 'groups:group_leave' group.id %}">
               {% csrf_token %}
               <button
-                class="btn btn-sm btn-outline-danger d-flex align-items-center gap-2 shadow-sm"
+                class="btn btn-sm btn-danger d-flex align-items-center gap-2 shadow-sm"
                 type="submit"
               >
                 <i class="bi bi-box-arrow-right"></i>
@@ -78,7 +78,7 @@
           {% if is_creator and group.is_active %}
             <a
               href="{% url 'groups:group_update' group.id %}"
-              class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2 shadow-sm"
+              class="btn btn-sm btn-primary d-flex align-items-center gap-2 shadow-sm"
               title="Editar grupo"
               data-bs-toggle="tooltip"
               data-bs-placement="top"
@@ -90,7 +90,7 @@
             <form method="post" action="{% url 'groups:group_deactivate' group.id %}">
               {% csrf_token %}
               <button
-                class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 shadow-sm"
+                class="btn btn-sm btn-secondary d-flex align-items-center gap-2 shadow-sm"
                 type="submit"
                 title="Inativar grupo"
                 data-bs-toggle="tooltip"

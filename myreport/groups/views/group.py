@@ -47,7 +47,14 @@ class GroupListView(LoginRequiredMixin, ListView):
                     user=user,
                 )
             ),
-        )
+        ).order_by(
+            Case(
+                When(is_member=True, then=Value(0)),  # primeiro grupos que participa
+                default=Value(1),
+                output_field=BooleanField(),
+            ),
+            "name",  # depois, ordem alfabética
+)
         return qs
 
     def get_context_data(self, **kwargs):
@@ -167,31 +174,34 @@ class GroupFeedView(LoginRequiredMixin, DetailView):
     template_name = "groups/group_feed.html"
     context_object_name = "group"
 
-    def get_object(self, queryset=None):
-        obj = super().get_object(queryset=queryset)
+    def dispatch(self, request, *args, **kwargs):
+        # carrega o grupo (DetailView usa pk por padrão)
+        self.object = self.get_object()
 
-        if not obj.is_active and obj.creator_id != self.request.user.id:
-            raise Http404("Grupo não encontrado.")
+        # 1) Grupo inativo e usuário não é criador → vai para detail
+        if not self.object.is_active and self.object.creator_id != request.user.id:
+            return redirect("groups:group_detail", pk=self.object.pk)
 
-        return obj
+        # 2) Usuário não é membro nem criador → vai para detail
+        is_member = GroupMembership.objects.filter(
+            group=self.object,
+            user=request.user,
+        ).exists()
+
+        if not is_member and self.object.creator_id != request.user.id:
+            return redirect("groups:group_detail", pk=self.object.pk)
+
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         group = self.object
         user = self.request.user
 
-        # Permissão: somente membros ou criador
-        is_member = GroupMembership.objects.filter(
-            group=group,
-            user=user,
-        ).exists()
-
-        if not is_member and group.creator_id != user.id:
-            raise Http404("Grupo não encontrado.")
-
         # Comentários (nível raiz)
         comments_qs = (
-            PostComment.objects.filter(is_active=True, parent__isnull=True)
+            PostComment.objects
+            .filter(is_active=True, parent__isnull=True)
             .select_related("user")
             .order_by("-created_at")
         )
@@ -254,3 +264,4 @@ class GroupFeedView(LoginRequiredMixin, DetailView):
             post.last_comments = list(post.comments.all())[:5]
 
         return ctx
+
