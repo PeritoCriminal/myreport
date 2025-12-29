@@ -1,0 +1,83 @@
+myreport
+accounts
+  ├── __pycache__ (dir)
+  ├── migrations (dir)
+  ├── templates (dir)
+  ├── __init__.py [.py]
+  ├── admin.py [.py]
+  ├── apps.py [.py]
+  ├── forms.py [.py]
+  ├── models.py [.py]
+  ├── signals.py [.py]
+  ├── tests.py [.py]
+  ├── tree_dirs.txt [.txt]
+  ├── urls.py [.py]
+  └── views.py [.py]
+groups
+  ├── __pycache__ (dir)
+  ├── migrations (dir)
+  ├── static (dir)
+  ├── templates (dir)
+  ├── views (dir)
+  ├── __init__.py [.py]
+  ├── admin.py [.py]
+  ├── apps.py [.py]
+  ├── forms.py [.py]
+  ├── models.py [.py]
+  ├── services.py [.py]
+  ├── tests.py [.py]
+  └── urls.py [.py]
+home
+  ├── __pycache__ (dir)
+  ├── migrations (dir)
+  ├── static (dir)
+  ├── templates (dir)
+  ├── __init__.py [.py]
+  ├── admin.py [.py]
+  ├── apps.py [.py]
+  ├── folders_and_files.txt [.txt]
+  ├── models.py [.py]
+  ├── tests.py [.py]
+  ├── urls.py [.py]
+  └── views.py [.py]
+media
+  ├── 15b36230-b5c2-4657-83c6-14092e7389ad (dir)
+  ├── 171b3e7e-5dcd-44be-b2de-91fc65a4972c (dir)
+  ├── 61c162dd-4e5a-4024-9ccb-2e937f14a927 (dir)
+  ├── 71bdf2f2-acb5-4d66-b27a-305dba53a019 (dir)
+  └── groups (dir)
+myreport
+  ├── __pycache__ (dir)
+  ├── static (dir)
+  ├── __init__.py [.py]
+  ├── asgi.py [.py]
+  ├── settings.py [.py]
+  ├── urls.py [.py]
+  └── wsgi.py [.py]
+social_net
+  ├── __pycache__ (dir)
+  ├── migrations (dir)
+  ├── static (dir)
+  ├── templates (dir)
+  ├── __init__.py [.py]
+  ├── admin.py [.py]
+  ├── apps.py [.py]
+  ├── folders_and_files.txt [.txt]
+  ├── forms.py [.py]
+  ├── models.py [.py]
+  ├── tests.py [.py]
+  ├── urls.py [.py]
+  └── views.py [.py]
+templates
+  ├── partials (dir)
+  ├── sidebars (dir)
+  └── base.html [.html]
+users
+  ├── 15b36230-b5c2-4657-83c6-14092e7389ad (dir)
+  ├── 171b3e7e-5dcd-44be-b2de-91fc65a4972c (dir)
+  ├── 61c162dd-4e5a-4024-9ccb-2e937f14a927 (dir)
+  ├── 6e96e9ae-2bcc-4479-87e9-b3bd000c1929 (dir)
+  ├── 71bdf2f2-acb5-4d66-b27a-305dba53a019 (dir)
+  ├── 8da091f7-7fd2-40f3-9038-5d0c0161acff (dir)
+  ├── f5415062-72e8-4e92-9e19-beef76e3e82c (dir)
+  └── groups (dir)

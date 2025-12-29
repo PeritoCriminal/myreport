@@ -1,0 +1,82 @@
+{# accounts/templates/accounts/partials/profile/_posts.html #}
+
+<div class="container mt-4" style="max-width: 820px;">
+  {% if posts %}
+    {% for post in posts %}
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+
+          {# topo: data + link para detalhe #}
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <small class="text-muted">{{ post.created_at }}</small>
+
+            <a href="{% url 'social_net:post_detail' post.id %}"
+               class="text-decoration-none small"
+               title="Abrir postagem">
+              Ver detalhes <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+          </div>
+
+          {% if post.title %}
+            <h6 class="mb-2">{{ post.title }}</h6>
+          {% endif %}
+
+          {# texto: opcionalmente truncado para não ficar enorme #}
+          <p class="mb-3">
+            {{ post.text|truncatechars:320|linebreaksbr }}
+          </p>
+
+          {# mídia (mesma lógica do post_detail) #}
+          {% if post.media %}
+            <div class="mb-3">
+              {% with url=post.media.url|lower %}
+                {% if '.jpg' in url or '.jpeg' in url or '.png' in url or '.webp' in url %}
+                  <img src="{{ post.media.url }}" class="img-fluid rounded" alt="Imagem da postagem" />
+                {% elif '.mp4' in url or '.webm' in url or '.ogg' in url %}
+                  <video controls class="img-fluid rounded">
+                    <source src="{{ post.media.url }}" />
+                    Seu navegador não suporta vídeo HTML5.
+                  </video>
+                {% endif %}
+              {% endwith %}
+            </div>
+          {% endif %}
+
+          {# barra de estatísticas #}
+          <div class="d-flex flex-wrap align-items-center gap-4 text-muted small">
+
+            <span class="d-flex align-items-center gap-1">
+              <i class="bi bi-heart-fill text-danger"></i>
+              <strong class="text-body">
+                {{ post.likes_count|default:0 }}
+              </strong>
+              <span>curtidas</span>
+            </span>
+
+            <span class="d-flex align-items-center gap-1">
+              <i class="bi bi-star-fill text-warning"></i>
+              <strong class="text-body">
+                {{ post.rating_avg|default:0|floatformat:1 }}
+              </strong>
+              <span>({{ post.rating_total|default:0 }} avaliações)</span>
+            </span>
+
+            <span class="d-flex align-items-center gap-1">
+              <i class="bi bi-chat-left-text"></i>
+              <strong class="text-body">
+                {{ post.comments_count|default:post.comments.count }}
+              </strong>
+              <span>comentários</span>
+            </span>
+
+          </div>
+
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="text-muted">
+      Nenhuma postagem publicada até o momento.
+    </div>
+  {% endif %}
+</div>

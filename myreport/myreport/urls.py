@@ -9,6 +9,7 @@ urlpatterns = [
     path('', include('home.urls', namespace='home')),
     path("accounts/", include("accounts.urls")),
     path('social_net/', include('social_net.urls')),
+    path("groups/", include("groups.urls", namespace="groups")),
 ]
 
 if settings.DEBUG:

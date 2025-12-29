@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block page_header %}
+  {% include 'accounts/partials/profile_header.html' %}
+{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Grupos</h4>
+    {% include 'partials/action_header.html' with show_search=True search_placeholder='Buscar grupo' action_label='Novo grupo' action_url=group_create_url %}
+  </div>
+
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for g in groups %}
+      {# Card do grupo #}
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          {# Background do grupo #}
+          <div class="w-100"
+            style="
+            height: 140px;
+            background-color: #f1f1f1;
+            background-image: {% if g.background_image %}
+              url('{{ g.background_image.url }}')
+            {% else %}
+              none
+            {% endif %};
+            background-size: cover;
+            background-position: center;
+          "></div>
+
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title mb-1">{{ g.name }}</h5>
+
+            <small class="text-muted mb-2">
+              Criado por{% if g.creator_id == request.user.id %}
+                você
+              {% else %}
+                {{ g.creator }}
+              {% endif %}
+            </small>
+
+            <small class="text-muted mb-2">{{ g.memberships.count }} participante{{ g.memberships.count|pluralize }}</small>
+
+            {% if not g.is_active %}
+              <span class="badge bg-secondary mb-2 align-self-start">Inativo</span>
+            {% endif %}
+
+            <div class="mt-auto d-flex gap-2 flex-wrap">
+              {# Dados do Grupo (sempre) #}
+              <a href="{% url 'groups:group_detail' g.id %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-card-text"></i> Dados do Grupo</a>
+
+              {# Feed: só para participante (criador só vê se também for membro) #}
+              {% if g.is_member %}
+                <a href="{% url 'groups:group_feed' g.id %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-chat-left-text"></i> Feed</a>
+              {% endif %}
+
+              {# Entrar / Sair (POST obrigatório) #}
+              {% if g.is_member %}
+                <form method="post" action="{% url 'groups:group_leave' g.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-box-arrow-right"></i> Sair</button>
+                </form>
+              {% else %}
+                <form method="post" action="{% url 'groups:group_join' g.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-box-arrow-in-right"></i> Entrar</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col">
+        <div class="text-muted">Nenhum grupo cadastrado.</div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

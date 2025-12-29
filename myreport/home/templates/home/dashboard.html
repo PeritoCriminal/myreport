@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  MyReport - Home
+{% endblock %}
+
+{% block page_header %}
+  {% include 'accounts/partials/profile_header.html' %}
+{% endblock %}
+
+{% block content %}
+  <p class="mb-2">
+    Olá, <strong>{{ user.get_short_name|default:user.username }}</strong>.
+  </p>
+
+  <p class="mb-2">
+    Este é o <strong>MyReport</strong>, um ambiente colaborativo voltado ao compartilhamento de informações, integração entre usuários e organização de conteúdos técnicos.
+  </p>
+
+  <p class="mb-2">Aqui você pode interagir por meio da rede interna, participar de grupos e acompanhar conteúdos relevantes conforme seu perfil.</p>
+
+  <p class="mb-0">Utilize o menu superior ou o painel lateral para navegar pelas funcionalidades disponíveis.</p>
+{% endblock %}

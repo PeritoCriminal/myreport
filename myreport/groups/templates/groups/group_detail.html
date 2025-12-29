@@ -1,0 +1,114 @@
+{# myreport/groups/templates/groups/group_detail.html #}
+{% extends "base.html" %}
+
+{% block page_header %}
+  {% include "groups/partials/group_header.html" with group=group %}
+{% endblock %}
+
+{% block content %}
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+      {% if not group.is_active %}
+        <span class="badge text-bg-secondary">Inativo</span>
+      {% endif %}
+      <span class="text-muted">Criador: <strong class="text-body">{{ group.creator }}</strong></span>
+      <span class="text-muted">Criado em: <strong class="text-body">{{ group.created_at }}</strong></span>
+      <span class="text-muted">Membros: <strong class="text-body">{{ members_count }}</strong></span>
+    </div>
+
+    {% if group.description %}
+      <hr>
+      <div>{{ group.description }}</div>
+    {% endif %}
+  </div>
+</div>
+
+{# NOVO: Publicações do grupo #}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">Publicações</span>
+    <span class="text-muted small">{{ posts_count }}</span>
+  </div>
+
+  <div class="list-group list-group-flush">
+    {% for post in posts %}
+      <a
+        class="list-group-item list-group-item-action"
+        href="{% url 'social_net:post_detail' post.pk %}"
+        title="Abrir postagem"
+      >
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div class="me-2">
+            {% if post.title %}
+              <div class="fw-semibold text-body">{{ post.title }}</div>
+              {% if post.text %}
+                <small class="text-muted d-block">{{ post.text|truncatechars:120 }}</small>
+              {% endif %}
+            {% else %}
+              <div class="text-body">{{ post.text|truncatechars:140 }}</div>
+            {% endif %}
+
+            <small class="text-muted d-block mt-1">
+              Por <strong class="text-body">{{ post.user.display_name|default:post.user.username }}</strong>
+            </small>
+          </div>
+
+          <small class="text-muted text-nowrap">{{ post.created_at }}</small>
+        </div>
+      </a>
+    {% empty %}
+      <div class="list-group-item text-muted">Nenhuma publicação encontrada.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">Membros</span>
+    <span class="text-muted small">{{ members_count }}</span>
+  </div>
+
+  <div class="list-group list-group-flush">
+    {% for member in members %}
+      <div class="list-group-item d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          {% if member.profile_image %}
+            <img
+              src="{{ member.profile_image.url }}"
+              alt="Foto do membro"
+              class="rounded-circle border bg-white"
+              style="width: 36px; height: 36px; object-fit: cover;"
+            >
+          {% else %}
+            <div
+              class="rounded-circle border bg-white d-flex align-items-center justify-content-center"
+              style="width: 36px; height: 36px;"
+              aria-label="Membro sem foto"
+            >
+              <i class="bi bi-person text-muted"></i>
+            </div>
+          {% endif %}
+
+          <div class="d-flex flex-column lh-sm">
+            <span class="fw-semibold">{{ member.display_name|default:member.username }}</span>
+            <small class="text-muted">@{{ member.username }}</small>
+          </div>
+        </div>
+
+        <a
+          class="btn btn-sm btn-outline-primary"
+          href="{% url 'accounts:user_profile' member.id %}?tab=profile"
+          title="Ver perfil"
+        >
+          <i class="bi bi-box-arrow-up-right"></i>
+        </a>
+      </div>
+    {% empty %}
+      <div class="list-group-item text-muted">Nenhum membro encontrado.</div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

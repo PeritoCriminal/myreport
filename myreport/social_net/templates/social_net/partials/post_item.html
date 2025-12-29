@@ -11,6 +11,17 @@
         {% endif %}
 
         <strong>{{ post.user }}</strong>
+
+        {% if post.group %}
+          <span class="badge text-bg-primary">
+            <i class="bi bi-people-fill"></i> {{ post.group.name }}
+          </span>
+        {% else %}
+          <span class="badge text-bg-secondary">
+            <i class="bi bi-globe"></i> Público
+          </span>
+        {% endif %}
+
       </div>
 
       <small class="text-muted">{{ post.created_at }}</small>
@@ -112,7 +123,7 @@
         <button class="btn btn-sm btn-light js-comments-toggle" data-bs-toggle="collapse" data-bs-target="#commentFormBox-{{ post.id }}" aria-controls="commentFormBox-{{ post.id }}" aria-expanded="false" data-post-id="{{ post.id }}" title="Comentar"><i class="bi bi-chat"></i></button>
         {# Deletar (inativar) - apenas autor #}
         {% if request.user.id == post.user_id %}
-          <button type="button" class="btn btn-sm btn-light js-post-delete" data-delete-url="{% url 'social_net:post_delete' post.id %}" data-post-id="{{ post.id }}" title="Excluir postagem"><i class="bi bi-trash"></i></button>
+          <button type="button" class="btn btn-sm text-danger js-post-delete" data-delete-url="{% url 'social_net:post_delete' post.id %}" data-post-id="{{ post.id }}" title="Excluir postagem"><i class="bi bi-trash"></i></button>
         {% endif %}
       </div>
     </div>
@@ -123,6 +134,8 @@
     <div class="mt-2 ps-4 border-start">
       <div id="commentsList-{{ post.id }}" class="js-comments-list" data-post-id="{{ post.id }}">
         {% if post.last_comments %}
+
+
           {% for c in post.last_comments %}
             <div class="py-2 border-bottom" id="comment-{{ c.id }}">
               <div class="d-flex justify-content-between">
@@ -139,8 +152,24 @@
                   <img src="{{ c.image.url }}" class="img-fluid rounded w-50 d-block ms-auto" alt="Imagem do comentário" />
                 </div>
               {% endif %}
+
+              {# Ação de deleção do comentário (somente autor) #}
+              {% if request.user.id == c.user_id %}
+                <div class="mt-1 text-end">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link text-danger p-0 js-comment-delete"
+                    data-comment-id="{{ c.id }}"
+                    data-delete-url="{% url 'social_net:comment_delete' c.id %}"
+                    title="Excluir comentário"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              {% endif %}
             </div>
           {% endfor %}
+
           <a href="{% url 'social_net:post_detail' post.pk %}" class="small">
             Ver todos os comentários
           </a>

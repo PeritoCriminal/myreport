@@ -2,9 +2,11 @@
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.db.models.functions import Greatest, Least
 from django.utils import timezone
 import uuid
+
 
 
 def user_profile_image_path(instance, filename):
@@ -78,79 +80,51 @@ class User(AbstractUser):
 
 
 
-
-class Friendship(models.Model):
+class UserFollow(models.Model):
     """
-    Representa a relação de amizade entre dois usuários do sistema.
-
-    O modelo registra uma solicitação de amizade iniciada por `from_user`
-    (solicitante) em direção a `to_user` (destinatário), mantendo o estado
-    da relação por meio do campo `status`.
-
-    Estados possíveis:
-    - P (PENDING): solicitação enviada e ainda não respondida;
-    - A (ACCEPTED): solicitação aceita, estabelecendo a amizade;
-    - D (DECLINED): solicitação recusada;
-    - B (BLOCKED): relação bloqueada, conforme regras da aplicação.
-
-    Regras de integridade:
-    - Não é permitida amizade de um usuário consigo mesmo.
-    - É permitida apenas uma única relação por par de usuários,
-      independentemente da direção (A-B ou B-A). Assim, se existir
-      uma solicitação A→B, não é possível criar B→A.
-    - Tentativas de criação de uma relação inversa devem ser tratadas
-      pela aplicação, informando ao usuário a existência de solicitação
-      pendente ou relação já estabelecida.
-
-    Campos de auditoria:
-    - `created_at`: data e hora da criação da solicitação.
-    - `responded_at`: data e hora da resposta à solicitação, quando aplicável.
-
-    Observação:
-    - A unicidade não direcional do par é garantida no nível do banco de dados
-      por meio de constraint, prevenindo duplicidade mesmo em cenários de
-      concorrência.
+    Relação N:N auto-referenciada:
+    follower -> segue -> following
     """
-    class Status(models.TextChoices):
-        PENDING = "P", "Pendente"
-        ACCEPTED = "A", "Aceita"
-        DECLINED = "D", "Recusada"
-        BLOCKED = "B", "Bloqueada"
 
-    from_user = models.ForeignKey(
+    follower = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="friendships_sent",
+        related_name="following_relations",
+        db_index=True,
     )
-    to_user = models.ForeignKey(
+    following = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="friendships_received",
+        related_name="follower_relations",
+        db_index=True,
     )
 
-    status = models.CharField(max_length=1, choices=Status.choices, default=Status.PENDING)
-    created_at = models.DateTimeField(default=timezone.now)
-    responded_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)  # segue seu padrão de "desativar"
 
     class Meta:
-        constraints = [
-            # impede self
-            models.CheckConstraint(
-                check=~models.Q(from_user=models.F("to_user")),
-                name="no_self_friendship",
-            ),
+        db_table = "accounts_user_follow"
+        verbose_name = "Seguir usuário"
+        verbose_name_plural = "Seguidores e seguidos"
 
-            # impede A->B e B->A simultaneamente (unicidade por par não-direcional)
+        constraints = [
+            # impede duplicidade (mesmo follower -> following)
             models.UniqueConstraint(
-                Least("from_user_id", "to_user_id"),
-                Greatest("from_user_id", "to_user_id"),
-                name="uniq_friendship_undirected_pair",
+                fields=["follower", "following"],
+                name="uniq_user_follow_pair",
+            ),
+            # impede auto-seguir
+            models.CheckConstraint(
+                check=~Q(follower=models.F("following")),
+                name="chk_no_self_follow",
             ),
         ]
+
         indexes = [
-            models.Index(fields=["from_user", "status"]),
-            models.Index(fields=["to_user", "status"]),
+            models.Index(fields=["follower", "is_active"]),
+            models.Index(fields=["following", "is_active"]),
+            models.Index(fields=["created_at"]),
         ]
 
     def __str__(self) -> str:
-        return f"{self.from_user} -> {self.to_user} ({self.get_status_display()})"
+        return f"{self.follower} -> {self.following} ({'active' if self.is_active else 'inactive'})"

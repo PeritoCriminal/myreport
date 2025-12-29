@@ -1,0 +1,21 @@
+social_net
+__pycache__
+  └── __init__.cpython-310.pyc [.pyc]
+  └── admin.cpython-310.pyc [.pyc]
+  └── apps.cpython-310.pyc [.pyc]
+  └── forms.cpython-310.pyc [.pyc]
+  └── models.cpython-310.pyc [.pyc]
+  └── urls.cpython-310.pyc [.pyc]
+  └── views.cpython-310.pyc [.pyc]
+migrations
+  └── __pycache__ (dir)
+  └── 0001_initial.py [.py]
+  └── 0002_alter_post_title.py [.py]
+  └── 0003_postcomment_postlike_postrating_alter_post_options_and_more.py [.py]
+  └── 0004_alter_post_options.py [.py]
+  └── __init__.py [.py]
+static
+  └── js (dir)
+templates
+  └── social_net (dir)
+  └── tree_dirs.txt [.txt]

@@ -1,0 +1,13 @@
+{# templates/sidebars/groups.html #}
+
+<nav class="nav nav-pills flex-column gap-1">
+  <a class="nav-link {% if request.resolver_match.url_name == 'group_list' %}active{% endif %}"
+     href="{% url 'groups:group_list' %}">
+    <i class="bi bi-diagram-3"></i> Grupos
+  </a>
+
+  <a class="nav-link {% if request.resolver_match.url_name == 'group_create' %}active{% endif %}"
+     href="{% url 'groups:group_create' %}">
+    <i class="bi bi-plus-circle"></i> Criar grupo
+  </a>
+</nav>

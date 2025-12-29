@@ -3,8 +3,11 @@ from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Exists, OuterRef, Prefetch,Subquery, Count, Q  
-from django.http import JsonResponse, HttpResponseRedirect
+from django.db.models import Exists, OuterRef, Prefetch, Subquery, Count, Q, Case, When, Value, IntegerField
+
+
+
+from django.http import JsonResponse, HttpResponseRedirect, request
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
@@ -13,7 +16,8 @@ from django.views.generic import CreateView, ListView, DetailView
 
 from .forms import PostCommentForm, PostForm
 from .models import Post, PostComment, PostLike, PostRating
-from accounts.models import Friendship, User
+from groups.models import GroupMembership
+from accounts.models import UserFollow
 
 
 
@@ -22,16 +26,14 @@ class PostListView(LoginRequiredMixin, ListView):
     """
     Lista postagens ativas com paginação e busca por título.
 
-    Anota no queryset se o usuário autenticado já curtiu e/ou avaliou cada postagem.
-    Também pré-carrega comentários (nível raiz) e expõe os 5 mais recentes em
-    `post.last_comments` para renderização direta no template.
+    Prioriza postagens de usuários seguidos (no topo),
+    mantendo ordenação por atualização.
     """
 
     model = Post
     template_name = "social_net/post_list.html"
     context_object_name = "posts"
     paginate_by = 10
-    ordering = ["-updated_at"]
 
     def get_queryset(self):
         user = self.request.user
@@ -42,26 +44,62 @@ class PostListView(LoginRequiredMixin, ListView):
             .order_by("-created_at")
         )
 
-        # Subquery para obter o valor da avaliação (value) do usuário logado para a Postagem atual
-        user_rating_value_sq = PostRating.objects.filter(
-            post_id=OuterRef("pk"), user_id=user.pk
-        ).values("value")[:1]
+        user_groups_sq = GroupMembership.objects.filter(
+            user_id=user.pk
+        ).values("group_id")
+
+        user_rating_value_sq = (
+            PostRating.objects.filter(
+                post_id=OuterRef("pk"),
+                user_id=user.pk
+            )
+            .values("value")[:1]
+        )
+
+        # subquery: verifica se o autor da postagem é seguido pelo usuário
+        is_from_followed_user_sq = UserFollow.objects.filter(
+            follower=user,
+            following_id=OuterRef("user_id"),
+            is_active=True,
+        )
 
         qs = (
             Post.objects.filter(is_active=True)
-            .select_related("user")
+            .filter(
+                Q(group__isnull=True) |
+                Q(group_id__in=user_groups_sq)
+            )
+            .select_related("user", "group")
             .annotate(
                 has_liked=Exists(
-                    PostLike.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
+                    PostLike.objects.filter(
+                        post_id=OuterRef("pk"),
+                        user_id=user.pk
+                    )
                 ),
                 has_rated=Exists(
-                    PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
+                    PostRating.objects.filter(
+                        post_id=OuterRef("pk"),
+                        user_id=user.pk
+                    )
                 ),
-                # NOVO: Anota o valor da avaliação do usuário logado (pode ser NULL/None se não avaliou)
                 user_rating_value=Subquery(user_rating_value_sq),
+
+                # flag: 1 = autor seguido | 0 = não seguido
+                is_from_followed=Case(
+                    When(
+                        Exists(is_from_followed_user_sq),
+                        then=Value(1)
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                ),
             )
-            .prefetch_related(Prefetch("comments", queryset=comments_qs))
-            .order_by("-updated_at")
+            .prefetch_related(
+                Prefetch("comments", queryset=comments_qs)
+            )
+            # primeiro seguidos, depois os demais; ambos por atualização
+            .order_by("-is_from_followed", "-updated_at")
         )
 
         q = (self.request.GET.get("q") or "").strip()
@@ -73,11 +111,10 @@ class PostListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        posts = ctx["posts"]
-        for post in posts:
+        for post in ctx["posts"]:
             post.last_comments = list(post.comments.all())[:5]
 
-        ctx["form"] = PostForm()
+        ctx["form"] = PostForm(user=self.request.user)
         ctx["rating_range"] = range(1, 6)
         ctx["stars_5"] = range(1, 6)
         return ctx
@@ -188,9 +225,25 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     form_class = PostForm
     success_url = reverse_lazy("social_net:post_list")
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         post = form.save(commit=False)
         post.user = self.request.user
+
+        # Regra: se escolheu grupo, precisa ser membro
+        if post.group_id:
+            is_member = GroupMembership.objects.filter(
+                user_id=self.request.user.pk,
+                group_id=post.group_id,
+            ).exists()
+            if not is_member:
+                form.add_error("group", "Você não é membro deste grupo.")
+                return self.form_invalid(form)
+
         post.save()
         self.object = post
 
@@ -207,11 +260,10 @@ class PostCreateView(LoginRequiredMixin, CreateView):
                     "rating_range": range(1, 6),
                     "stars_5": range(1, 6),
                 },
-                request=self.request,
+                request=self.request,  # garante `request` no template
             )
             return JsonResponse({"success": True, "html": html}, status=200)
 
-        # Evita salvar duas vezes (não chama super().form_valid)
         return HttpResponseRedirect(self.get_success_url())
 
     def form_invalid(self, form):
@@ -224,6 +276,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
             return JsonResponse({"success": False, "errors_html": errors_html}, status=400)
 
         return super().form_invalid(form)
+
 
 
 
@@ -379,107 +432,27 @@ class PostCommentCreateView(LoginRequiredMixin, CreateView):
 
 
 
+# social_net/views.py
+
 @login_required
-def send_friend_request(request, user_id):
+@require_POST
+def comment_delete(request, comment_id):
     """
-    Envia uma solicitação de amizade do usuário logado para outro usuário.
+    Inativa (soft delete) um comentário do usuário autenticado.
+
+    Retorna JSON para remoção do comentário no front-end.
     """
-    if request.method != "POST":
-        return JsonResponse({"success": False, "error": "invalid_method"}, status=405)
+    comment = get_object_or_404(PostComment, id=comment_id, is_active=True)
 
-    from_user = request.user
-    to_user = get_object_or_404(User, id=user_id)
+    if comment.user_id != request.user.id:
+        return JsonResponse({"success": False, "error": "forbidden"}, status=403)
 
-    if from_user.id == to_user.id:
-        return JsonResponse({"success": False, "error": "self_request"}, status=400)
-
-    # Evita duplicidade (qualquer direção)
-    exists = Friendship.objects.filter(
-        from_user=from_user,
-        to_user=to_user,
-    ).exists() or Friendship.objects.filter(
-        from_user=to_user,
-        to_user=from_user,
-    ).exists()
-
-    if exists:
-        return JsonResponse(
-            {"success": False, "error": "already_exists"},
-            status=400,
-        )
-
-    Friendship.objects.create(
-        from_user=from_user,
-        to_user=to_user,
-        status=Friendship.Status.PENDING,
-    )
+    comment.is_active = False
+    comment.save(update_fields=["is_active"])
 
     return JsonResponse(
         {
             "success": True,
-            "status": "pending",
-            "message": "Solicitação enviada",
+            "comment_id": str(comment.id),
         }
     )
-
-
-
-@login_required
-def friendship_accept(request, friendship_id: int):
-    if request.method != "POST":
-        return JsonResponse({"success": False, "error": "invalid_method"}, status=405)
-
-    fr = get_object_or_404(Friendship, id=friendship_id)
-
-    # Só o destinatário pode aceitar
-    if fr.to_user_id != request.user.id:
-        return JsonResponse({"success": False, "error": "forbidden"}, status=403)
-
-    # Só aceita se estiver pendente
-    if fr.status != Friendship.Status.PENDING:
-        return JsonResponse({"success": False, "error": "not_pending"}, status=400)
-
-    fr.status = Friendship.Status.ACCEPTED
-    fr.responded_at = getattr(fr, "responded_at", None)  # se existir no model
-    if hasattr(fr, "responded_at"):
-        from django.utils import timezone
-        fr.responded_at = timezone.now()
-        fr.save(update_fields=["status", "responded_at"])
-    else:
-        fr.save(update_fields=["status"])
-
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({"success": True, "status": "accepted"}, status=200)
-
-    return HttpResponseRedirect(reverse("social_net:friendship"))
-
-
-
-
-@login_required
-def friendship_decline(request, friendship_id: int):
-    if request.method != "POST":
-        return JsonResponse({"success": False, "error": "invalid_method"}, status=405)
-
-    fr = get_object_or_404(Friendship, id=friendship_id)
-
-    # Só o destinatário pode recusar
-    if fr.to_user_id != request.user.id:
-        return JsonResponse({"success": False, "error": "forbidden"}, status=403)
-
-    # Só recusa se estiver pendente
-    if fr.status != Friendship.Status.PENDING:
-        return JsonResponse({"success": False, "error": "not_pending"}, status=400)
-
-    fr.status = Friendship.Status.DECLINED
-    if hasattr(fr, "responded_at"):
-        from django.utils import timezone
-        fr.responded_at = timezone.now()
-        fr.save(update_fields=["status", "responded_at"])
-    else:
-        fr.save(update_fields=["status"])
-
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({"success": True, "status": "declined"}, status=200)
-
-    return HttpResponseRedirect(reverse("social_net:friendship"))

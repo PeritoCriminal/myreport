@@ -1,5 +1,11 @@
 from pathlib import Path
 
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  
+
+SESSION_COOKIE_AGE = 600
+
+SESSION_SAVE_EVERY_REQUEST = True
+
 AUTH_USER_MODEL = 'accounts.User'
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,8 +23,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     "accounts.apps.AccountsConfig",
     'home',
+    'groups',
     'social_net',
 ]
 
@@ -93,11 +101,12 @@ STATICFILES_DIRS = [
     BASE_DIR / 'myreport' / 'static',
 ]
 
-MEDIA_URL = "/users/"
-MEDIA_ROOT = BASE_DIR / "users"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "home:index"
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "home:dashboard"
 LOGOUT_REDIRECT_URL = "home:index"

@@ -1,9 +1,11 @@
 from django.urls import path
-from .views import HomeView
+from .views import IndexView, DashboardView, ZenDoLaudoView
 
 
 app_name = 'home'
 
 urlpatterns = [
-    path('', HomeView.as_view(), name='index'),
+    path('', IndexView.as_view(), name='index'),
+    path("dashboard/", DashboardView.as_view(), name="dashboard"),
+    path("zen-do-laudo/", ZenDoLaudoView.as_view(), name="zen_do_laudo"),
 ]

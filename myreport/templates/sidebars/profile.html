@@ -1,0 +1,23 @@
+{# templates/sidebars/profile.html #}
+
+<nav class="nav nav-pills flex-column gap-1">
+  <a class="nav-link {% if request.resolver_match.url_name == 'user_profile' %}active{% endif %}"
+     href="{% url 'accounts:user_profile' user_id=request.user.id %}">
+    <i class="bi bi-person-circle"></i> Meu perfil
+  </a>
+
+  <a class="nav-link {% if request.resolver_match.url_name == 'profile_edit' %}active{% endif %}"
+     href="{% url 'accounts:profile_edit' %}">
+    <i class="bi bi-pencil-square"></i> Editar perfil
+  </a>
+
+  <a class="nav-link"
+     href="{% url 'social_net:post_list' %}">
+    <i class="bi bi-card-text"></i> Minhas postagens
+  </a>
+
+  <a class="nav-link"
+     href="{% url 'groups:group_list' %}">
+    <i class="bi bi-diagram-3"></i> Meus grupos
+  </a>
+</nav>
