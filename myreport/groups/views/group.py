@@ -175,6 +175,11 @@ class GroupFeedView(LoginRequiredMixin, DetailView):
     context_object_name = "group"
 
     def dispatch(self, request, *args, **kwargs):
+        # 0) Garante que anônimos sejam barrados ANTES de qualquer consulta
+        # que utilize request.user (evita erro com AnonymousUser em filtros de FK/UUID).
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+
         # carrega o grupo (DetailView usa pk por padrão)
         self.object = self.get_object()
 
