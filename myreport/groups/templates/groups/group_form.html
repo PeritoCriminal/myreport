@@ -37,23 +37,17 @@
       {% if form.profile_image %}
         <div class="mb-3">
           <label class="form-label">{{ form.profile_image.label }}</label>
-
-          <!-- Preview (circular) -->
-          <div class="mt-2">
-            <img
-              id="profilePreview"
-              class="rounded-circle border shadow-sm"
-              style="width:120px; height:120px; object-fit:cover; display:none;"
-              alt="Pré-visualização da imagem de perfil do grupo"
-            />
-          </div>
-
           {{ form.profile_image }}
           {{ form.profile_image.errors }}
         </div>
 
         <!-- Editor perfil -->
-        <div id="profile-editor" class="img-editor-wrap mb-4" style="display:none;">
+        <div
+          id="profile-editor"
+          class="img-editor-wrap mb-4"
+          data-initial-src="{% if form.instance.profile_image %}{{ form.instance.profile_image.url }}{% else %}{% static 'img/genericgroupprofile.png' %}{% endif %}"
+          style="display:none;"
+        >
           <div class="card">
             <div class="card-body">
               <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
@@ -92,7 +86,12 @@
         </div>
 
         <!-- Editor fundo -->
-        <div id="bg-editor" class="img-editor-wrap mb-4" style="display:none;">
+        <div
+          id="bg-editor"
+          class="img-editor-wrap mb-4"
+          data-initial-src="{% if form.instance.background_image %}{{ form.instance.background_image.url }}{% else %}{% static 'img/genericgroupbackground.pnj' %}{% endif %}"
+          style="display:none;"
+        >
           <div class="card">
             <div class="card-body">
               <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
@@ -129,8 +128,8 @@
           <i class="bi bi-check2"></i> {% if object %}Salvar{% else %}Criar{% endif %}
         </button>
 
-        <a class="btn btn-link" href="{% url 'groups:group_list' %}">
-          Cancelar
+        <a class="btn btn-outline-secondary" href="{% url 'groups:group_list' %}">
+          <i class="bi bi-x-lg"></i> Cancelar
         </a>
       </div>
     </form>
@@ -162,9 +161,6 @@
 
         if (!input || !wrap || !canvas) return
 
-        // Preview (somente para o perfil, se existir)
-        const profilePreview = document.getElementById('profilePreview')
-
         let img = new Image()
         let loaded = false
 
@@ -182,6 +178,13 @@
         let pinching = false
         let pinchStartDist = 0
         let pinchStartScale = 1
+
+        // dirty state
+        let dirty = false
+        function setDirty(v) {
+          dirty = !!v
+          if (btnApply) btnApply.disabled = !dirty
+        }
 
         function fitToCanvas() {
           const sx = canvas.width / img.width
@@ -228,7 +231,7 @@
           ctx.restore()
         }
 
-        function center() {
+        function center(markDirty = true) {
           if (!loaded) return
           const w = img.width * scale
           const h = img.height * scale
@@ -236,16 +239,18 @@
           oy = (canvas.height - h) / 2
           bound()
           draw()
+          if (markDirty) setDirty(true)
         }
 
-        function reset() {
+        function reset(markDirty = true) {
           if (!loaded) return
           fitToCanvas()
           bound()
           draw()
+          if (markDirty) setDirty(true)
         }
 
-        function zoomBy(factor, anchorX = canvas.width / 2, anchorY = canvas.height / 2) {
+        function zoomBy(factor, anchorX = canvas.width / 2, anchorY = canvas.height / 2, markDirty = true) {
           if (!loaded) return
 
           const ix = (anchorX - ox) / scale
@@ -260,10 +265,10 @@
 
           bound()
           draw()
+          if (markDirty) setDirty(true)
         }
 
-        function loadFile(file) {
-          const url = URL.createObjectURL(file)
+        function loadFromSrc(src, { revoke = false } = {}) {
           img = new Image()
           img.onload = () => {
             loaded = true
@@ -271,25 +276,31 @@
             fitToCanvas()
             bound()
             draw()
-            URL.revokeObjectURL(url)
+            setDirty(false)
+            if (revoke) URL.revokeObjectURL(src)
           }
-          img.src = url
+          img.src = src
         }
 
+        function loadFile(file) {
+          const url = URL.createObjectURL(file)
+          loadFromSrc(url, { revoke: true })
+        }
+
+        // carregar imagem inicial (BD ou default)
+        const initialSrc = wrap.dataset.initialSrc
+        if (initialSrc) {
+          loadFromSrc(initialSrc, { revoke: false })
+        }
+
+        // trocar imagem via input
         input.addEventListener('change', (e) => {
           const file = e.target.files && e.target.files[0]
           if (!file) return
-
-          // Preview circular (perfil)
-          if (profilePreview && cfg.inputId === cfg.profileInputIdForPreview) {
-            profilePreview.src = URL.createObjectURL(file)
-            profilePreview.style.display = 'block'
-          }
-
           loadFile(file)
         })
 
-        // zoom no wheel / trackpad (desktop)
+        // zoom wheel / trackpad
         canvas.addEventListener(
           'wheel',
           (e) => {
@@ -299,12 +310,12 @@
             const ax = ((e.clientX - rect.left) / rect.width) * canvas.width
             const ay = ((e.clientY - rect.top) / rect.height) * canvas.height
             const factor = e.deltaY < 0 ? cfg.zoomStep ?? 1.12 : 1 / (cfg.zoomStep ?? 1.12)
-            zoomBy(factor, ax, ay)
+            zoomBy(factor, ax, ay, true)
           },
           { passive: false }
         )
 
-        // pan (mouse)
+        // pan mouse
         canvas.addEventListener('mousedown', (e) => {
           if (!loaded) return
           dragging = true
@@ -321,6 +332,7 @@
           oy = startOY + (e.clientY - startY)
           bound()
           draw()
+          setDirty(true)
         })
 
         window.addEventListener('mouseup', () => {
@@ -365,6 +377,7 @@
               oy = startOY + (e.touches[0].clientY - startY)
               bound()
               draw()
+              setDirty(true)
               e.preventDefault()
               return
             }
@@ -384,7 +397,7 @@
               const ay = ((cy - rect.top) / rect.height) * canvas.height
 
               const rel = next / scale
-              zoomBy(rel, ax, ay)
+              zoomBy(rel, ax, ay, true)
 
               e.preventDefault()
             }
@@ -403,14 +416,17 @@
         )
 
         // botões
-        btnZoomIn && btnZoomIn.addEventListener('click', () => zoomBy(cfg.zoomStep ?? 1.12))
-        btnZoomOut && btnZoomOut.addEventListener('click', () => zoomBy(1 / (cfg.zoomStep ?? 1.12)))
-        btnCenter && btnCenter.addEventListener('click', center)
-        btnReset && btnReset.addEventListener('click', reset)
+        if (btnApply) btnApply.disabled = true
+
+        btnZoomIn && btnZoomIn.addEventListener('click', () => zoomBy(cfg.zoomStep ?? 1.12, undefined, undefined, true))
+        btnZoomOut && btnZoomOut.addEventListener('click', () => zoomBy(1 / (cfg.zoomStep ?? 1.12), undefined, undefined, true))
+        btnCenter && btnCenter.addEventListener('click', () => center(true))
+        btnReset && btnReset.addEventListener('click', () => reset(true))
 
         btnApply &&
           btnApply.addEventListener('click', async () => {
             if (!loaded) return
+            if (!dirty) return
 
             const blob = await new Promise((resolve) =>
               canvas.toBlob(resolve, cfg.mimeType ?? 'image/jpeg', cfg.quality ?? 0.9)
@@ -430,14 +446,13 @@
             const dt = new DataTransfer()
             dt.items.add(newFile)
             input.files = dt.files
+
+            setDirty(false)
           })
       }
 
-      // Ajuste os IDs para os IDs reais dos fields do seu GroupForm:
-      // por padrão Django: id_profile_image / id_background_image
       createEditor({
         inputId: 'id_profile_image',
-        profileInputIdForPreview: 'id_profile_image',
         wrapId: 'profile-editor',
         canvasId: 'profileCanvas',
         btnZoomInId: 'btnProfileZoomIn',
@@ -445,7 +460,7 @@
         btnCenterId: 'btnProfileCenter',
         btnResetId: 'btnProfileReset',
         btnApplyId: 'btnProfileApply',
-        defaultName: 'profile.jpg',
+        defaultName: 'group_profile.jpg',
         suffix: '_profile',
         ext: '.jpg',
         zoomStep: 1.12,
@@ -461,7 +476,7 @@
         btnCenterId: 'btnBgCenter',
         btnResetId: 'btnBgReset',
         btnApplyId: 'btnBgApply',
-        defaultName: 'background.jpg',
+        defaultName: 'group_background.jpg',
         suffix: '_bg',
         ext: '.jpg',
         zoomStep: 1.12,

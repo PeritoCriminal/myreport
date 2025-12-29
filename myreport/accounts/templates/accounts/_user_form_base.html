@@ -55,16 +55,28 @@
         <label class="form-label">{{ form.profile_image.label }}</label>
 
         <!-- Preview (circular) -->
-        <div class="mt-2">
+
+        {% comment %}Esse trecho pode ser eliminado uma vez que o camvas vai exibir a imagem.<div class="mt-2">
           <img id="profilePreview" class="rounded-circle border shadow-sm" style="width:120px; height:120px; object-fit:cover; display:none;" alt="Pré-visualização da foto de perfil" />
         </div>
 
+        {% endcomment %}
         {{ form.profile_image }}
         {{ form.profile_image.errors }}
       </div>
 
       <!-- Profile editor -->
-      <div id="profile-editor" class="img-editor-wrap mb-4" style="display:none;">
+      {# O editor já deve estar com o canvas aberto e exibindo a imagem que está salva no bd assim que a página é carregada. #}
+      {# Caso o usuário não tenha imagem de perfil ainda, isso pode ocorrer durante o cadastro, tem uma imagem padrão em accounts/static/img/profile_generic_image.png #}
+
+      <div id="profile-editor"
+        class="img-editor-wrap mb-4"
+        data-initial-src="{% if form.instance.profile_image %}
+          {{ form.instance.profile_image.url }}
+        {% else %}
+          {% static 'img/profile_generic_image.png' %}
+        {% endif %}"
+        style="display:none;">
         <div class="card">
           <div class="card-body">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
@@ -79,6 +91,7 @@
                 <button type="button" id="btnProfileZoomOut" class="btn btn-outline-secondary btn-sm">−</button>
                 <button type="button" id="btnProfileCenter" class="btn btn-outline-secondary btn-sm">Centralizar</button>
                 <button type="button" id="btnProfileReset" class="btn btn-outline-secondary btn-sm">Reset</button>
+                {# O btn aplicar deve estar desabilitado se nenhuma alteração foi realizada no canvas, e é abilitado quando da alteração e depois desabilitado após o click #}
                 <button type="button" id="btnProfileApply" class="btn btn-primary btn-sm">Aplicar</button>
               </div>
 
@@ -96,7 +109,16 @@
       </div>
 
       <!-- Background editor -->
-      <div id="bg-editor" class="img-editor-wrap mb-4" style="display:none;">
+      {# O editor já deve estar com o canvas aberto e exibindo a imagem que está salva no bd assim que a página é carregada. #}
+      {# Caso o usuário não tenha imagem de perfil ainda, isso pode ocorrer durante o cadastro, tem uma imagem padrão em accounts/static/img/background_image.jpg #}
+      <div id="bg-editor"
+        class="img-editor-wrap mb-4"
+        data-initial-src="{% if form.instance.background_image %}
+          {{ form.instance.background_image.url }}
+        {% else %}
+          {% static 'img/background_image.jpg' %}
+        {% endif %}"
+        style="display:none;">
         <div class="card">
           <div class="card-body">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
@@ -111,6 +133,7 @@
                 <button type="button" id="btnBgZoomOut" class="btn btn-outline-secondary btn-sm">−</button>
                 <button type="button" id="btnBgCenter" class="btn btn-outline-secondary btn-sm">Centralizar</button>
                 <button type="button" id="btnBgReset" class="btn btn-outline-secondary btn-sm">Reset</button>
+                {# O btn aplicar deve estar desabilitado se nenhuma alteração foi realizada no canvas, e é abilitado quando da alteração e depois desabilitado após o click #}
                 <button type="button" id="btnBgApply" class="btn btn-primary btn-sm">Aplicar</button>
               </div>
 
@@ -161,9 +184,6 @@
       
           if (!input || !wrap || !canvas) return
       
-          // Preview (somente para o perfil, se existir)
-          const profilePreview = document.getElementById('profilePreview')
-      
           let img = new Image()
           let loaded = false
       
@@ -184,6 +204,13 @@
           let pinching = false
           let pinchStartDist = 0
           let pinchStartScale = 1
+      
+          // dirty state (habilitar/desabilitar aplicar)
+          let dirty = false
+          function setDirty(v) {
+            dirty = !!v
+            if (btnApply) btnApply.disabled = !dirty
+          }
       
           function fitToCanvas() {
             const sx = canvas.width / img.width
@@ -230,7 +257,7 @@
             ctx.restore()
           }
       
-          function center() {
+          function center(markDirty = true) {
             if (!loaded) return
             const w = img.width * scale
             const h = img.height * scale
@@ -238,16 +265,18 @@
             oy = (canvas.height - h) / 2
             bound()
             draw()
+            if (markDirty) setDirty(true)
           }
       
-          function reset() {
+          function reset(markDirty = true) {
             if (!loaded) return
             fitToCanvas()
             bound()
             draw()
+            if (markDirty) setDirty(true)
           }
       
-          function zoomBy(factor, anchorX = canvas.width / 2, anchorY = canvas.height / 2) {
+          function zoomBy(factor, anchorX = canvas.width / 2, anchorY = canvas.height / 2, markDirty = true) {
             if (!loaded) return
       
             const ix = (anchorX - ox) / scale
@@ -262,10 +291,10 @@
       
             bound()
             draw()
+            if (markDirty) setDirty(true)
           }
       
-          function loadFile(file) {
-            const url = URL.createObjectURL(file)
+          function loadFromSrc(src, { revoke = false } = {}) {
             img = new Image()
             img.onload = () => {
               loaded = true
@@ -273,21 +302,27 @@
               fitToCanvas()
               bound()
               draw()
-              URL.revokeObjectURL(url)
+              setDirty(false) // imagem atual carregada => sem alterações pendentes
+              if (revoke) URL.revokeObjectURL(src)
             }
-            img.src = url
+            img.src = src
           }
       
+          function loadFile(file) {
+            const url = URL.createObjectURL(file)
+            loadFromSrc(url, { revoke: true })
+          }
+      
+          // 1) CARREGAR IMAGEM INICIAL (BD ou default) NO LOAD
+          const initialSrc = wrap.dataset.initialSrc
+          if (initialSrc) {
+            loadFromSrc(initialSrc, { revoke: false })
+          }
+      
+          // 2) QUANDO TROCAR O INPUT, CARREGA NOVA IMAGEM E ABRE EDITOR
           input.addEventListener('change', (e) => {
             const file = e.target.files && e.target.files[0]
             if (!file) return
-      
-            // Preview circular (perfil)
-            if (profilePreview && cfg.inputId === 'id_profile_image') {
-              profilePreview.src = URL.createObjectURL(file)
-              profilePreview.style.display = 'block'
-            }
-      
             loadFile(file)
           })
       
@@ -301,7 +336,7 @@
               const ax = ((e.clientX - rect.left) / rect.width) * canvas.width
               const ay = ((e.clientY - rect.top) / rect.height) * canvas.height
               const factor = e.deltaY < 0 ? cfg.zoomStep ?? 1.12 : 1 / (cfg.zoomStep ?? 1.12)
-              zoomBy(factor, ax, ay)
+              zoomBy(factor, ax, ay, true)
             },
             { passive: false }
           )
@@ -323,13 +358,14 @@
             oy = startOY + (e.clientY - startY)
             bound()
             draw()
+            setDirty(true)
           })
       
           window.addEventListener('mouseup', () => {
             dragging = false
           })
       
-          // touch: pan + pinch (IMPORTANTE: passive:false)
+          // touch: pan + pinch
           canvas.addEventListener(
             'touchstart',
             (e) => {
@@ -367,6 +403,7 @@
                 oy = startOY + (e.touches[0].clientY - startY)
                 bound()
                 draw()
+                setDirty(true)
                 e.preventDefault()
                 return
               }
@@ -375,21 +412,18 @@
                 const d = dist(e.touches[0], e.touches[1])
                 if (!pinchStartDist) return
       
-                // fator relativo ao início do pinch
                 const factor = d / pinchStartDist
                 const next = clamp(pinchStartScale * factor, minScale, maxScale)
                 if (next === scale) return
       
-                // âncora: centro entre os dois dedos
                 const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2
                 const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2
                 const rect = canvas.getBoundingClientRect()
                 const ax = ((cx - rect.left) / rect.width) * canvas.width
                 const ay = ((cy - rect.top) / rect.height) * canvas.height
       
-                // aplica zoom mantendo âncora
                 const rel = next / scale
-                zoomBy(rel, ax, ay)
+                zoomBy(rel, ax, ay, true)
       
                 e.preventDefault()
               }
@@ -408,20 +442,23 @@
           )
       
           // botões
-          btnZoomIn && btnZoomIn.addEventListener('click', () => zoomBy(cfg.zoomStep ?? 1.12))
-          btnZoomOut && btnZoomOut.addEventListener('click', () => zoomBy(1 / (cfg.zoomStep ?? 1.12)))
-          btnCenter && btnCenter.addEventListener('click', center)
-          btnReset && btnReset.addEventListener('click', reset)
+          btnZoomIn && btnZoomIn.addEventListener('click', () => zoomBy(cfg.zoomStep ?? 1.12, undefined, undefined, true))
+          btnZoomOut && btnZoomOut.addEventListener('click', () => zoomBy(1 / (cfg.zoomStep ?? 1.12), undefined, undefined, true))
+          btnCenter && btnCenter.addEventListener('click', () => center(true))
+          btnReset && btnReset.addEventListener('click', () => reset(true))
+      
+          // iniciar aplicar desabilitado
+          if (btnApply) btnApply.disabled = true
       
           btnApply &&
             btnApply.addEventListener('click', async () => {
               if (!loaded) return
+              if (!dirty) return
       
               const blob = await new Promise((resolve) => canvas.toBlob(resolve, cfg.mimeType ?? 'image/jpeg', cfg.quality ?? 0.9))
               if (!blob) return
       
               const originalName = input.files && input.files[0] && input.files[0].name ? input.files[0].name : cfg.defaultName ?? 'image.jpg'
-      
               const base = originalName.replace(/\.[^/.]+$/, '')
               const finalName = (cfg.suffix ? base + cfg.suffix : base + '_crop') + (cfg.ext ?? '.jpg')
       
@@ -429,6 +466,8 @@
               const dt = new DataTransfer()
               dt.items.add(newFile)
               input.files = dt.files
+      
+              setDirty(false) // aplicado => volta a desabilitar
             })
         }
       
