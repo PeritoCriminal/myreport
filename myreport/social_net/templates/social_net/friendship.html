@@ -51,13 +51,30 @@
               </div>
             </div>
 
-            <div class="card-footer bg-white border-top text-end">
+            <div class="card-footer bg-white border-top text-end d-flex justify-content-end gap-2">
               <a
                 href="{% url 'accounts:user_profile' u.id %}"
                 class="btn btn-sm btn-outline-primary"
               >
                 Visitar
               </a>
+
+              {# Botão seguir / deixar de seguir (u.is_following vem anotado na queryset) #}
+              <form method="post" action="{% url 'accounts:follow_toggle' u.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                {% if u.is_following %}
+                  <button class="btn btn-sm btn-outline-secondary" type="submit">
+                    <i class="bi bi-person-dash"></i>
+                    <span class="d-none d-md-inline">Deixar</span>
+                  </button>
+                {% else %}
+                  <button class="btn btn-sm btn-primary" type="submit">
+                    <i class="bi bi-person-plus"></i>
+                    <span class="d-none d-md-inline">Seguir</span>
+                  </button>
+                {% endif %}
+              </form>
             </div>
           </div>
         </div>

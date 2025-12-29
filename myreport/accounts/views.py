@@ -9,9 +9,11 @@ from django.urls.exceptions import NoReverseMatch
 from django.views.generic import CreateView, UpdateView, TemplateView
 from django.db.models import Q, Avg, Count, Exists, OuterRef, Subquery
 from django.views.generic import ListView
+from django.http import HttpResponseBadRequest
+from django.views import View
 
 from .forms import UserRegistrationForm, UserProfileEditForm, UserSetPasswordForm
-from .models import User
+from .models import User, UserFollow
 
 from social_net.models import Post, PostLike, PostRating
 
@@ -102,6 +104,17 @@ class AllUserListView(LoginRequiredMixin, ListView):
                 Q(display_name__icontains=q) |
                 Q(username__icontains=q)
             )
+        
+        qs = qs.annotate(
+            is_following=Exists(
+                UserFollow.objects.filter(
+                    follower=self.request.user,
+                    following_id=OuterRef("pk"),
+                    is_active=True,
+                )
+            )
+        )
+
         return qs
 
 
@@ -158,11 +171,57 @@ class UserProfileView(LoginRequiredMixin, TemplateView):
         ctx["profile_user"] = self.profile_user
         ctx["stars_5"] = range(1, 6)
 
+        viewer = self.request.user
+        target = self.profile_user
+
+        ctx["is_me"] = (viewer.pk == target.pk)
+        ctx["is_following"] = UserFollow.objects.filter(
+            follower=viewer,
+            following=target,
+            is_active=True,
+        ).exists()
+
+        # número de seguidores
+        ctx["followers_count"] = UserFollow.objects.filter(
+            following=target,
+            is_active=True,
+        ).count()
+
+        # número de usuários que ele segue
+        ctx["following_count"] = UserFollow.objects.filter(
+            follower=target,
+            is_active=True,
+        ).count()
+
+
         if active_tab == "posts":
             ctx["posts"] = self._get_posts_queryset()
 
-        # futuramente:
-        # if active_tab == "articles": ctx["articles"] = ...
-        # if active_tab == "groups": ctx["groups"] = ...
-
         return ctx
+
+
+
+
+class FollowToggleView(LoginRequiredMixin, View):
+    """
+    Alterna seguir/deixar de seguir (soft toggle via is_active).
+    """
+
+    def post(self, request, user_id, *args, **kwargs):
+        target = get_object_or_404(User, pk=user_id, is_active=True)
+
+        if target.pk == request.user.pk:
+            return HttpResponseBadRequest("Você não pode seguir a si mesmo.")
+
+        rel, created = UserFollow.objects.get_or_create(
+            follower=request.user,
+            following=target,
+            defaults={"is_active": True},
+        )
+
+        if not created:
+            rel.is_active = not rel.is_active
+            rel.save(update_fields=["is_active"])
+
+        next_url = (request.POST.get("next") or "").strip()
+        return redirect(next_url or reverse("accounts:user_profile", kwargs={"user_id": target.pk}))

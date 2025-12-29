@@ -3,7 +3,10 @@ from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Exists, OuterRef, Prefetch,Subquery, Count, Q  
+from django.db.models import Exists, OuterRef, Prefetch, Subquery, Count, Q, Case, When, Value, IntegerField
+
+
+
 from django.http import JsonResponse, HttpResponseRedirect, request
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -14,6 +17,7 @@ from django.views.generic import CreateView, ListView, DetailView
 from .forms import PostCommentForm, PostForm
 from .models import Post, PostComment, PostLike, PostRating
 from groups.models import GroupMembership
+from accounts.models import UserFollow
 
 
 
@@ -22,16 +26,14 @@ class PostListView(LoginRequiredMixin, ListView):
     """
     Lista postagens ativas com paginação e busca por título.
 
-    Anota no queryset se o usuário autenticado já curtiu e/ou avaliou cada postagem.
-    Também pré-carrega comentários (nível raiz) e expõe os 5 mais recentes em
-    `post.last_comments` para renderização direta no template.
+    Prioriza postagens de usuários seguidos (no topo),
+    mantendo ordenação por atualização.
     """
 
     model = Post
     template_name = "social_net/post_list.html"
     context_object_name = "posts"
     paginate_by = 10
-    ordering = ["-updated_at"]
 
     def get_queryset(self):
         user = self.request.user
@@ -42,12 +44,23 @@ class PostListView(LoginRequiredMixin, ListView):
             .order_by("-created_at")
         )
 
-        user_groups_sq = GroupMembership.objects.filter(user_id=user.pk).values("group_id")
+        user_groups_sq = GroupMembership.objects.filter(
+            user_id=user.pk
+        ).values("group_id")
 
-        # Subquery para obter o valor da avaliação (value) do usuário logado para a postagem atual
         user_rating_value_sq = (
-            PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
+            PostRating.objects.filter(
+                post_id=OuterRef("pk"),
+                user_id=user.pk
+            )
             .values("value")[:1]
+        )
+
+        # subquery: verifica se o autor da postagem é seguido pelo usuário
+        is_from_followed_user_sq = UserFollow.objects.filter(
+            follower=user,
+            following_id=OuterRef("user_id"),
+            is_active=True,
         )
 
         qs = (
@@ -59,15 +72,34 @@ class PostListView(LoginRequiredMixin, ListView):
             .select_related("user", "group")
             .annotate(
                 has_liked=Exists(
-                    PostLike.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
+                    PostLike.objects.filter(
+                        post_id=OuterRef("pk"),
+                        user_id=user.pk
+                    )
                 ),
                 has_rated=Exists(
-                    PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
+                    PostRating.objects.filter(
+                        post_id=OuterRef("pk"),
+                        user_id=user.pk
+                    )
                 ),
                 user_rating_value=Subquery(user_rating_value_sq),
+
+                # flag: 1 = autor seguido | 0 = não seguido
+                is_from_followed=Case(
+                    When(
+                        Exists(is_from_followed_user_sq),
+                        then=Value(1)
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                ),
             )
-            .prefetch_related(Prefetch("comments", queryset=comments_qs))
-            .order_by("-updated_at")
+            .prefetch_related(
+                Prefetch("comments", queryset=comments_qs)
+            )
+            # primeiro seguidos, depois os demais; ambos por atualização
+            .order_by("-is_from_followed", "-updated_at")
         )
 
         q = (self.request.GET.get("q") or "").strip()

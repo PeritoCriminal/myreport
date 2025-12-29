@@ -9,6 +9,7 @@ from .views import (
     UserPasswordChangeView,
     AllUserListView,
     UserProfileView,
+    FollowToggleView,
 )
 
 app_name = 'accounts'
@@ -21,4 +22,5 @@ urlpatterns = [
     path("logout/", user_logout, name="logout"),
     path("users/", AllUserListView.as_view(), name="user_list"),
     path("u/<uuid:user_id>/", UserProfileView.as_view(), name="user_profile"),
+    path("u/<uuid:user_id>/follow-toggle/", FollowToggleView.as_view(), name="follow_toggle"),
 ]
