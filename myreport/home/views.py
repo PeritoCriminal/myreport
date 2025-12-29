@@ -23,3 +23,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     Página inicial do usuário autenticado.
     """
     template_name = "home/dashboard.html"
+
+
+
+class ZenDoLaudoView(LoginRequiredMixin, TemplateView):
+    """
+    Com base no zen do python.
+    """
+    template_name = "home/zen_do_laudo.html"
