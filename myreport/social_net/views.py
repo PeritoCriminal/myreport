@@ -4,9 +4,6 @@ from __future__ import annotations
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Exists, OuterRef, Prefetch, Subquery, Count, Q, Case, When, Value, IntegerField
-
-
-
 from django.http import JsonResponse, HttpResponseRedirect, request
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -15,11 +12,26 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, ListView, DetailView
 
 from .forms import PostCommentForm, PostForm
-from .models import Post, PostComment, PostLike, PostRating
+from .models import Post, PostComment, PostLike, PostRating, PostHidden
 from groups.models import GroupMembership
 from accounts.models import UserFollow
 
 
+
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import (
+    Q, Exists, OuterRef, Subquery,
+    Case, When, Value, IntegerField, Prefetch
+)
+from django.views.generic import ListView
+
+from accounts.models import UserFollow
+from groups.models import GroupMembership
+from social_net.models import (
+    Post, PostComment, PostLike, PostRating, PostHidden
+)
+from social_net.forms import PostForm
 
 
 class PostListView(LoginRequiredMixin, ListView):
@@ -27,7 +39,8 @@ class PostListView(LoginRequiredMixin, ListView):
     Lista postagens ativas com paginação e busca por título.
 
     Prioriza postagens de usuários seguidos (no topo),
-    mantendo ordenação por atualização.
+    mantendo ordenação por atualização, e exclui postagens
+    ocultadas pelo usuário autenticado.
     """
 
     model = Post
@@ -37,6 +50,12 @@ class PostListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         user = self.request.user
+
+        # subquery: postagens ocultadas pelo usuário
+        hidden_sq = PostHidden.objects.filter(
+            post_id=OuterRef("pk"),
+            user=user,
+        )
 
         comments_qs = (
             PostComment.objects.filter(is_active=True, parent__isnull=True)
@@ -71,6 +90,7 @@ class PostListView(LoginRequiredMixin, ListView):
             )
             .select_related("user", "group")
             .annotate(
+                # flags do usuário
                 has_liked=Exists(
                     PostLike.objects.filter(
                         post_id=OuterRef("pk"),
@@ -94,7 +114,19 @@ class PostListView(LoginRequiredMixin, ListView):
                     default=Value(0),
                     output_field=IntegerField(),
                 ),
+
+                # flag: 1 = ocultada | 0 = visível
+                is_hidden=Case(
+                    When(
+                        Exists(hidden_sq),
+                        then=Value(1)
+                    ),
+                    default=Value(0),
+                    output_field=IntegerField(),
+                ),
             )
+            # exclui ocultadas
+            .filter(is_hidden=0)
             .prefetch_related(
                 Prefetch("comments", queryset=comments_qs)
             )
@@ -118,6 +150,7 @@ class PostListView(LoginRequiredMixin, ListView):
         ctx["rating_range"] = range(1, 6)
         ctx["stars_5"] = range(1, 6)
         return ctx
+
 
 
 
@@ -456,3 +489,36 @@ def comment_delete(request, comment_id):
             "comment_id": str(comment.id),
         }
     )
+
+
+
+
+@login_required
+def toggle_hide_post(request, post_id):
+    """
+    Alterna o estado de ocultação de uma postagem para o usuário autenticado.
+
+    Quando acionada, esta view verifica se a postagem informada já se encontra
+    marcada como ocultada pelo usuário:
+    – caso não esteja, cria o registro de ocultação, fazendo com que a postagem
+      deixe de ser exibida em seu feed;
+    – caso já esteja, remove o registro correspondente, tornando a postagem
+      novamente visível.
+
+    A operação não altera a postagem em si, não interfere em curtidas,
+    comentários ou demais interações, e afeta exclusivamente a visualização
+    do usuário autenticado.
+    """
+    post = get_object_or_404(Post, pk=post_id)
+
+    obj, created = PostHidden.objects.get_or_create(
+        post=post,
+        user=request.user,
+    )
+
+    if not created:
+        obj.delete()
+        return JsonResponse({"hidden": False})
+
+    return JsonResponse({"hidden": True})
+

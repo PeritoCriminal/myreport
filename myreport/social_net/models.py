@@ -327,3 +327,43 @@ def update_post_on_comment_save(sender, instance, created, **kwargs):
         # Usa Post.objects.filter().update para evitar carregar o objeto
         # Post e evitar um loop de save recursivo.
         Post.objects.filter(pk=instance.post_id).update(updated_at=timezone.now())
+
+
+
+
+class PostHidden(models.Model):
+    """
+    Registra a ocultação de uma postagem por um usuário específico.
+
+    Este modelo permite que o usuário marque determinadas postagens para não
+    serem exibidas em seu feed pessoal, sem que a postagem seja excluída ou
+    alterada no sistema. A ocultação é individual, reversível e não afeta a
+    visualização da postagem por outros usuários.
+
+    Cada relação entre usuário e postagem é única, impedindo múltiplos registros
+    duplicados de ocultação para a mesma combinação.
+    """
+    post = models.ForeignKey(
+        "social_net.Post",
+        on_delete=models.CASCADE,
+        related_name="hidden_by",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="hidden_posts",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Postagem ocultada"
+        verbose_name_plural = "Postagens ocultadas"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["post", "user"],
+                name="uniq_post_hidden_per_user",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user_id} ocultou {self.post_id}"

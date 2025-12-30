@@ -13,15 +13,10 @@
         <strong>{{ post.user }}</strong>
 
         {% if post.group %}
-          <span class="badge text-bg-primary">
-            <i class="bi bi-people-fill"></i> {{ post.group.name }}
-          </span>
+          <span class="badge text-bg-primary"><i class="bi bi-people-fill"></i> {{ post.group.name }}</span>
         {% else %}
-          <span class="badge text-bg-secondary">
-            <i class="bi bi-globe"></i> Público
-          </span>
+          <span class="badge text-bg-secondary"><i class="bi bi-globe"></i> Público</span>
         {% endif %}
-
       </div>
 
       <small class="text-muted">{{ post.created_at }}</small>
@@ -45,10 +40,7 @@
           {% if '.jpg' in media_url or '.jpeg' in media_url or '.png' in media_url or '.webp' in media_url %}
             <img src="{{ post.media.url }}" class="img-fluid rounded" alt="Imagem do post" />
           {% elif '.mp4' in media_url or '.webm' in media_url %}
-            <video class="w-100 rounded"
-              controls
-              preload="metadata"
-              playsinline>
+            <video class="w-100 rounded" controls preload="metadata" playsinline>
               <source src="{{ post.media.url }}" />
             </video>
           {% elif '.mp3' in media_url or '.wav' in media_url or '.ogg' in media_url or '.m4a' in media_url %}
@@ -71,12 +63,17 @@
         {# Like (fetch) #}
         <button type="button" class="btn btn-sm btn-light d-flex align-items-center gap-1 js-like-btn" data-like-url="{% url 'social_net:post_like' post.id %}" title="Curtir">
           <i class="bi
-          {% if post.has_liked %}              
+          {% if post.has_liked %}
+                            
             bi-heart-fill text-danger
-            {% else %}              
+
+            {% else %}
+                            
             bi-heart
+
             {% endif %}
             ">
+
           </i>
           <span class="likes-count">{{ post.likes.count }}</span>
         </button>
@@ -86,17 +83,22 @@
           <button class="btn btn-sm btn-light d-flex align-items-center gap-1 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Avaliar">
             <i class="bi
               {% if post.has_rated %}
+                
                   bi-star-fill text-warning
+
               {% else %}
+                
                   bi-star
+
               {% endif %}
               js-rating-icon">
-          </i>
-          {% if post.user_rating_value %}
-            <span class="text-muted">Avaliar ({{ post.user_rating_value }})</span>
+
+            </i>
+            {% if post.user_rating_value %}
+              <span class="text-muted">Avaliar ({{ post.user_rating_value }})</span>
             {% else %}
-            <span class="text-muted">Avaliar</span>
-          {% endif %}
+              <span class="text-muted">Avaliar</span>
+            {% endif %}
           </button>
           <ul class="dropdown-menu dropdown-menu-end p-2">
             {% for i in rating_range %}
@@ -106,10 +108,15 @@
                   <span class="d-flex align-items-center gap-1">
                     {% for _ in stars_5 %}
                       <i class="bi {% if forloop.counter <= i %}
+                          
                           bi-star-fill
+
                         {% else %}
+                          
                           bi-star
+
                         {% endif %}">
+
                       </i>
                     {% endfor %}
                   </span>
@@ -121,21 +128,23 @@
 
         {# Comentários: abre/fecha somente o FORM #}
         <button class="btn btn-sm btn-light js-comments-toggle" data-bs-toggle="collapse" data-bs-target="#commentFormBox-{{ post.id }}" aria-controls="commentFormBox-{{ post.id }}" aria-expanded="false" data-post-id="{{ post.id }}" title="Comentar"><i class="bi bi-chat"></i></button>
-        {# Deletar (inativar) - apenas autor #}
+        {# Ações de visibilidade #}
         {% if request.user.id == post.user_id %}
+          {# Autor: pode inativar (excluir) #}
           <button type="button" class="btn btn-sm text-danger js-post-delete" data-delete-url="{% url 'social_net:post_delete' post.id %}" data-post-id="{{ post.id }}" title="Excluir postagem"><i class="bi bi-trash"></i></button>
+        {% else %}
+          {# Não autor: pode ocultar do feed #}
+          <button type="button" class="btn btn-sm btn-light js-post-hide" data-hide-url="{% url 'social_net:post_hide_toggle' post.id %}" data-post-id="{{ post.id }}" title="Ocultar esta postagem do seu feed"><i class="bi bi-eye-slash"></i></button>
         {% endif %}
       </div>
     </div>
 
-    {% include "social_net/partials/comment_form.html" with post=post %}
+    {% include 'social_net/partials/comment_form.html' with post=post %}
 
     {# 3) Lista dos 5 últimos comentários (SEMPRE visível) #}
     <div class="mt-2 ps-4 border-start">
       <div id="commentsList-{{ post.id }}" class="js-comments-list" data-post-id="{{ post.id }}">
         {% if post.last_comments %}
-
-
           {% for c in post.last_comments %}
             <div class="py-2 border-bottom" id="comment-{{ c.id }}">
               <div class="d-flex justify-content-between">
@@ -156,23 +165,13 @@
               {# Ação de deleção do comentário (somente autor) #}
               {% if request.user.id == c.user_id %}
                 <div class="mt-1 text-end">
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-link text-danger p-0 js-comment-delete"
-                    data-comment-id="{{ c.id }}"
-                    data-delete-url="{% url 'social_net:comment_delete' c.id %}"
-                    title="Excluir comentário"
-                  >
-                    <i class="bi bi-trash"></i>
-                  </button>
+                  <button type="button" class="btn btn-sm btn-link text-danger p-0 js-comment-delete" data-comment-id="{{ c.id }}" data-delete-url="{% url 'social_net:comment_delete' c.id %}" title="Excluir comentário"><i class="bi bi-trash"></i></button>
                 </div>
               {% endif %}
             </div>
           {% endfor %}
 
-          <a href="{% url 'social_net:post_detail' post.pk %}" class="small">
-            Ver todos os comentários
-          </a>
+          <a href="{% url 'social_net:post_detail' post.pk %}" class="small">Ver todos os comentários</a>
         {% else %}
           <small class="text-muted">Nenhum comentário ainda.</small>
         {% endif %}

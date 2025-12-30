@@ -11,6 +11,7 @@ from .views import (
     post_rate,
     post_like,
     comment_delete,
+    toggle_hide_post,
 )
 
 app_name = "social_net"
@@ -24,5 +25,6 @@ urlpatterns = [
     path("posts/<uuid:post_id>/like/", post_like, name="post_like"),
     path("posts/<uuid:post_id>/comments/", PostCommentListView.as_view(), name="comment_list"),
     path("posts/<uuid:post_id>/comments/create/", PostCommentCreateView.as_view(), name="comment_create"),
-    path("comments/<uuid:comment_id>/delete/", comment_delete, name="comment_delete",),
+    path("comments/<uuid:comment_id>/delete/", comment_delete, name="comment_delete"),
+    path("post/<uuid:post_id>/hide/", toggle_hide_post, name="post_hide_toggle"),
 ]
