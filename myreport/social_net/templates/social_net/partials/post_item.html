@@ -1,6 +1,6 @@
 {# templates/social_net/partials/post_item.html #}
 
-<div class="card mb-3 border-0" id="post-{{ post.id }}">
+<div class="card mb-5 shadow-sm border-0" id="post-{{ post.id }}">
   <div class="card-body p-1">
     <div class="d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center gap-2">
@@ -25,8 +25,10 @@
     <a href="{% url 'social_net:post_detail' post.pk %}" class="text-decoration-none text-dark">
       {% if post.title %}
         <h5 class="mb-1">{{ post.title }}</h5>
+      {% elif post.text %}
+        <p class="mb-1 text-muted">{{ post.text|truncatechars:30 }}</p>
       {% else %}
-        <p class="mb-1">{{ post.text|truncatechars:80 }}</p>
+        <p class="mb-1 fst-italic text-muted">Ver postagem</p>
       {% endif %}
     </a>
 
@@ -64,11 +66,20 @@
         <button type="button" class="btn btn-sm btn-light d-flex align-items-center gap-1 js-like-btn" data-like-url="{% url 'social_net:post_like' post.id %}" title="Curtir">
           <i class="bi
           {% if post.has_liked %}
+              
+              
             bi-heart-fill text-danger
+
+
             {% else %}
+              
+              
             bi-heart
+
+
             {% endif %}
             ">
+
           </i>
           <span class="likes-count">{{ post.likes.count }}</span>
         </button>
@@ -78,11 +89,20 @@
           <button class="btn btn-sm btn-light d-flex align-items-center gap-1 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Avaliar">
             <i class="bi
               {% if post.has_rated %}
+                
+                
                   bi-star-fill text-warning
+
+
               {% else %}
+                
+                
                   bi-star
+
+
               {% endif %}
               js-rating-icon">
+
             </i>
             {% if post.user_rating_value %}
               <span class="text-muted">Avaliar ({{ post.user_rating_value }})</span>
@@ -98,10 +118,19 @@
                   <span class="d-flex align-items-center gap-1">
                     {% for _ in stars_5 %}
                       <i class="bi {% if forloop.counter <= i %}
+                          
+                          
                           bi-star-fill
+
+
                         {% else %}
+                          
+                          
                           bi-star
+
+
                         {% endif %}">
+
                       </i>
                     {% endfor %}
                   </span>
@@ -116,36 +145,16 @@
 
         {# Ações de visibilidade #}
         {% if request.user.id == post.user_id %}
-
           {% if post.is_active %}
             {# Autor + ativa: pode inativar (excluir) #}
-            <button
-              type="button"
-              class="btn btn-sm text-danger js-post-delete"
-              data-delete-url="{% url 'social_net:post_delete' post.id %}"
-              data-post-id="{{ post.id }}"
-              title="Excluir postagem"
-            >
-              <i class="bi bi-trash"></i>
-            </button>
+            <button type="button" class="btn btn-sm text-danger js-post-delete" data-delete-url="{% url 'social_net:post_delete' post.id %}" data-post-id="{{ post.id }}" title="Excluir postagem"><i class="bi bi-trash"></i></button>
           {% else %}
             {# Autor + inativa: pode restaurar #}
-            <form
-              method="post"
-              action="{% url 'social_net:post_restore' post.id %}"
-              class="d-inline"
-            >
+            <form method="post" action="{% url 'social_net:post_restore' post.id %}" class="d-inline">
               {% csrf_token %}
-              <button
-                type="submit"
-                class="btn btn-sm text-success"
-                title="Restaurar postagem"
-              >
-                <i class="bi bi-arrow-counterclockwise"></i>
-              </button>
+              <button type="submit" class="btn btn-sm text-success" title="Restaurar postagem"><i class="bi bi-arrow-counterclockwise"></i></button>
             </form>
           {% endif %}
-
         {% else %}
           {# Não autor: pode ocultar do feed #}
           <button type="button" class="btn btn-sm btn-light js-post-hide" data-hide-url="{% url 'social_net:post_hide_toggle' post.id %}" data-post-id="{{ post.id }}" title="Ocultar esta postagem do seu feed"><i class="bi bi-eye-slash"></i></button>
@@ -185,6 +194,7 @@
             </div>
           {% endfor %}
 
+          {# O link abaixo somente dever ser visível se houver mais cometários além dos que são aqui exibidos #}
           <a href="{% url 'social_net:post_detail' post.pk %}" class="small">Ver todos os comentários</a>
         {% else %}
           <small class="text-muted">Nenhum comentário ainda.</small>
