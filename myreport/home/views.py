@@ -2,8 +2,9 @@ from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.db.models import Subquery
 
-from social_net.models import Post
+from social_net.models import Post, PostHidden
 
 
 
@@ -16,6 +17,15 @@ class IndexView(TemplateView):
         if request.user.is_authenticated:
             return redirect(reverse("home:dashboard"))
         return super().dispatch(request, *args, **kwargs)
+
+
+
+
+class ZenDoLaudoView(LoginRequiredMixin, TemplateView):
+    """
+    Com base no zen do python.
+    """
+    template_name = "home/zen_do_laudo.html"
 
 
 
@@ -38,13 +48,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             .order_by("-updated_at")[:5]
         )
 
+        hidden_post_ids = PostHidden.objects.filter(user=self.request.user).values("post_id")
+
+        ctx["hidden_posts"] = (
+            Post.objects.filter(id__in=Subquery(hidden_post_ids), is_active=True)
+            .select_related("user", "group")
+            .order_by("-updated_at")[:5]
+        )
+
         return ctx
-
-
-
-
-class ZenDoLaudoView(LoginRequiredMixin, TemplateView):
-    """
-    Com base no zen do python.
-    """
-    template_name = "home/zen_do_laudo.html"

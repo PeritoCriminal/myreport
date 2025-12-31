@@ -9,6 +9,7 @@ from .views import (
     PostCommentCreateView,
     ExcludedPostListView,
     ExcludedPostDetailView,
+    HiddenPostListView,
     RestorePostView,
     post_delete,
     post_rate,
@@ -32,4 +33,5 @@ urlpatterns = [
     path("post/<uuid:post_id>/hide/", toggle_hide_post, name="post_hide_toggle"),
     path("posts/excluidas/", ExcludedPostListView.as_view(), name="excluded_post_list"),
     path("post/excluida/<uuid:pk>/restaurar/", RestorePostView.as_view(), name="post_restore"),
+    path("posts/ocultadas/", HiddenPostListView.as_view(), name="hidden_post_list")
 ]

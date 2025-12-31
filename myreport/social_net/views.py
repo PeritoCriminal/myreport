@@ -494,21 +494,15 @@ def comment_delete(request, comment_id):
 
 
 
+@require_POST
 @login_required
 def toggle_hide_post(request, post_id):
     """
     Alterna o estado de ocultação de uma postagem para o usuário autenticado.
 
-    Quando acionada, esta view verifica se a postagem informada já se encontra
-    marcada como ocultada pelo usuário:
-    – caso não esteja, cria o registro de ocultação, fazendo com que a postagem
-      deixe de ser exibida em seu feed;
-    – caso já esteja, remove o registro correspondente, tornando a postagem
-      novamente visível.
-
-    A operação não altera a postagem em si, não interfere em curtidas,
-    comentários ou demais interações, e afeta exclusivamente a visualização
-    do usuário autenticado.
+    - Se a chamada for AJAX (fetch), retorna JSON.
+    - Se for POST normal (form), redireciona para a página anterior
+      (ou fallback no feed/lista).
     """
     post = get_object_or_404(Post, pk=post_id)
 
@@ -517,11 +511,18 @@ def toggle_hide_post(request, post_id):
         user=request.user,
     )
 
+    hidden = True
     if not created:
         obj.delete()
-        return JsonResponse({"hidden": False})
+        hidden = False
 
-    return JsonResponse({"hidden": True})
+    wants_json = (request.headers.get("X-Requested-With") or request.headers.get("x-requested-with")) == "XMLHttpRequest"
+
+    if wants_json:
+        return JsonResponse({"hidden": hidden})
+
+    return redirect(request.META.get("HTTP_REFERER") or reverse("social_net:post_list"))
+
 
 
 
@@ -584,3 +585,36 @@ class RestorePostView(LoginRequiredMixin, View):
         post.save(update_fields=["is_active"])
 
         return redirect(reverse("social_net:post_detail", args=[post.pk]))
+    
+
+
+
+class HiddenPostListView(LoginRequiredMixin, ListView):
+    """
+    Lista as postagens ocultadas pelo usuário autenticado.
+
+    Exibe postagens ativas que foram explicitamente ocultadas pelo usuário,
+    ordenadas pela data de última atualização, da mais recente para a mais antiga.
+
+    Esta view permite ao usuário revisar postagens ocultadas e reverter
+    a ocultação (voltar a visualizar) quando desejado.
+    """
+    model = Post
+    template_name = "social_net/hidden_post_list.html"
+    context_object_name = "posts"
+    paginate_by = 20
+
+    def get_queryset(self):
+        hidden_post_ids = PostHidden.objects.filter(
+            user=self.request.user
+        ).values("post_id")
+
+        return (
+            Post.objects
+            .filter(id__in=Subquery(hidden_post_ids), is_active=True)
+            .select_related("user", "group")
+            .order_by("-updated_at")
+        )
+    
+
+toggle_hide_post
