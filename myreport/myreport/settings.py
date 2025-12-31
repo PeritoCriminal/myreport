@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'home',
     'groups',
     'social_net',
+    'technical_repository',
 ]
 
 MIDDLEWARE = [
