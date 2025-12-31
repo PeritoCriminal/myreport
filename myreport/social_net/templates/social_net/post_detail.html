@@ -9,10 +9,8 @@
 
 {% block content %}
   <div class="container mt-4" style="max-width: 820px;">
-
     {# ===================== Post (sem borda) ===================== #}
     <div class="mb-4" id="post-{{ post.id }}">
-
       {# Cabeçalho do post: título + badge (público/grupo) + data + excluir #}
       <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
         <div class="me-2">
@@ -21,55 +19,46 @@
           {% endif %}
 
           {% if post.group %}
-            <span class="badge text-bg-primary">
-              <i class="bi bi-people-fill"></i> {{ post.group.name }}
-            </span>
+            <span class="badge text-bg-primary"><i class="bi bi-people-fill"></i> {{ post.group.name }}</span>
           {% else %}
-            <span class="badge text-bg-secondary">
-              <i class="bi bi-globe"></i> Público
-            </span>
+            <span class="badge text-bg-secondary"><i class="bi bi-globe"></i> Público</span>
           {% endif %}
         </div>
 
         <div class="d-flex align-items-center gap-2">
-          <small class="text-muted text-nowrap">
-            <i class="bi bi-clock"></i> {{ post.created_at }}
-          </small>
+          <small class="text-muted text-nowrap"><i class="bi bi-clock"></i> {{ post.created_at }}</small>
 
           {% if request.user.id == post.user_id %}
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-danger js-post-delete"
-              data-delete-url="{% url 'social_net:post_delete' post.id %}"
-              data-post-id="{{ post.id }}"
-              title="Excluir postagem"
-            >
-              <i class="bi bi-trash"></i>
-              <span class="d-none d-sm-inline ms-1">Excluir</span>
-            </button>
+            {% if post.is_active %}
+              <button type="button" class="btn btn-sm btn-outline-danger js-post-delete" data-delete-url="{% url 'social_net:post_delete' post.id %}" data-post-id="{{ post.id }}" title="Excluir postagem">
+                <i class="bi bi-trash"></i>
+                <span class="d-none d-sm-inline ms-1">Excluir</span>
+              </button>
+            {% else %}
+              <form method="post" action="{% url 'social_net:post_restore' post.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-success" title="Restaurar postagem">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                  <span class="d-none d-sm-inline ms-1">Restaurar</span>
+                </button>
+              </form>
+            {% endif %}
           {% endif %}
         </div>
       </div>
 
       {% if post.text %}
-        <p class="mb-3 text-justify" style="line-height: 1.8;">
-          {{ post.text|linebreaksbr }}
-        </p>
+        <p class="mb-3 text-justify" style="line-height: 1.8;">{{ post.text|linebreaksbr }}</p>
       {% endif %}
 
       {% if post.media %}
         <div class="mb-3">
           {% with url=post.media.url|lower %}
             {% if '.jpg' in url or '.jpeg' in url or '.png' in url or '.webp' in url %}
-              <img
-                src="{{ post.media.url }}"
-                class="img-fluid rounded border border-light shadow-sm"
-                alt="Imagem da postagem"
-              >
+              <img src="{{ post.media.url }}" class="img-fluid rounded border border-light shadow-sm" alt="Imagem da postagem" />
             {% elif '.mp4' in url or '.webm' in url or '.ogg' in url %}
               <video controls class="img-fluid rounded" playsinline preload="metadata">
-                <source src="{{ post.media.url }}">
-                Seu navegador não suporta vídeo HTML5.
+                <source src="{{ post.media.url }}" />Seu navegador não suporta vídeo HTML5.
               </video>
             {% else %}
               <a href="{{ post.media.url }}" target="_blank" rel="noopener">Abrir mídia</a>
@@ -103,12 +92,7 @@
             <div class="d-flex justify-content-between align-items-start">
               <div class="d-flex align-items-center gap-2">
                 {% if comment.user.profile_image %}
-                  <img
-                    src="{{ comment.user.profile_image.url }}"
-                    alt="Foto de perfil"
-                    class="rounded-circle border"
-                    style="width:32px; height:32px; object-fit:cover;"
-                  >
+                  <img src="{{ comment.user.profile_image.url }}" alt="Foto de perfil" class="rounded-circle border" style="width:32px; height:32px; object-fit:cover;" />
                 {% else %}
                   <div class="rounded-circle bg-secondary" style="width:32px; height:32px;"></div>
                 {% endif %}
@@ -119,15 +103,7 @@
                 <small class="text-muted">{{ comment.created_at }}</small>
 
                 {% if request.user.id == comment.user_id %}
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-link text-danger p-0 js-comment-delete"
-                    data-comment-id="{{ comment.id }}"
-                    data-delete-url="{% url 'social_net:comment_delete' comment.id %}"
-                    title="Excluir comentário"
-                  >
-                    <i class="bi bi-trash"></i>
-                  </button>
+                  <button type="button" class="btn btn-sm btn-link text-danger p-0 js-comment-delete" data-comment-id="{{ comment.id }}" data-delete-url="{% url 'social_net:comment_delete' comment.id %}" title="Excluir comentário"><i class="bi bi-trash"></i></button>
                 {% endif %}
               </div>
             </div>
@@ -138,12 +114,7 @@
 
             {% if comment.image %}
               <div class="mt-2">
-                <img
-                  src="{{ comment.image.url }}"
-                  alt="Imagem do comentário"
-                  class="rounded border"
-                  style="max-width: 320px; width: 100%; height: auto;"
-                >
+                <img src="{{ comment.image.url }}" alt="Imagem do comentário" class="rounded border" style="max-width: 320px; width: 100%; height: auto;" />
               </div>
             {% endif %}
           </div>
@@ -160,7 +131,6 @@
         {% include 'social_net/partials/comment_form.html' with post=post force_open=True %}
       </div>
     </div>
-
   </div>
 {% endblock %}
 

@@ -1,0 +1,31 @@
+{# templates/social_net/partials/excluded_post_item.html #}
+
+<div class="card mb-2 shadow-sm">
+  <div class="card-body py-2">
+    <div class="d-flex justify-content-between align-items-start gap-2">
+      <div class="flex-grow-1">
+        <h6 class="mb-1">
+          {{ post.title|default:'(sem título)' }}
+        </h6>
+
+        {% if post.text %}
+          <p class="mb-1 text-muted small">
+            {{ post.text|truncatechars:120 }}
+          </p>
+        {% endif %}
+
+        <small class="text-muted">
+          Atualizada em {{ post.updated_at|date:'d/m/Y H:i' }}
+        </small>
+      </div>
+
+      <form method="post" action="{% url 'social_net:post_restore' post.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">
+          <i class="bi bi-arrow-counterclockwise"></i>
+          Restaurar postagem
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

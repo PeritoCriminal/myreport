@@ -64,16 +64,11 @@
         <button type="button" class="btn btn-sm btn-light d-flex align-items-center gap-1 js-like-btn" data-like-url="{% url 'social_net:post_like' post.id %}" title="Curtir">
           <i class="bi
           {% if post.has_liked %}
-                            
             bi-heart-fill text-danger
-
             {% else %}
-                            
             bi-heart
-
             {% endif %}
             ">
-
           </i>
           <span class="likes-count">{{ post.likes.count }}</span>
         </button>
@@ -83,16 +78,11 @@
           <button class="btn btn-sm btn-light d-flex align-items-center gap-1 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Avaliar">
             <i class="bi
               {% if post.has_rated %}
-                
                   bi-star-fill text-warning
-
               {% else %}
-                
                   bi-star
-
               {% endif %}
               js-rating-icon">
-
             </i>
             {% if post.user_rating_value %}
               <span class="text-muted">Avaliar ({{ post.user_rating_value }})</span>
@@ -108,15 +98,10 @@
                   <span class="d-flex align-items-center gap-1">
                     {% for _ in stars_5 %}
                       <i class="bi {% if forloop.counter <= i %}
-                          
                           bi-star-fill
-
                         {% else %}
-                          
                           bi-star
-
                         {% endif %}">
-
                       </i>
                     {% endfor %}
                   </span>
@@ -128,10 +113,39 @@
 
         {# Comentários: abre/fecha somente o FORM #}
         <button class="btn btn-sm btn-light js-comments-toggle" data-bs-toggle="collapse" data-bs-target="#commentFormBox-{{ post.id }}" aria-controls="commentFormBox-{{ post.id }}" aria-expanded="false" data-post-id="{{ post.id }}" title="Comentar"><i class="bi bi-chat"></i></button>
+
         {# Ações de visibilidade #}
         {% if request.user.id == post.user_id %}
-          {# Autor: pode inativar (excluir) #}
-          <button type="button" class="btn btn-sm text-danger js-post-delete" data-delete-url="{% url 'social_net:post_delete' post.id %}" data-post-id="{{ post.id }}" title="Excluir postagem"><i class="bi bi-trash"></i></button>
+
+          {% if post.is_active %}
+            {# Autor + ativa: pode inativar (excluir) #}
+            <button
+              type="button"
+              class="btn btn-sm text-danger js-post-delete"
+              data-delete-url="{% url 'social_net:post_delete' post.id %}"
+              data-post-id="{{ post.id }}"
+              title="Excluir postagem"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
+          {% else %}
+            {# Autor + inativa: pode restaurar #}
+            <form
+              method="post"
+              action="{% url 'social_net:post_restore' post.id %}"
+              class="d-inline"
+            >
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="btn btn-sm text-success"
+                title="Restaurar postagem"
+              >
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+            </form>
+          {% endif %}
+
         {% else %}
           {# Não autor: pode ocultar do feed #}
           <button type="button" class="btn btn-sm btn-light js-post-hide" data-hide-url="{% url 'social_net:post_hide_toggle' post.id %}" data-post-id="{{ post.id }}" title="Ocultar esta postagem do seu feed"><i class="bi bi-eye-slash"></i></button>

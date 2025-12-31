@@ -5,11 +5,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Exists, OuterRef, Prefetch, Subquery, Count, Q, Case, When, Value, IntegerField
 from django.http import JsonResponse, HttpResponseRedirect, request
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, ListView, DetailView
+from django.views import View
 
 from .forms import PostCommentForm, PostForm
 from .models import Post, PostComment, PostLike, PostRating, PostHidden
@@ -522,3 +523,64 @@ def toggle_hide_post(request, post_id):
 
     return JsonResponse({"hidden": True})
 
+
+
+
+class ExcludedPostListView(LoginRequiredMixin, ListView):
+    """
+    Lista as postagens excluídas (inativas) do usuário autenticado.
+
+    Esta view exibe apenas postagens marcadas como inativas (soft delete),
+    de autoria do próprio usuário logado, ordenadas pela data de última
+    atualização, da mais recente para a mais antiga.
+
+    É utilizada como página dedicada para consulta e gerenciamento do
+    histórico de postagens excluídas, podendo servir também como base
+    para exibições resumidas (preview) no dashboard inicial.
+    """
+    model = Post
+    template_name = "social_net/excluded_post_list.html"
+    context_object_name = "posts"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return (
+            Post.objects
+            .filter(user=self.request.user, is_active=False)
+            .order_by("-updated_at")
+        )
+    
+
+
+
+class ExcludedPostDetailView(LoginRequiredMixin, DetailView):
+    """
+    Exibe uma postagem excluída (inativa) do próprio usuário, em modo de consulta.
+    """
+    model = Post
+    template_name = "social_net/excluded_post_detail.html"
+    context_object_name = "post"
+
+    def get_queryset(self):
+        return Post.objects.filter(user=self.request.user, is_active=False)
+    
+
+
+
+class RestorePostView(LoginRequiredMixin, View):
+    """
+    Restaura uma postagem excluída do próprio usuário.
+    """
+
+    def post(self, request, pk):
+        post = get_object_or_404(
+            Post,
+            pk=pk,
+            user=request.user,
+            is_active=False,
+        )
+
+        post.is_active = True
+        post.save(update_fields=["is_active"])
+
+        return redirect(reverse("social_net:post_detail", args=[post.pk]))

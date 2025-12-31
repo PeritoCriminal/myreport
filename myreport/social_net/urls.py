@@ -7,6 +7,9 @@ from .views import (
     PostCreateView,
     PostCommentListView,
     PostCommentCreateView,
+    ExcludedPostListView,
+    ExcludedPostDetailView,
+    RestorePostView,
     post_delete,
     post_rate,
     post_like,
@@ -27,4 +30,6 @@ urlpatterns = [
     path("posts/<uuid:post_id>/comments/create/", PostCommentCreateView.as_view(), name="comment_create"),
     path("comments/<uuid:comment_id>/delete/", comment_delete, name="comment_delete"),
     path("post/<uuid:post_id>/hide/", toggle_hide_post, name="post_hide_toggle"),
+    path("posts/excluidas/", ExcludedPostListView.as_view(), name="excluded_post_list"),
+    path("post/excluida/<uuid:pk>/restaurar/", RestorePostView.as_view(), name="post_restore"),
 ]

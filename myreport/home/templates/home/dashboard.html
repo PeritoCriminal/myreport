@@ -19,5 +19,25 @@
 
   <p class="mb-2">Aqui você pode interagir por meio da rede interna, participar de grupos e acompanhar conteúdos relevantes conforme seu perfil.</p>
 
-  <p class="mb-0">Utilize o menu superior ou o painel lateral para navegar pelas funcionalidades disponíveis.</p>
+  <p class="mb-4">Utilize o menu superior ou o painel lateral para navegar pelas funcionalidades disponíveis.</p>
+
+  <hr class="my-4" />
+
+  {# ===================== Postagens excluídas (preview) ===================== #}
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">Minhas postagens excluídas</h6>
+        <a href="{% url 'social_net:excluded_post_list' %}" class="small text-decoration-none">Ver todas</a>
+      </div>
+
+      {% if excluded_posts %}
+        {% for post in excluded_posts %}
+          {% include 'social_net/partials/excluded_post_item.html' %}
+        {% endfor %}
+      {% else %}
+        <p class="text-muted mb-0 small">Nenhuma postagem excluída.</p>
+      {% endif %}
+    </div>
+  </div>
 {% endblock %}
