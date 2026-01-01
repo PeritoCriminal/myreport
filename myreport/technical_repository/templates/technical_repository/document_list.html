@@ -1,61 +1,45 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% load static %}
 
 {% block title %}
   Arquivo Técnico
 {% endblock %}
 
+{% block extra_css %}
+  <link
+    rel="stylesheet"
+    href="{% static 'technical_repository/css/technical_repository.css' %}"
+  />
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4" style="max-width: 980px;">
-
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Arquivo Técnico</h4>
-  </div>
-
-  {% if documents %}
-    {% regroup documents by topic as topic_list %}
-
-    {% for group in topic_list %}
-      <div class="mb-4">
-        <h5 class="border-bottom pb-1 mb-2">
-          {{ group.grouper.name }}
-        </h5>
-
-        <ul class="list-group list-group-flush">
-          {% for doc in group.list %}
-            <li class="list-group-item px-0">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <strong>{{ doc.title }}</strong>
-                  {% if doc.description %}
-                    <div class="text-muted small">
-                      {{ doc.description }}
-                    </div>
-                  {% endif %}
-                </div>
-
-                {% with version=doc.current_versions.0 %}
-                  {% if version %}
-                    <a
-                      href="{{ version.pdf_file.url }}"
-                      class="btn btn-sm btn-outline-primary"
-                      target="_blank"
-                    >
-                      Baixar PDF
-                    </a>
-                  {% endif %}
-                {% endwith %}
-              </div>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endfor %}
-
-  {% else %}
-    <div class="alert alert-secondary">
-      Nenhum documento técnico cadastrado.
+  <div class="container mt-4" style="max-width: 980px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">Arquivo Técnico</h4>
     </div>
-  {% endif %}
 
-</div>
+    {% if documents %}
+      {% regroup documents by topic as topic_list %}
+
+      {% for group in topic_list %}
+        <div class="mb-4">
+          <h5 class="border-bottom pb-1 mb-2">
+            {{ group.grouper.name }}
+          </h5>
+
+          <div class="shelf" data-shelf>
+            {% for doc in group.list %}
+              {% include 'technical_repository/partials/document_card.html' with doc=doc %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-secondary">Nenhum documento técnico cadastrado.</div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'technical_repository/js/shelf_drag_scroll.js' %}"></script>
 {% endblock %}
