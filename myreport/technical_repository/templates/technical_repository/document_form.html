@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Novo documento técnico{% endblock %}
+
+{% block page_header %}
+  <h4 class="mb-0">Novo documento técnico</h4>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 820px;">
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    <!-- ================= Documento ================= -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">
+        Dados do documento
+      </div>
+      <div class="card-body">
+
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% for error in field.errors %}
+              <div class="invalid-feedback d-block">
+                {{ error }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+
+      </div>
+    </div>
+
+    <!-- ================= Versão inicial ================= -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">
+        Arquivo PDF – versão inicial
+      </div>
+      <div class="card-body">
+
+        {% for field in version_form %}
+          <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}
+              <div class="invalid-feedback d-block">
+                {{ error }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+
+      </div>
+    </div>
+
+    <!-- ================= Ações ================= -->
+    <div class="d-flex justify-content-end gap-2">
+      <a href="{% url 'technical_repository:document_list' %}"
+         class="btn btn-outline-secondary">
+        Cancelar
+      </a>
+
+      <button type="submit" class="btn btn-primary">
+        Salvar documento
+      </button>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

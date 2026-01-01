@@ -77,6 +77,7 @@ class TechnicalDocument(models.Model):
         upload_to=technical_cover_upload_path,
         blank=True,
         null=True,
+        max_length=300,
         # essa imagem default deve estar em MEDIA (veja nota abaixo)
         default="tech_archive/defaults/pdf_img.png",
     )

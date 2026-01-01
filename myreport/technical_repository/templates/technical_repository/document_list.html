@@ -14,8 +14,17 @@
 
 {% block content %}
   <div class="container mt-4" style="max-width: 980px;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
       <h4 class="mb-0">Arquivo Técnico</h4>
+
+      <a
+        class="btn btn-primary"
+        href="{% url 'technical_repository:document_create' %}"
+        title="Novo arquivo técnico"
+      >
+        <i class="bi bi-plus-lg"></i>
+        <span class="d-none d-md-inline">Novo arquivo</span>
+      </a>
     </div>
 
     {% if documents %}
