@@ -80,6 +80,7 @@ class TechnicalDocumentVersion(models.Model):
     version = models.PositiveIntegerField()
     pdf_file = models.FileField(
         upload_to=technical_document_upload_path,
+        max_length=300,
         validators=[FileExtensionValidator(["pdf"])],
     )
 

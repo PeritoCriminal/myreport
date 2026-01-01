@@ -1,5 +1,4 @@
 <nav class="sidebar-nav">
-    {# Consigo aumentar o espaçamento gera para todas as linhas só com o bootstrap? #}
   <ul class="list-unstyled m-0 p-0">
 
     {% if request.resolver_match.url_name != 'dashboard' %}
@@ -27,6 +26,13 @@
       </a>
     </li>
 
+    {# Arquivo Técnico #}
+    <li class="mb-4">
+      <a href="{% url 'technical_repository:document_list' %}" class="nav-item">
+        <i class="bi bi-archive"></i> Arquivo técnico
+      </a>
+    </li>
+
     {# Pessoas #}
     <li class="mb-4">
       <a href="{% url 'accounts:user_list' %}" class="nav-item">
@@ -39,10 +45,9 @@
 
     {# Meu perfil #}
     <li class="mb-4">
-    <a href="{% url 'accounts:user_profile' request.user.id %}" class="nav-item">
-      <i class="bi bi-person-circle "></i> Meu perfil
-    </a>
-
+      <a href="{% url 'accounts:user_profile' request.user.id %}" class="nav-item">
+        <i class="bi bi-person-circle"></i> Meu perfil
+      </a>
     </li>
 
     {# Sair #}
