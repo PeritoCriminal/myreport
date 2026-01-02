@@ -5,12 +5,7 @@
   Arquivo Técnico
 {% endblock %}
 
-{% block extra_css %}
-  <link
-    rel="stylesheet"
-    href="{% static 'technical_repository/css/technical_repository.css' %}"
-  />
-{% endblock %}
+{# Os blocos 'extra_css' e 'scripts' foram removidos, pois o código personalizado não é mais necessário. #}
 
 {% block content %}
   <div class="container mt-4" style="max-width: 980px;">
@@ -30,25 +25,75 @@
     {% if documents %}
       {% regroup documents by topic as topic_list %}
 
-      {% for group in topic_list %}
-        <div class="mb-4">
-          <h5 class="border-bottom pb-1 mb-2">
-            {{ group.grouper.name }}
-          </h5>
+      {# 1. Início do Accordion Bootstrap (usando accordion-flush para um estilo de lista) #}
+      <div class="accordion accordion-flush border rounded-3" id="technicalRepositoryAccordion">
+        {% for group in topic_list %}
+          {# Cria um ID dinâmico e seguro para cada item do acordeão #}
+          {% with accordion_id="topic-"|add:forloop.counter|stringformat:"d" %}
+          <div class="accordion-item">
+            {# 2. Cabeçalho do Tópico (Botão que expande/recolhe) #}
+            <h2 class="accordion-header" id="{{ accordion_id }}-heading">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#{{ accordion_id }}-collapse"
+                aria-expanded="false"
+                aria-controls="{{ accordion_id }}-collapse"
+              >
+                <i class="bi bi-folder-fill me-2 text-primary"></i>
+                {{ group.grouper.name }}
+                <span class="badge text-bg-secondary ms-2">{{ group.list|length }}</span>
+              </button>
+            </h2>
 
-          <div class="shelf" data-shelf>
-            {% for doc in group.list %}
-              {% include 'technical_repository/partials/document_card.html' with doc=doc %}
-            {% endfor %}
+            {# 3. Corpo do Tópico (Onde a lista de documentos será exibida) #}
+            <div
+              id="{{ accordion_id }}-collapse"
+              class="accordion-collapse collapse"
+              aria-labelledby="{{ accordion_id }}-heading"
+              data-bs-parent="#technicalRepositoryAccordion"
+            >
+              <div class="accordion-body p-0">
+                {# Lista de documentos dentro do tópico, usando list-group #}
+                <ul class="list-group list-group-flush">
+                  {% for doc in group.list %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                      <div class="me-auto pe-3">
+                        <div class="fw-semibold text-break">{{ doc.title }}</div>
+                        {% if doc.description %}
+                          {# Trunca a descrição para manter a lista limpa #}
+                          <small class="text-muted d-block mt-1">{{ doc.description|truncatechars:150 }}</small>
+                        {% endif %}
+                      </div>
+
+                      {% with version=doc.current_versions.0 %}
+                        {% if version %}
+                          <a
+                            href="{{ version.pdf_file.url }}"
+                            class="btn btn-sm btn-outline-primary flex-shrink-0"
+                            target="_blank"
+                            title="Baixar PDF: {{ doc.title }}"
+                          >
+                            <i class="bi bi-file-earmark-pdf"></i>
+                            <span class="d-none d-lg-inline ms-1">Baixar PDF</span>
+                          </a>
+                        {% else %}
+                          <span class="badge text-bg-secondary flex-shrink-0">Sem PDF</span>
+                        {% endif %}
+                      {% endwith %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
           </div>
-        </div>
-      {% endfor %}
+          {% endwith %}
+        {% endfor %}
+      </div>
+      {# Fim do Accordion Bootstrap #}
     {% else %}
-      <div class="alert alert-secondary">Nenhum documento técnico cadastrado.</div>
+      <div class="alert alert-secondary mt-3">Nenhum documento técnico cadastrado.</div>
     {% endif %}
   </div>
-{% endblock %}
-
-{% block scripts %}
-  <script src="{% static 'technical_repository/js/shelf_drag_scroll.js' %}"></script>
 {% endblock %}
