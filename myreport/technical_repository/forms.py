@@ -9,13 +9,14 @@ from .models import TechnicalDocument, TechnicalDocumentVersion
 class TechnicalDocumentForm(forms.ModelForm):
     class Meta:
         model = TechnicalDocument
-        fields = ["title", "description", "topic", "cover_image"]
+        fields = ["title", "description", "topic"]
 
         widgets = {
             "title": forms.TextInput(attrs={"class": "form-control"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "description": forms.Textarea(
+                attrs={"class": "form-control", "rows": 4}
+            ),
             "topic": forms.Select(attrs={"class": "form-select"}),
-            "cover_image": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
 
 
@@ -31,7 +32,9 @@ class TechnicalDocumentVersionCreateForm(forms.ModelForm):
 
         widgets = {
             "pdf_file": forms.ClearableFileInput(attrs={"class": "form-control"}),
-            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "notes": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3}
+            ),
         }
 
     def clean_pdf_file(self):
@@ -40,12 +43,10 @@ class TechnicalDocumentVersionCreateForm(forms.ModelForm):
         if not f:
             raise ValidationError("Selecione um arquivo PDF.")
 
-        # valida extensão (redundante com validator do model, mas melhora mensagem)
         name = (getattr(f, "name", "") or "").lower()
         if not name.endswith(".pdf"):
             raise ValidationError("O arquivo deve estar no formato PDF.")
 
-        # valida tamanho (ajuste o limite se quiser)
         max_mb = 25
         if getattr(f, "size", 0) > max_mb * 1024 * 1024:
             raise ValidationError(f"O arquivo excedeu o limite de {max_mb} MB.")
