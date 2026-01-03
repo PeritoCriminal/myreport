@@ -1,16 +1,18 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
-{% block title %}MyReport - Home{% endblock %}
+{% block title %}
+  MyReport - Home
+{% endblock %}
 
 {% block page_header %}
   {% include 'accounts/partials/profile_header.html' %}
 {% endblock %}
 
-
-
 {% block content %}
-<div class="container">
+  <div class="container">
     <h1 class="h3 mb-3">MyReport</h1>
     <p class="mb-4">Um projeto em desenvolvimento.</p>
-</div>
+    <a href="{% url 'accounts:login' %}">Entrar</a> | 
+    <a href="{% url 'accounts:register' %}">Criar conta</a>
+  </div>
 {% endblock %}
