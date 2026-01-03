@@ -1,26 +1,20 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db import transaction
-from django.db.models import Prefetch
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.urls import reverse, reverse_lazy
+from django.shortcuts import redirect, get_object_or_404
 from django.views import View
-from django.views.generic import ListView
-from django.urls import reverse
-from django.shortcuts import render, redirect
 
-
-from .models import TechnicalDocument, TechnicalDocumentVersion
-from .forms import TechnicalDocumentForm, TechnicalDocumentVersionCreateForm
+from .models import TechnicalDocument
+from .forms import TechnicalDocumentForm
 
 
 class TechnicalDocumentListView(LoginRequiredMixin, ListView):
     """
-    Lista documentos técnicos existentes.
+    Lista documentos técnicos ativos.
 
     Ordenação:
     1) Tema (ordem alfabética)
     2) Título do documento (ordem alfabética)
-
-    Exibe apenas documentos ativos e
-    pré-carrega a versão atual.
     """
 
     model = TechnicalDocument
@@ -29,70 +23,118 @@ class TechnicalDocumentListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        current_versions = TechnicalDocumentVersion.objects.filter(
-            is_current=True
-        )
-
-        qs = (
+        return (
             TechnicalDocument.objects
             .filter(is_active=True)
             .select_related("topic", "created_by")
-            .prefetch_related(
-                Prefetch(
-                    "versions",
-                    queryset=current_versions,
-                    to_attr="current_versions",
-                )
-            )
             .order_by(
-                "topic__name",   # classificação
-                "title",         # alfabética
+                "topic__name",
+                "title",
             )
         )
 
-        return qs
 
+class TechnicalDocumentCreateView(LoginRequiredMixin, CreateView):
+    """
+    Criação de documento técnico (upload direto do PDF).
+    """
 
-
-
-class TechnicalDocumentCreateView(LoginRequiredMixin, View):
+    model = TechnicalDocument
+    form_class = TechnicalDocumentForm
     template_name = "technical_repository/document_form.html"
 
-    def get(self, request, *args, **kwargs):
-        return render(
-            request,
-            self.template_name,
-            {
-                "form": TechnicalDocumentForm(),
-                "version_form": TechnicalDocumentVersionCreateForm(),
-            },
+    def form_valid(self, form):
+        document = form.save(commit=False)
+        document.created_by = self.request.user
+        document.save()
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse(
+            "technical_repository:document_detail",
+            kwargs={"pk": self.object.pk},
+        )
+
+
+class TechnicalDocumentDetailView(LoginRequiredMixin, DetailView):
+    """
+    Exibe os detalhes do documento técnico.
+    """
+
+    model = TechnicalDocument
+    template_name = "technical_repository/document_detail.html"
+    context_object_name = "document"
+
+    def get_queryset(self):
+        return (
+            TechnicalDocument.objects
+            .filter(is_active=True)
+            .select_related("topic", "created_by")
+        )
+
+
+class TechnicalDocumentUpdateView(
+    LoginRequiredMixin,
+    UserPassesTestMixin,
+    UpdateView,
+):
+    """
+    Edição do documento técnico.
+    Permitida apenas ao criador do upload.
+    """
+
+    model = TechnicalDocument
+    form_class = TechnicalDocumentForm
+    template_name = "technical_repository/document_form.html"
+    context_object_name = "document"
+
+    def get_queryset(self):
+        return TechnicalDocument.objects.filter(is_active=True)
+
+    def test_func(self):
+        return self.get_object().created_by == self.request.user
+
+    def handle_no_permission(self):
+        return redirect(
+            "technical_repository:document_detail",
+            pk=self.get_object().pk,
+        )
+
+    def get_success_url(self):
+        return reverse(
+            "technical_repository:document_detail",
+            kwargs={"pk": self.object.pk},
+        )
+
+
+
+
+
+
+
+class TechnicalDocumentDeleteView(
+    LoginRequiredMixin,
+    UserPassesTestMixin,
+    View,
+):
+    """
+    Deleção lógica do documento técnico.
+    Apenas o criador pode excluir.
+    """
+
+    def test_func(self):
+        obj = self.get_object()
+        return obj.created_by == self.request.user
+
+    def get_object(self):
+        return get_object_or_404(
+            TechnicalDocument,
+            pk=self.kwargs["pk"],
+            is_active=True,
         )
 
     def post(self, request, *args, **kwargs):
-        form = TechnicalDocumentForm(request.POST, request.FILES)
-        version_form = TechnicalDocumentVersionCreateForm(request.POST, request.FILES)
-
-        if not (form.is_valid() and version_form.is_valid()):
-            return render(
-                request,
-                self.template_name,
-                {"form": form, "version_form": version_form},
-            )
-
-        with transaction.atomic():
-            document = form.save(commit=False)
-            document.created_by = request.user
-            document.save()
-
-            v1 = version_form.save(commit=False)
-            v1.document = document
-            v1.version = 1
-            v1.is_current = True
-            v1.created_by = request.user
-            v1.save()
-
-            TechnicalDocumentVersion.objects.filter(
-                document=document
-            ).exclude(pk=v1.pk).update(is_current=False)
-
+        obj = self.get_object()
+        obj.is_active = False
+        obj.save(update_fields=["is_active"])
         return redirect(reverse("technical_repository:document_list"))

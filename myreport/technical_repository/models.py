@@ -1,3 +1,4 @@
+import os
 import uuid
 
 from django.conf import settings
@@ -23,13 +24,25 @@ class TechnicalTopic(models.Model):
         return self.name
 
 
-def technical_document_upload_path(instance, filename):
+def technical_document_upload_path(instance, filename: str) -> str:
+    """
+    Upload do PDF principal do documento.
+
+    Estrutura:
+    tech_archive/<created_by_id>/<topic_slug>/<document_id>/document.pdf
+    """
+    # Garante extensão .pdf (e evita nomes estranhos no storage)
+    _, ext = os.path.splitext(filename)
+    ext = (ext or ".pdf").lower()
+    if ext != ".pdf":
+        ext = ".pdf"
+
     return (
         f"tech_archive/"
-        f"{instance.document.created_by_id}/"
-        f"{instance.document.topic.slug}/"
-        f"{instance.document.id}/"
-        f"v{instance.version}.pdf"
+        f"{instance.created_by_id}/"
+        f"{instance.topic.slug}/"
+        f"{instance.id}/"
+        f"document{ext}"
     )
 
 
@@ -42,7 +55,7 @@ def technical_document_upload_path(instance, filename):
 
 class TechnicalDocument(models.Model):
     """
-    Documento lógico (agrupa versões)
+    Documento técnico (um registro = um PDF)
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -53,6 +66,12 @@ class TechnicalDocument(models.Model):
         TechnicalTopic,
         on_delete=models.PROTECT,
         related_name="documents",
+    )
+
+    pdf_file = models.FileField(
+        upload_to=technical_document_upload_path,
+        max_length=300,
+        validators=[FileExtensionValidator(["pdf"])],
     )
 
     created_by = models.ForeignKey(
@@ -71,51 +90,3 @@ class TechnicalDocument(models.Model):
 
     def __str__(self):
         return self.title
-
-
-class TechnicalDocumentVersion(models.Model):
-    """
-    Versões do PDF (imutáveis)
-    """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    document = models.ForeignKey(
-        TechnicalDocument,
-        on_delete=models.CASCADE,
-        related_name="versions",
-    )
-
-    version = models.PositiveIntegerField()
-    pdf_file = models.FileField(
-        upload_to=technical_document_upload_path,
-        max_length=300,
-        validators=[FileExtensionValidator(["pdf"])],
-    )
-
-    notes = models.TextField(blank=True)
-
-    is_current = models.BooleanField(default=True)
-
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="technical_document_versions",
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-version"]
-        unique_together = ("document", "version")
-
-    def save(self, *args, **kwargs):
-        if self.is_current:
-            TechnicalDocumentVersion.objects.filter(
-                document=self.document,
-                is_current=True,
-            ).update(is_current=False)
-
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.document.title} — v{self.version}"

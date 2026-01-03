@@ -24,7 +24,7 @@
           {% with key=group.grouper.slug %}
             <div class="accordion-item">
               <h2 class="accordion-header" id="heading-{{ key }}">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ key }}" aria-expanded="false" aria-controls="collapse-{{ key }}">
+                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ key }}" aria-expanded="false" aria-controls="collapse-{{ key }}" style="font-size: 1.05rem; background-color: #f8f9fa;">
                   {{ group.grouper.name }}
                   <span class="ms-2 text-muted small">({{ group.list|length }})</span>
                 </button>
@@ -34,11 +34,10 @@
                 <div class="accordion-body p-0">
                   <div class="list-group list-group-flush">
                     {% for doc in group.list %}
-                      <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
-                        {# Coluna esquerda (maior) #}
+                      <div class="d-flex justify-content-between align-items-start gap-3 p-3 border-bottom">
+                        {# Coluna esquerda (clicável → detalhe) #}
                         <div class="flex-grow-1 position-relative">
-                          {# Link principal do item (ajuste para sua rota de detail se existir) #}
-                          <a href="#" class="stretched-link text-decoration-none text-dark"></a>
+                          <a href="{% url 'technical_repository:document_detail' doc.pk %}" class="stretched-link text-decoration-none text-dark"></a>
 
                           <div class="fw-semibold">{{ doc.title }}</div>
 
@@ -49,12 +48,22 @@
                           <div class="text-muted small mt-1">Por {{ doc.created_by }} · Atualizado em {{ doc.updated_at|date:'d/m/Y H:i' }}</div>
                         </div>
 
-                        {# Coluna direita (menor): ícone PDF #}
-                        <div class="flex-shrink-0">
-                          {% if doc.current_versions and doc.current_versions.0 %}
-                            {% with version=doc.current_versions.0 %}
-                              <a href="{{ version.pdf_file.url }}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center" target="_blank" title="Baixar / exibir PDF"><i class="bi bi-file-earmark-pdf"></i></a>
-                            {% endwith %}
+                        {# Coluna direita (ações – fora do stretched-link) #}
+                        <div class="flex-shrink-0 d-flex gap-2 position-relative" style="z-index: 2;">
+                          {% if request.user == doc.created_by %}
+                            {# Editar #}
+                            <a href="{% url 'technical_repository:document_update' doc.pk %}" class="btn btn-sm btn-outline-primary" title="Editar documento"><i class="bi bi-pencil"></i></a>
+
+                            {# Excluir (POST) #}
+                            <form method="post" action="{% url 'technical_repository:document_delete' doc.pk %}" class="d-inline">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir documento"><i class="bi bi-trash"></i></button>
+                            </form>
+                          {% endif %}
+
+                          {# Botão PDF #}
+                          {% if doc.pdf_file %}
+                            <a href="{{ doc.pdf_file.url }}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center" target="_blank" title="Baixar / exibir PDF"><i class="bi bi-file-earmark-pdf"></i></a>
                           {% else %}
                             <button class="btn btn-sm btn-outline-secondary" type="button" disabled data-bs-toggle="tooltip" data-bs-title="Sem PDF disponível"><i class="bi bi-file-earmark-pdf"></i></button>
                           {% endif %}

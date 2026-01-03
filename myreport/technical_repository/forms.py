@@ -3,13 +3,13 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import TechnicalDocument, TechnicalDocumentVersion
+from .models import TechnicalDocument
 
 
 class TechnicalDocumentForm(forms.ModelForm):
     class Meta:
         model = TechnicalDocument
-        fields = ["title", "description", "topic"]
+        fields = ["title", "description", "topic", "pdf_file"]
 
         widgets = {
             "title": forms.TextInput(attrs={"class": "form-control"}),
@@ -17,24 +17,7 @@ class TechnicalDocumentForm(forms.ModelForm):
                 attrs={"class": "form-control", "rows": 4}
             ),
             "topic": forms.Select(attrs={"class": "form-select"}),
-        }
-
-
-class TechnicalDocumentVersionCreateForm(forms.ModelForm):
-    """
-    Form exclusivo para criação da versão inicial (v1).
-    O usuário não escolhe "version" nem "is_current".
-    """
-
-    class Meta:
-        model = TechnicalDocumentVersion
-        fields = ["pdf_file", "notes"]
-
-        widgets = {
             "pdf_file": forms.ClearableFileInput(attrs={"class": "form-control"}),
-            "notes": forms.Textarea(
-                attrs={"class": "form-control", "rows": 3}
-            ),
         }
 
     def clean_pdf_file(self):

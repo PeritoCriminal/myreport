@@ -1,10 +1,14 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Novo documento técnico{% endblock %}
+{% block title %}
+  {% if is_update %}Editar documento técnico{% else %}Novo documento técnico{% endif %}
+{% endblock %}
 
 {% block page_header %}
-  <h4 class="mb-0">Novo documento técnico</h4>
+  <h4 class="mb-0">
+    {% if is_update %}Editar documento técnico{% else %}Novo documento técnico{% endif %}
+  </h4>
 {% endblock %}
 
 {% block content %}
@@ -20,35 +24,38 @@
       </div>
       <div class="card-body">
 
+        {# Se estiver editando e já existir PDF, exibe um link do arquivo atual #}
+        {% if is_update and document and document.pdf_file %}
+          <div class="mb-3">
+            <div class="small text-muted mb-1">PDF atual</div>
+            <a
+              href="{{ document.pdf_file.url }}"
+              class="btn btn-sm btn-outline-danger d-inline-flex align-items-center"
+              target="_blank"
+            >
+              <i class="bi bi-file-earmark-pdf me-2"></i>
+              Abrir / baixar PDF
+            </a>
+          </div>
+        {% endif %}
+
         {% for field in form %}
           <div class="mb-3">
             <label class="form-label">{{ field.label }}</label>
+
+            {# Dica específica para o campo de arquivo, quando em edição #}
+            {% if is_update and field.name == "pdf_file" %}
+              <div class="form-text mb-1">
+                Se quiser substituir o PDF, selecione um novo arquivo. Se deixar em branco, o PDF atual será mantido.
+              </div>
+            {% endif %}
+
             {{ field }}
+
             {% if field.help_text %}
               <div class="form-text">{{ field.help_text }}</div>
             {% endif %}
-            {% for error in field.errors %}
-              <div class="invalid-feedback d-block">
-                {{ error }}
-              </div>
-            {% endfor %}
-          </div>
-        {% endfor %}
 
-      </div>
-    </div>
-
-    <!-- ================= Versão inicial ================= -->
-    <div class="card mb-4">
-      <div class="card-header fw-semibold">
-        Arquivo PDF – versão inicial
-      </div>
-      <div class="card-body">
-
-        {% for field in version_form %}
-          <div class="mb-3">
-            <label class="form-label">{{ field.label }}</label>
-            {{ field }}
             {% for error in field.errors %}
               <div class="invalid-feedback d-block">
                 {{ error }}
@@ -68,7 +75,7 @@
       </a>
 
       <button type="submit" class="btn btn-primary">
-        Salvar documento
+        {% if is_update %}Salvar alterações{% else %}Salvar documento{% endif %}
       </button>
     </div>
 

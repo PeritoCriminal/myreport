@@ -1,0 +1,76 @@
+{# technical_repository/templates/technical_repository/document_detail.html #}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+  Arquivo Técnico
+{% endblock %}
+
+{% block content %}
+  <div class="container mt-4" style="max-width: 980px;">
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+      <div>
+        <h4 class="mb-1">{{ document.title }}</h4>
+        <div class="text-muted small">
+          Tema: <span class="fw-semibold">{{ document.topic.name }}</span>
+          <span class="mx-2">•</span>
+          Criado por: <span class="fw-semibold">{{ document.created_by }}</span>
+          <span class="mx-2">•</span>
+          Atualizado em: <span class="fw-semibold">{{ document.updated_at|date:'d/m/Y H:i' }}</span>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="{% url 'technical_repository:document_list' %}">
+          <i class="bi bi-arrow-left"></i>
+          Voltar
+        </a>
+
+        {% if request.user == document.created_by %}
+          <form method="post" action="{% url 'technical_repository:document_delete' document.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger" title="Excluir documento"><i class="bi bi-trash"></i></button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if document.description %}
+      <div class="card mb-4">
+        <div class="card-header fw-semibold">Descrição</div>
+        <div class="card-body">
+          <p class="mb-0">{{ document.description|linebreaksbr }}</p>
+        </div>
+      </div>
+    {% endif %}
+
+    {# ================= PDF ================= #}
+    <div class="card mb-4">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span>PDF</span>
+
+        {% if document.pdf_file %}
+          <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-outline-primary" href="{{ document.pdf_file.url }}" target="_blank" rel="noopener">
+              <i class="bi bi-box-arrow-up-right"></i>
+              Abrir
+            </a>
+
+            <a class="btn btn-sm btn-primary" href="{{ document.pdf_file.url }}" download>
+              <i class="bi bi-download"></i>
+              Baixar
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="card-body">
+        {% if document.pdf_file %}
+          <div class="text-muted small">Arquivo disponível para visualização e download.</div>
+        {% else %}
+          <div class="text-muted">Nenhum PDF vinculado a este documento.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
