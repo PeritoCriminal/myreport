@@ -6,79 +6,111 @@
 {% endblock %}
 
 {% block content %}
-  <div class="container mt-4" style="max-width: 980px;">
-    <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
-      <h4 class="mb-0">Arquivo Técnico</h4>
+  <div class="mt-4">
+    <div class="row justify-content-center g-0">
+      {# Mobile: ocupa tudo | Desktop: limita a largura #}
+      <div class="col-12 col-lg-8 px-0">
 
-      <a class="btn btn-primary" href="{% url 'technical_repository:document_create' %}">
-        <i class="bi bi-plus-lg"></i>
-        <span class="d-none d-md-inline">Novo arquivo</span>
-      </a>
-    </div>
+        <div class="d-flex justify-content-between align-items-center mb-3 gap-2 px-3 px-md-0">
+          <h4 class="mb-0">Arquivo Técnico</h4>
 
-    {% if documents %}
-      {% regroup documents by topic as topic_list %}
+          <a class="btn btn-primary" href="{% url 'technical_repository:document_create' %}">
+            <i class="bi bi-plus-lg"></i>
+            <span class="d-none d-md-inline">Novo arquivo</span>
+          </a>
+        </div>
 
-      <div class="accordion" id="topicsAccordion">
-        {% for group in topic_list %}
-          {% with key=group.grouper.slug %}
-            <div class="accordion-item">
-              <h2 class="accordion-header" id="heading-{{ key }}">
-                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ key }}" aria-expanded="false" aria-controls="collapse-{{ key }}" style="font-size: 1.05rem; background-color: #f8f9fa;">
-                  {{ group.grouper.name }}
-                  <span class="ms-2 text-muted small">({{ group.list|length }})</span>
-                </button>
-              </h2>
+        {% if documents %}
+          {% regroup documents by topic as topic_list %}
 
-              <div id="collapse-{{ key }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ key }}">
-                <div class="accordion-body p-0">
-                  <div class="list-group list-group-flush">
-                    {% for doc in group.list %}
-                      <div class="d-flex justify-content-between align-items-start gap-3 p-3 border-bottom">
-                        {# Coluna esquerda (clicável → detalhe) #}
-                        <div class="flex-grow-1 position-relative">
-                          <a href="{% url 'technical_repository:document_detail' doc.pk %}" class="stretched-link text-decoration-none text-dark"></a>
+          <div class="accordion px-0" id="topicsAccordion">
+            {% for group in topic_list %}
+              {% with key=group.grouper.slug %}
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="heading-{{ key }}">
+                    <button
+                      class="accordion-button collapsed fw-semibold"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapse-{{ key }}"
+                      aria-expanded="false"
+                      aria-controls="collapse-{{ key }}"
+                      style="font-size: 1.05rem; background-color: #f8f9fa;"
+                    >
+                      {{ group.grouper.name }}
+                      <span class="ms-2 text-muted small">({{ group.list|length }})</span>
+                    </button>
+                  </h2>
 
-                          <div class="fw-semibold">{{ doc.title }}</div>
+                  <div id="collapse-{{ key }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ key }}">
+                    <div class="accordion-body p-0">
+                      <div class="list-group list-group-flush">
+                        {% for doc in group.list %}
+                          <div class="d-flex justify-content-between align-items-start gap-3 p-3 border-bottom">
+                            {# Coluna esquerda (clicável → detalhe) #}
+                            <div class="flex-grow-1 position-relative" style="min-width:0;">
+                              <a href="{% url 'technical_repository:document_detail' doc.pk %}"
+                                 class="stretched-link text-decoration-none text-dark"></a>
 
-                          {% if doc.description %}
-                            <div class="text-muted small">{{ doc.description|truncatechars:200 }}</div>
-                          {% endif %}
+                              <div class="fw-semibold text-break">{{ doc.title }}</div>
 
-                          <div class="text-muted small mt-1">Por {{ doc.created_by }} · Atualizado em {{ doc.updated_at|date:'d/m/Y H:i' }}</div>
-                        </div>
+                              {% if doc.description %}
+                                <div class="text-muted small text-break">{{ doc.description|truncatechars:200 }}</div>
+                              {% endif %}
 
-                        {# Coluna direita (ações – fora do stretched-link) #}
-                        <div class="flex-shrink-0 d-flex gap-2 position-relative" style="z-index: 2;">
-                          {% if request.user == doc.created_by %}
-                            {# Editar #}
-                            <a href="{% url 'technical_repository:document_update' doc.pk %}" class="btn btn-sm btn-outline-primary" title="Editar documento"><i class="bi bi-pencil"></i></a>
+                              <div class="text-muted small mt-1">
+                                Por {{ doc.created_by }} · Atualizado em {{ doc.updated_at|date:'d/m/Y H:i' }}
+                              </div>
+                            </div>
 
-                            {# Excluir (POST) #}
-                            <form method="post" action="{% url 'technical_repository:document_delete' doc.pk %}" class="d-inline">
-                              {% csrf_token %}
-                              <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir documento"><i class="bi bi-trash"></i></button>
-                            </form>
-                          {% endif %}
+                            {# Coluna direita (ações – fora do stretched-link) #}
+                            <div class="flex-shrink-0 d-flex gap-2 position-relative" style="z-index: 2;">
+                              {% if request.user == doc.created_by %}
+                                <a href="{% url 'technical_repository:document_update' doc.pk %}"
+                                   class="btn btn-sm btn-outline-primary"
+                                   title="Editar documento">
+                                  <i class="bi bi-pencil"></i>
+                                </a>
 
-                          {# Botão PDF #}
-                          {% if doc.pdf_file %}
-                            <a href="{{ doc.pdf_file.url }}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center" target="_blank" title="Baixar / exibir PDF"><i class="bi bi-file-earmark-pdf"></i></a>
-                          {% else %}
-                            <button class="btn btn-sm btn-outline-secondary" type="button" disabled data-bs-toggle="tooltip" data-bs-title="Sem PDF disponível"><i class="bi bi-file-earmark-pdf"></i></button>
-                          {% endif %}
-                        </div>
+                                <form method="post" action="{% url 'technical_repository:document_delete' doc.pk %}" class="d-inline">
+                                  {% csrf_token %}
+                                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir documento">
+                                    <i class="bi bi-trash"></i>
+                                  </button>
+                                </form>
+                              {% endif %}
+
+                              {% if doc.pdf_file %}
+                                <a href="{{ doc.pdf_file.url }}"
+                                   class="btn btn-sm btn-outline-danger d-inline-flex align-items-center"
+                                   target="_blank"
+                                   title="Baixar / exibir PDF">
+                                  <i class="bi bi-file-earmark-pdf"></i>
+                                </a>
+                              {% else %}
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        type="button"
+                                        disabled
+                                        data-bs-toggle="tooltip"
+                                        data-bs-title="Sem PDF disponível">
+                                  <i class="bi bi-file-earmark-pdf"></i>
+                                </button>
+                              {% endif %}
+                            </div>
+                          </div>
+                        {% endfor %}
                       </div>
-                    {% endfor %}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          {% endwith %}
-        {% endfor %}
+              {% endwith %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="alert alert-secondary px-3 px-md-0">Nenhum documento técnico cadastrado.</div>
+        {% endif %}
+
       </div>
-    {% else %}
-      <div class="alert alert-secondary">Nenhum documento técnico cadastrado.</div>
-    {% endif %}
+    </div>
   </div>
 {% endblock %}

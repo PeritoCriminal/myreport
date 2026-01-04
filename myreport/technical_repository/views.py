@@ -44,16 +44,19 @@ class TechnicalDocumentCreateView(LoginRequiredMixin, CreateView):
     template_name = "technical_repository/document_form.html"
 
     def form_valid(self, form):
-        document = form.save(commit=False)
-        document.created_by = self.request.user
-        document.save()
-        return redirect(self.get_success_url())
+        self.object = form.save(commit=False)   # ✔ define self.object
+        self.object.created_by = self.request.user
+        self.object.save()
+        form.save_m2m()
+        return super().form_valid(form)         # ✔ mantém o fluxo da CBV
 
     def get_success_url(self):
         return reverse(
             "technical_repository:document_detail",
             kwargs={"pk": self.object.pk},
         )
+
+
 
 
 class TechnicalDocumentDetailView(LoginRequiredMixin, DetailView):
