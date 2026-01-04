@@ -7,105 +7,107 @@
 {% endblock %}
 
 {% block content %}
-  <div class="container-fluid mt-4 px-0" style="max-width: 820px">
-    {% include "partials/action_header.html" with show_search=True search_placeholder="Buscar postagens" action_label="Nova postagem" action_toggle="collapse" action_target="#postFormCollapse" %}
+  <div class="mt-4">
+    <div class="row justify-content-center g-0">
+      <div class="col-12 col-lg-8 px-0">
 
-    {# Form de criação #}
-    <div class="collapse" id="postFormCollapse">
-      <div class="card mb-3">
-        <div class="card-body">
+        {% include "partials/action_header.html" with show_search=True search_placeholder="Buscar postagens" action_label="Nova postagem" action_toggle="collapse" action_target="#postFormCollapse" %}
 
-          <form id="post-form" method="post" enctype="multipart/form-data"
-                action="{% url 'social_net:post_create' %}">
-            {% csrf_token %}
+        {# Form de criação #}
+        <div class="collapse" id="postFormCollapse">
+          <div class="card mb-3">
+            <div class="card-body">
 
-            {# container único p/ erros (serve p/ normal e p/ AJAX) #}
-            <div id="post-form-errors">
-              {% if form.non_field_errors %}
-                <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
-              {% endif %}
+              <form id="post-form" method="post" enctype="multipart/form-data"
+                    action="{% url 'social_net:post_create' %}">
+                {% csrf_token %}
 
-              {% if form.errors %}
-                <div class="alert alert-danger py-2">
-                  <ul class="mb-0">
-                    {% for field in form %}
-                      {% for error in field.errors %}
-                        <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-                      {% endfor %}
-                    {% endfor %}
-                  </ul>
+                <div id="post-form-errors">
+                  {% if form.non_field_errors %}
+                    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+                  {% endif %}
+
+                  {% if form.errors %}
+                    <div class="alert alert-danger py-2">
+                      <ul class="mb-0">
+                        {% for field in form %}
+                          {% for error in field.errors %}
+                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                          {% endfor %}
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% endif %}
                 </div>
-              {% endif %}
+
+                <div class="mb-2">
+                  <label class="form-label" for="{{ form.group.id_for_label }}">Destino</label>
+                  {{ form.group }}
+                  {% if form.group.errors %}
+                    <div class="invalid-feedback d-block">{{ form.group.errors|join:", " }}</div>
+                  {% endif %}
+                </div>
+
+                <div class="mb-2">{{ form.title }}</div>
+                <div class="mb-2">{{ form.text }}</div>
+
+                <div class="mb-2">
+                  <label class="form-label mb-1">Mídia</label>
+                  {{ form.media }}
+                </div>
+
+                <div class="text-end d-flex justify-content-end gap-2">
+                  <button type="button" class="btn btn-outline-secondary btn-sm"
+                          id="btnCancelPost"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#postFormCollapse">
+                    Cancelar
+                  </button>
+
+                  <button class="btn btn-primary btn-sm" type="submit">Publicar</button>
+                </div>
+              </form>
+
             </div>
-
-            {# Destino #}
-            <div class="mb-2">
-              <label class="form-label" for="{{ form.group.id_for_label }}">Destino</label>
-              {{ form.group }}
-              {% if form.group.errors %}
-                <div class="invalid-feedback d-block">{{ form.group.errors|join:", " }}</div>
-              {% endif %}
-            </div>
-
-            <div class="mb-2">{{ form.title }}</div>
-            <div class="mb-2">{{ form.text }}</div>
-
-            <div class="mb-2">
-              <label class="form-label mb-1">Mídia</label>
-              {{ form.media }}
-            </div>
-
-            <div class="text-end d-flex justify-content-end gap-2">
-              <button type="button" class="btn btn-outline-secondary btn-sm"
-                      id="btnCancelPost"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#postFormCollapse">
-                Cancelar
-              </button>
-
-              <button class="btn btn-primary btn-sm" type="submit">Publicar</button>
-            </div>
-          </form>
-
+          </div>
         </div>
+
+        <div id="posts-feed">
+          {% for post in posts %}
+            {% include 'social_net/partials/post_item.html' with post=post %}
+          {% empty %}
+            <div class="alert alert-secondary">Nenhuma postagem encontrada.</div>
+          {% endfor %}
+        </div>
+
+        {% if is_paginated %}
+          <nav class="mt-3" aria-label="Paginação de postagens">
+            <ul class="pagination justify-content-center mb-0">
+              <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                {% if page_obj.has_previous %}
+                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}" aria-label="Anterior">&laquo;</a>
+                {% else %}
+                  <span class="page-link" aria-label="Anterior">&laquo;</span>
+                {% endif %}
+              </li>
+
+              <li class="page-item disabled">
+                <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+              </li>
+
+              <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                {% if page_obj.has_next %}
+                  <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}" aria-label="Próxima">&raquo;</a>
+                {% else %}
+                  <span class="page-link" aria-label="Próxima">&raquo;</span>
+                {% endif %}
+              </li>
+            </ul>
+          </nav>
+        {% endif %}
+
       </div>
     </div>
-
-    {# Lista (container p/ inserção via AJAX) #}
-    <div id="posts-feed">
-      {% for post in posts %}
-        {% include 'social_net/partials/post_item.html' with post=post %}
-      {% empty %}
-        <div class="alert alert-secondary">Nenhuma postagem encontrada.</div>
-      {% endfor %}
-    </div>
-
-    {# Paginação (preserva busca q) #}
-    {% if is_paginated %}
-      <nav class="mt-3" aria-label="Paginação de postagens">
-        <ul class="pagination justify-content-center mb-0">
-          <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
-            {% if page_obj.has_previous %}
-              <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}" aria-label="Anterior">&laquo;</a>
-            {% else %}
-              <span class="page-link" aria-label="Anterior">&laquo;</span>
-            {% endif %}
-          </li>
-
-          <li class="page-item disabled">
-            <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-          </li>
-
-          <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
-            {% if page_obj.has_next %}
-              <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}" aria-label="Próxima">&raquo;</a>
-            {% else %}
-              <span class="page-link" aria-label="Próxima">&raquo;</span>
-            {% endif %}
-          </li>
-        </ul>
-      </nav>
-    {% endif %}
   </div>
 {% endblock %}
 
