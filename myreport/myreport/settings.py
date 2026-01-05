@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'groups',
     'social_net',
     'technical_repository',
+    'report_maker',
 ]
 
 MIDDLEWARE = [
