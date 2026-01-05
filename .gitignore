@@ -13,9 +13,6 @@ venv/
 # Arquivos temporários
 *.log
 *.pot
-*.pyc
-*.pyo
-*.pyd
 *.tmp
 *.temp
 *.cache
@@ -24,31 +21,21 @@ venv/
 # ============================================
 # DJANGO
 # ============================================
-# Arquivos de migrações geradas automaticamente
 */migrations/*
 !*/migrations/__init__.py
 
-# Arquivos estáticos coletados
 staticfiles/
-static/
-
-# Pasta onde ficam as imagens dos usuários
+media/
 users/
 
-# Arquivos de mídia gerados pelo usuário
-media/
-
-# Arquivos de banco de dados locais
 db.sqlite3
 *.sqlite3
 
-# Local settings
 local_settings.py
 
 # ============================================
 # SCRIPTS / ARTEFATOS GERADOS
 # ============================================
-# Arquivos gerados por scripts de árvore de diretórios
 tree_dirs.txt
 folders_and_files.txt
 **/tree_dirs.txt
@@ -57,13 +44,9 @@ folders_and_files.txt
 # ============================================
 # EDITORES
 # ============================================
-
-# VSCode
 .vscode/
 .history/
 .code-workspace
-
-# PyCharm / JetBrains IDE
 .idea/
 *.iml
 
@@ -83,14 +66,13 @@ build/
 *.bak
 
 # ============================================
-# GIT / GITHUB
+# GIT
 # ============================================
 *.orig
 
 # ============================================
 # OUTROS
 # ============================================
-# Arquivos de ambiente (dotenv)
 .env
 .env.*
 *.env
