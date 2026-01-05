@@ -247,6 +247,18 @@ class PostDetailView(LoginRequiredMixin, DetailView):
 
 
 
+from django.contrib.staticfiles import finders
+from django.core.files import File
+from django.http import JsonResponse, HttpResponseRedirect
+from django.template.loader import render_to_string
+from django.urls import reverse_lazy
+from django.views.generic import CreateView
+
+from .forms import PostForm
+from .models import Post
+from groups.models import GroupMembership  # ajuste o import conforme seu projeto
+
+
 class PostCreateView(LoginRequiredMixin, CreateView):
     """
     Cria uma nova postagem do usuário autenticado.
@@ -267,6 +279,8 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         post = form.save(commit=False)
         post.user = self.request.user
+        post.related_url = (self.request.POST.get("related_url") or "").strip() or None
+
 
         # Regra: se escolheu grupo, precisa ser membro
         if post.group_id:
@@ -277,6 +291,16 @@ class PostCreateView(LoginRequiredMixin, CreateView):
             if not is_member:
                 form.add_error("group", "Você não é membro deste grupo.")
                 return self.form_invalid(form)
+
+        # Se veio de "Compartilhar PDF" e o usuário não enviou arquivo, anexa o placeholder
+        share = self.request.POST.get("share")
+        uploaded = self.request.FILES.get("media")
+
+        if share == "pdf" and not uploaded and not getattr(post, "media", None):
+            static_path = finders.find("technical_repository/img/pdf.png")
+            if static_path:
+                with open(static_path, "rb") as f:
+                    post.media.save("pdf.png", File(f), save=False)
 
         post.save()
         self.object = post
@@ -294,7 +318,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
                     "rating_range": range(1, 6),
                     "stars_5": range(1, 6),
                 },
-                request=self.request,  # garante `request` no template
+                request=self.request,
             )
             return JsonResponse({"success": True, "html": html}, status=200)
 
@@ -310,6 +334,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
             return JsonResponse({"success": False, "errors_html": errors_html}, status=400)
 
         return super().form_invalid(form)
+
 
 
 

@@ -130,6 +130,12 @@ class Post(models.Model):
         null=True,
     )
 
+    related_url = models.URLField(
+        "Link relacionado",
+        blank=True,
+        null=True,
+    )
+
     is_active = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

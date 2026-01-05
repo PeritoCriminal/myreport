@@ -12,68 +12,8 @@
       <div class="col-12 col-lg-8 px-0">
         {% include 'partials/action_header.html' with show_search=True search_placeholder='Buscar postagens' action_label='Nova postagem' action_toggle='collapse' action_target='#postFormCollapse' %}
 
-        {# Form de criação #}
-        <div class="collapse" id="postFormCollapse">
-          <div class="card mb-3">
-            <div class="card-body">
-              <form id="post-form" method="post" enctype="multipart/form-data" action="{% url 'social_net:post_create' %}">
-                {% csrf_token %}
-
-                <div id="post-form-errors">
-                  {% if form.non_field_errors %}
-                    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
-                  {% endif %}
-
-                  {% if form.errors %}
-                    <div class="alert alert-danger py-2">
-                      <ul class="mb-0">
-                        {% for field in form %}
-                          {% for error in field.errors %}
-                            <li>
-                              <strong>{{ field.label }}:</strong> {{ error }}
-                            </li>
-                          {% endfor %}
-                        {% endfor %}
-                      </ul>
-                    </div>
-                  {% endif %}
-                </div>
-
-                <div class="mb-2">
-                  <label class="form-label" for="{{ form.group.id_for_label }}">Destino</label>
-                  {{ form.group }}
-                  {% if form.group.errors %}
-                    <div class="invalid-feedback d-block">{{ form.group.errors|join:', ' }}</div>
-                  {% endif %}
-                </div>
-
-                <div class="mb-2">{{ form.title }}</div>
-                <div class="mb-2">{{ form.text }}</div>
-
-                <div class="mb-2">
-                  <label class="form-label mb-1">Mídia</label>
-                  {{ form.media }}
-
-                  
-                    
-                    
-
-                    {# Preview (aparece quando escolher arquivo) #}
-                    <div class="mt-2 d-none" id="post-media-preview-wrapper">
-                      <img id="post-media-preview" class="img-fluid rounded border" alt="Pré-visualização da mídia" />
-                    </div>
-                  
-                </div>
-
-                <div class="text-end d-flex justify-content-end gap-2">
-                  <button type="button" class="btn btn-outline-secondary btn-sm" id="btnCancelPost" data-bs-toggle="collapse" data-bs-target="#postFormCollapse">Cancelar</button>
-
-                  <button class="btn btn-primary btn-sm" type="submit">Publicar</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+        {# Form reutilizável #}
+        {% include 'social_net/partials/post_create_form.html' %}
 
         <div id="posts-feed">
           {% for post in posts %}
@@ -89,9 +29,7 @@
               <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
                 {% if page_obj.has_previous %}
                   <a class="page-link"
-                    href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}
-                      &q={{ request.GET.q|urlencode }}
-                    {% endif %}"
+                    href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}"
                     aria-label="Anterior">
                     &laquo;
                   </a>
@@ -107,9 +45,7 @@
               <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
                 {% if page_obj.has_next %}
                   <a class="page-link"
-                    href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}
-                      &q={{ request.GET.q|urlencode }}
-                    {% endif %}"
+                    href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}"
                     aria-label="Próxima">
                     &raquo;
                   </a>
@@ -131,14 +67,55 @@
   {% if request.GET.new %}
     <script>
       document.addEventListener('DOMContentLoaded', function () {
-        const el = document.getElementById('postFormCollapse')
-        if (!el) return
-      
-        const c = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false })
+        const collapseEl = document.getElementById('postFormCollapse')
+        if (!collapseEl) return
+
+        // abre o formulário
+        const c = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false })
         c.show()
-      
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        collapseEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+        const params = new URLSearchParams(window.location.search)
+
+        // ---------- pré-preenchimento ----------
+        const title = params.get('title')
+        if (title) {
+          const titleInput = document.getElementById('{{ form.title.id_for_label }}')
+          if (titleInput) titleInput.value = title
+        }
+
+        const text = params.get('text')
+        if (text) {
+          const textInput = document.getElementById('{{ form.text.id_for_label }}')
+          if (textInput) textInput.value = text
+        }
+
+        // ---------- destino ----------
+        const groupSelect = document.getElementById('{{ form.group.id_for_label }}')
+        if (groupSelect) {
+          const group = params.get('group')
+          groupSelect.value = group ? group : ''
+        }
+
+        const url = params.get('url')
+        if (url) {
+          const urlInput = document.getElementById('id_related_url')
+          if (urlInput) urlInput.value = url
+        }
+
+        // ---------- preview padrão (PDF) ----------
+        const share = params.get('share')
+        if (share === 'pdf') {
+          const wrap = document.getElementById('post-media-preview-wrapper')
+          const img = document.getElementById('post-media-preview')
+
+          if (wrap && img) {
+            img.src = "{% static 'technical_repository/img/pdf.png' %}"
+            wrap.classList.remove('d-none')
+          }
+        }
       })
     </script>
   {% endif %}
 {% endblock %}
+
