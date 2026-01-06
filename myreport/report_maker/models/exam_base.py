@@ -15,7 +15,7 @@ class ExamObject(models.Model):
     report_case = models.ForeignKey(
         ReportCase,
         on_delete=models.CASCADE,
-        related_name="objects",
+        related_name="exam_objects",
         verbose_name="Laudo",
     )
 
