@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  {% if object %}
+    Editar laudo
+  {% else %}
+    Novo laudo
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 980px;">
+
+  {# Cabeçalho #}
+  <div class="mb-4">
+    <h4 class="mb-1">
+      {% if object %}
+        Editar laudo
+      {% else %}
+        Novo laudo
+      {% endif %}
+    </h4>
+
+    {% if object %}
+      <div class="text-muted small">
+        Laudo nº {{ object.report_number }}
+      </div>
+    {% endif %}
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="row g-3">
+
+      <div class="col-md-4">
+        {{ form.report_number.label_tag }}
+        {{ form.report_number }}
+      </div>
+
+      <div class="col-md-4">
+        {{ form.protocol.label_tag }}
+        {{ form.protocol }}
+      </div>
+
+      <div class="col-md-4">
+        {{ form.objective.label_tag }}
+        {{ form.objective }}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.requesting_authority.label_tag }}
+        {{ form.requesting_authority }}
+      </div>
+
+      <div class="col-md-3">
+        {{ form.police_report.label_tag }}
+        {{ form.police_report }}
+      </div>
+
+      <div class="col-md-3">
+        {{ form.police_inquiry.label_tag }}
+        {{ form.police_inquiry }}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.police_station.label_tag }}
+        {{ form.police_station }}
+      </div>
+
+      <div class="col-md-4">
+        {{ form.occurrence_datetime.label_tag }}
+        {{ form.occurrence_datetime }}
+      </div>
+
+      <div class="col-md-4">
+        {{ form.assignment_datetime.label_tag }}
+        {{ form.assignment_datetime }}
+      </div>
+
+      <div class="col-md-4">
+        {{ form.examination_datetime.label_tag }}
+        {{ form.examination_datetime }}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.photography_by.label_tag }}
+        {{ form.photography_by }}
+      </div>
+
+      <div class="col-md-6">
+        {{ form.sketch_by.label_tag }}
+        {{ form.sketch_by }}
+      </div>
+
+      <div class="col-12">
+        {{ form.conclusion.label_tag }}
+        {{ form.conclusion }}
+      </div>
+
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
+      <a
+        href="{% url 'report_maker:report_list' %}"
+        class="btn btn-outline-secondary"
+      >
+        Cancelar
+      </a>
+
+      <button type="submit" class="btn btn-primary">
+        Salvar laudo
+      </button>
+    </div>
+
+  </form>
+
+</div>
+{% endblock %}

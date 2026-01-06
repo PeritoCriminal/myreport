@@ -1,0 +1,35 @@
+<form
+  method="post"
+  enctype="multipart/form-data"
+  action="{% url 'report_maker:image_add'
+      report_id=report.pk
+      app_label=app_label
+      model=model
+      object_id=object_id %}"
+  class="mb-3"
+>
+  {% csrf_token %}
+
+  <div class="row g-2">
+    <div class="col-12">
+      {{ form.image.label_tag }}
+      {{ form.image }}
+    </div>
+
+    <div class="col-md-8">
+      {{ form.caption.label_tag }}
+      {{ form.caption }}
+    </div>
+
+    <div class="col-md-4">
+      {{ form.index.label_tag }}
+      {{ form.index }}
+    </div>
+  </div>
+
+  <div class="mt-2">
+    <button type="submit" class="btn btn-sm btn-outline-primary">
+      Adicionar imagem
+    </button>
+  </div>
+</form>

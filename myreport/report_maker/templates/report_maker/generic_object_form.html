@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  {% if obj %}
+    Editar objeto de exame
+  {% else %}
+    Novo objeto de exame
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 980px;">
+
+  {# Cabeçalho #}
+  <div class="mb-4">
+    <h4 class="mb-1">
+      {% if obj %}
+        Editar objeto de exame
+      {% else %}
+        Novo objeto de exame
+      {% endif %}
+    </h4>
+
+    <div class="text-muted small">
+      Laudo nº {{ report.report_number }}
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {# Título #}
+    <div class="mb-3">
+      {{ form.title.label_tag }}
+      {{ form.title }}
+      {% if form.title.errors %}
+        <div class="text-danger small">{{ form.title.errors }}</div>
+      {% endif %}
+    </div>
+
+    {# Descrição #}
+    <div class="mb-3">
+      {{ form.description.label_tag }}
+      {{ form.description }}
+    </div>
+
+    {# Metodologia #}
+    <div class="mb-3">
+      {{ form.methodology.label_tag }}
+      {{ form.methodology }}
+    </div>
+
+    {# Exame #}
+    <div class="mb-3">
+      {{ form.examination.label_tag }}
+      {{ form.examination }}
+    </div>
+
+    {# Resultados #}
+    <div class="mb-3">
+      {{ form.results.label_tag }}
+      {{ form.results }}
+    </div>
+
+    {# Ordem de exibição #}
+    <div class="mb-4" style="max-width: 200px;">
+      {{ form.order.label_tag }}
+      {{ form.order }}
+    </div>
+
+    <div class="d-flex justify-content-between">
+      <a
+        href="{% url 'report_maker:report_detail' report.pk %}"
+        class="btn btn-outline-secondary"
+      >
+        Cancelar
+      </a>
+
+      <button type="submit" class="btn btn-primary">
+        Salvar
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
