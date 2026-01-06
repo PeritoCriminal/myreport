@@ -11,7 +11,7 @@ urlpatterns = [
     path('rede/', include('social_net.urls')),
     path('grupos/', include('groups.urls', namespace='groups')),
     path('arquivo-tecnico/', include('technical_repository.urls', namespace='technical_repository')),
-    path('make_report/', include('make_report.urls', namespace='make_report')),
+    path('report_maker/', include('report_maker.urls', namespace='report_maker')),
 ]
 
 if settings.DEBUG:
