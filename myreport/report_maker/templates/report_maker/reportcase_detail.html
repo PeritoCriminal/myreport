@@ -122,32 +122,32 @@
       {% endif %}
     </div>
 
-    {% if report.exam_objects.all %}
-      <div class="list-group">
-
-        {% for obj in report.exam_objects.all %}
-          <a
-            href="{% url 'report_maker:generic_object_detail' obj.pk %}"
-            class="list-group-item list-group-item-action"
-          >
-            <div class="fw-semibold">
-              {{ obj.title|default:"Objeto sem título" }}
-            </div>
-
-            {% if obj.description %}
-              <div class="text-muted small">
-                {{ obj.description|truncatechars:120 }}
+    {% with objs=report.exam_objects.all %}
+      {% if objs %}
+        <div class="list-group">
+          {% for obj in objs %}
+            <a
+              href="{% url 'report_maker:generic_object_detail' obj.pk %}"
+              class="list-group-item list-group-item-action"
+            >
+              <div class="fw-semibold">
+                {{ obj.title|default:"Objeto sem título" }}
               </div>
-            {% endif %}
-          </a>
-        {% endfor %}
 
-      </div>
-    {% else %}
-      <p class="text-muted small">
-        Nenhum objeto de exame cadastrado.
-      </p>
-    {% endif %}
+              {% if obj.description %}
+                <div class="text-muted small">
+                  {{ obj.description|truncatechars:120 }}
+                </div>
+              {% endif %}
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted small">
+          Nenhum objeto de exame cadastrado.
+        </p>
+      {% endif %}
+    {% endwith %}
   </div>
 
   {# Rodapé #}

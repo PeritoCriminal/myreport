@@ -1,0 +1,45 @@
+<div class="mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Objetos de exame</h5>
+
+    {% if report.can_edit %}
+      <a href="{% url 'report_maker:generic_object_create' report.id %}"
+         class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-plus-lg"></i>
+        Novo objeto
+      </a>
+    {% endif %}
+  </div>
+
+  {% if objects %}
+    <div class="list-group">
+      {% for obj in objects %}
+        <a href="{% url 'report_maker:generic_object_update' obj.id %}"
+           class="list-group-item list-group-item-action">
+
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">{{ obj.title }}</div>
+              {% if obj.description %}
+                <div class="text-muted small">
+                  {{ obj.description|truncatechars:120 }}
+                </div>
+              {% endif %}
+            </div>
+
+            <span class="badge bg-secondary">
+              {{ obj.order }}
+            </span>
+          </div>
+
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-muted fst-italic">
+      Nenhum objeto de exame cadastrado.
+    </div>
+  {% endif %}
+
+</div>

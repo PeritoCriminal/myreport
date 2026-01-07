@@ -1,16 +1,11 @@
+import uuid
 from django.db import models
 
 from .report_case import ReportCase
 
 
 class ExamObject(models.Model):
-    """
-    Base abstrata para objetos de exame vinculados a um Laudo.
-
-    Centraliza campos textuais comuns (descrição, metodologia, exame, resultados)
-    e metadados de ordenação/auditoria, para reuso em tipos específicos
-    (genérico, veículo, local, cadáver etc.).
-    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     report_case = models.ForeignKey(
         ReportCase,
@@ -34,6 +29,3 @@ class ExamObject(models.Model):
     class Meta:
         abstract = True
         ordering = ["order", "id"]
-
-    def __str__(self):
-        return self.title or f"Objeto ({self.pk})"

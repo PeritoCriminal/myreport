@@ -1,9 +1,12 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from django.urls import reverse
-from django.views.generic import CreateView, UpdateView, DeleteView
+from django.views.generic import CreateView, UpdateView, DetailView, DeleteView
 
+from report_maker.forms import GenericExamObjectForm
 from report_maker.models import GenericExamObject, ReportCase
+
+
 
 
 class GenericExamObjectCreateView(LoginRequiredMixin, CreateView):
@@ -12,14 +15,16 @@ class GenericExamObjectCreateView(LoginRequiredMixin, CreateView):
     """
 
     model = GenericExamObject
+    form_class = GenericExamObjectForm
     template_name = "report_maker/generic_object_form.html"
-    fields = ["title", "description", "methodology", "examination", "results", "order"]
 
     def dispatch(self, request, *args, **kwargs):
-        self.report = ReportCase.objects.filter(
-            pk=kwargs["report_id"],
-            author=request.user,
-        ).first()
+        self.report = (
+            ReportCase.objects.filter(
+                pk=kwargs["report_id"],
+                author=request.user,
+            ).first()
+        )
         if not self.report or not self.report.can_edit:
             raise Http404
         return super().dispatch(request, *args, **kwargs)
@@ -32,14 +37,16 @@ class GenericExamObjectCreateView(LoginRequiredMixin, CreateView):
         return reverse("report_maker:report_detail", kwargs={"pk": self.report.pk})
 
 
+
+
 class GenericExamObjectUpdateView(LoginRequiredMixin, UpdateView):
     """
     Edita um objeto genérico, respeitando o bloqueio do Laudo.
     """
 
     model = GenericExamObject
+    form_class = GenericExamObjectForm
     template_name = "report_maker/generic_object_form.html"
-    fields = ["title", "description", "methodology", "examination", "results", "order"]
     context_object_name = "obj"
 
     def get_queryset(self):
@@ -52,7 +59,12 @@ class GenericExamObjectUpdateView(LoginRequiredMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse("report_maker:report_detail", kwargs={"pk": self.object.report_case_id})
+        return reverse(
+            "report_maker:report_detail",
+            kwargs={"pk": self.object.report_case_id},
+        )
+
+
 
 
 class GenericExamObjectDeleteView(LoginRequiredMixin, DeleteView):
@@ -74,4 +86,18 @@ class GenericExamObjectDeleteView(LoginRequiredMixin, DeleteView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse("report_maker:report_detail", kwargs={"pk": self.object.report_case_id})
+        return reverse(
+            "report_maker:report_detail",
+            kwargs={"pk": self.object.report_case_id},
+        )
+
+
+
+
+class GenericExamObjectDetailView(LoginRequiredMixin, DetailView):
+    model = GenericExamObject
+    template_name = "report_maker/generic_object_detail.html"
+    context_object_name = "obj"
+
+    def get_queryset(self):
+        return GenericExamObject.objects.filter(report_case__author=self.request.user)
