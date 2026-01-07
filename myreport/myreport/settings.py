@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'social_net',
     'technical_repository',
     'report_maker',
+    'common',
 ]
 
 MIDDLEWARE = [

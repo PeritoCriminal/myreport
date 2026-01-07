@@ -4,6 +4,7 @@ from report_maker.views.report_case import (
     ReportCaseListView,
     ReportCaseCreateView,
     ReportCaseDetailView,
+    ReportCaseUpdateView,
 )
 
 from report_maker.views.generic_object import (
@@ -23,6 +24,7 @@ app_name = "report_maker"
 urlpatterns = [
     path("reports/", ReportCaseListView.as_view(), name="report_list"),
     path("reports/create/", ReportCaseCreateView.as_view(), name="report_create"),
+    path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="report_update"),
     path("reports/<uuid:pk>/", ReportCaseDetailView.as_view(), name="report_detail"),
 
     path(

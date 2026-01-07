@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  Laudos
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 980px;">
+
+  {# Cabeçalho #}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">Laudos</h4>
+
+    <a
+      href="{% url 'report_maker:report_create' %}"
+      class="btn btn-primary"
+    >
+      <i class="bi bi-plus-lg"></i>
+      Novo laudo
+    </a>
+  </div>
+
+  {% if reports %}
+    <div class="list-group">
+
+      {% for report in reports %}
+        <a
+          href="{% url 'report_maker:report_detail' report.pk %}"
+          class="list-group-item list-group-item-action py-3"
+        >
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">
+                Laudo nº {{ report.report_number }}
+              </div>
+
+              <div class="text-muted small">
+                {{ report.get_objective_display }}
+              </div>
+
+              <div class="text-muted small mt-1">
+                Atualizado em {{ report.updated_at|date:"d/m/Y H:i" }}
+              </div>
+            </div>
+
+            <div class="text-end">
+              {% if report.status == "OPEN" %}
+                <span class="badge bg-success">Aberto</span>
+              {% else %}
+                <span class="badge bg-secondary">Concluído</span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+    </div>
+  {% else %}
+    <div class="alert alert-light border">
+      Nenhum laudo cadastrado.
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

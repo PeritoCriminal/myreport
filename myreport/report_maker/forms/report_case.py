@@ -1,9 +1,11 @@
 from django import forms
 
+from common.form_mixins import BootstrapFormMixin
+
 from report_maker.models import ReportCase
 
 
-class ReportCaseForm(forms.ModelForm):
+class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
     """
     Formulário de criação e edição do Laudo.
     """

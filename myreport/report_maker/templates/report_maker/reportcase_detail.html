@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  Laudo {{ report.report_number }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 980px;">
+
+  {# Cabeçalho do laudo #}
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+      <h4 class="mb-1">Laudo nº {{ report.report_number }}</h4>
+      <div class="text-muted small">
+        {{ report.get_objective_display }}
+      </div>
+    </div>
+
+    <div class="text-end">
+      {% if report.status == "OPEN" %}
+        <span class="badge bg-success mb-2">Aberto</span>
+      {% else %}
+        <span class="badge bg-secondary mb-2">Concluído</span>
+      {% endif %}
+
+      {% if report.can_edit %}
+        <div class="mt-2">
+          <a
+            href="{% url 'report_maker:report_update' report.pk %}"
+            class="btn btn-sm btn-outline-secondary"
+          >
+            Editar laudo
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Dados principais #}
+  <div class="mb-4">
+    <dl class="row">
+
+      <dt class="col-sm-4">Autoridade requisitante</dt>
+      <dd class="col-sm-8">{{ report.requesting_authority }}</dd>
+
+      {% if report.protocol %}
+        <dt class="col-sm-4">Protocolo</dt>
+        <dd class="col-sm-8">{{ report.protocol }}</dd>
+      {% endif %}
+
+      {% if report.police_report %}
+        <dt class="col-sm-4">Boletim de ocorrência</dt>
+        <dd class="col-sm-8">{{ report.police_report }}</dd>
+      {% endif %}
+
+      {% if report.police_inquiry %}
+        <dt class="col-sm-4">Inquérito policial</dt>
+        <dd class="col-sm-8">{{ report.police_inquiry }}</dd>
+      {% endif %}
+
+      {% if report.police_station %}
+        <dt class="col-sm-4">Distrito policial</dt>
+        <dd class="col-sm-8">{{ report.police_station }}</dd>
+      {% endif %}
+
+      {% if report.occurrence_datetime %}
+        <dt class="col-sm-4">Ocorrência</dt>
+        <dd class="col-sm-8">
+          {{ report.occurrence_datetime|date:"d/m/Y H:i" }}
+        </dd>
+      {% endif %}
+
+      {% if report.assignment_datetime %}
+        <dt class="col-sm-4">Designação</dt>
+        <dd class="col-sm-8">
+          {{ report.assignment_datetime|date:"d/m/Y H:i" }}
+        </dd>
+      {% endif %}
+
+      {% if report.examination_datetime %}
+        <dt class="col-sm-4">Exame pericial</dt>
+        <dd class="col-sm-8">
+          {{ report.examination_datetime|date:"d/m/Y H:i" }}
+        </dd>
+      {% endif %}
+
+      {% if report.photography_by %}
+        <dt class="col-sm-4">Fotografia</dt>
+        <dd class="col-sm-8">{{ report.photography_by }}</dd>
+      {% endif %}
+
+      {% if report.sketch_by %}
+        <dt class="col-sm-4">Croqui</dt>
+        <dd class="col-sm-8">{{ report.sketch_by }}</dd>
+      {% endif %}
+
+    </dl>
+  </div>
+
+  {# Conclusão #}
+  {% if report.conclusion %}
+    <div class="mb-5">
+      <h5>Conclusão</h5>
+      <p class="text-justify">{{ report.conclusion|linebreaks }}</p>
+    </div>
+  {% endif %}
+
+  {# Objetos de exame #}
+  <div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Objetos de exame</h5>
+
+      {% if report.can_edit %}
+        <a
+          href="{% url 'report_maker:generic_object_create' report.pk %}"
+          class="btn btn-sm btn-outline-primary"
+        >
+          <i class="bi bi-plus-lg"></i>
+          Novo objeto
+        </a>
+      {% endif %}
+    </div>
+
+    {% if report.exam_objects.all %}
+      <div class="list-group">
+
+        {% for obj in report.exam_objects.all %}
+          <a
+            href="{% url 'report_maker:generic_object_detail' obj.pk %}"
+            class="list-group-item list-group-item-action"
+          >
+            <div class="fw-semibold">
+              {{ obj.title|default:"Objeto sem título" }}
+            </div>
+
+            {% if obj.description %}
+              <div class="text-muted small">
+                {{ obj.description|truncatechars:120 }}
+              </div>
+            {% endif %}
+          </a>
+        {% endfor %}
+
+      </div>
+    {% else %}
+      <p class="text-muted small">
+        Nenhum objeto de exame cadastrado.
+      </p>
+    {% endif %}
+  </div>
+
+  {# Rodapé #}
+  <div class="mt-5">
+    <a
+      href="{% url 'report_maker:report_list' %}"
+      class="btn btn-outline-secondary"
+    >
+      Voltar à lista
+    </a>
+  </div>
+
+</div>
+{% endblock %}

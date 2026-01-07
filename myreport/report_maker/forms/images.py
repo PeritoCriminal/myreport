@@ -1,9 +1,10 @@
 from django import forms
 
 from report_maker.models import ObjectImage
+from common.form_mixins import BootstrapFormMixin
 
 
-class ObjectImageForm(forms.ModelForm):
+class ObjectImageForm(BootstrapFormMixin, forms.ModelForm):
     """
     Formulário de upload de imagem vinculada a objeto de exame.
     """
