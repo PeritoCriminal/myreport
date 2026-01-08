@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}
@@ -6,159 +6,238 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4" style="max-width: 980px;">
+  <div class="container mt-4" style="max-width: 980px;">
+    {# Cabeçalho do laudo (apenas informativo) #}
+    <div class="d-flex justify-content-between align-items-start mb-4">
+      <div>
+        <h4 class="mb-1">Laudo nº {{ report.report_number }}</h4>
+        <div class="text-muted small">{{ report.get_objective_display }}</div>
+      </div>
 
-  {# Cabeçalho do laudo #}
-  <div class="d-flex justify-content-between align-items-start mb-4">
-    <div>
-      <h4 class="mb-1">Laudo nº {{ report.report_number }}</h4>
-      <div class="text-muted small">
-        {{ report.get_objective_display }}
+      <div class="text-end">
+        {% if report.status == 'OPEN' %}
+          <span class="badge bg-success">Aberto</span>
+        {% else %}
+          <span class="badge bg-secondary">Concluído</span>
+        {% endif %}
       </div>
     </div>
 
-    <div class="text-end">
-      {% if report.status == "OPEN" %}
-        <span class="badge bg-success mb-2">Aberto</span>
-      {% else %}
-        <span class="badge bg-secondary mb-2">Concluído</span>
-      {% endif %}
+    {# Dados Gerais #}
+    <div class="mb-4">
+      <dl class="row">
+        <dt class="col-sm-4">Autoridade requisitante</dt>
+        <dd class="col-sm-8">{{ report.requesting_authority }}</dd>
 
-      {% if report.can_edit %}
-        <div class="mt-2">
+        {% if report.police_report %}
+          <dt class="col-sm-4">Boletim de ocorrência</dt>
+          <dd class="col-sm-8">{{ report.police_report }}</dd>
+        {% endif %}
+
+        {% if report.police_inquiry %}
+          <dt class="col-sm-4">Inquérito policial</dt>
+          <dd class="col-sm-8">{{ report.police_inquiry }}</dd>
+        {% endif %}
+
+        {% if report.police_station %}
+          <dt class="col-sm-4">Distrito policial</dt>
+          <dd class="col-sm-8">{{ report.police_station }}</dd>
+        {% endif %}
+
+        {% if report.occurrence_datetime %}
+          <dt class="col-sm-4">Ocorrência</dt>
+          <dd class="col-sm-8">{{ report.occurrence_datetime|date:'d/m/Y H:i' }}</dd>
+        {% endif %}
+
+        {% if report.protocol %}
+          <dt class="col-sm-4">Protocolo</dt>
+          <dd class="col-sm-8">{{ report.protocol }}</dd>
+        {% endif %}
+
+        {% if report.assignment_datetime %}
+          <dt class="col-sm-4">Designação</dt>
+          <dd class="col-sm-8">{{ report.assignment_datetime|date:'d/m/Y H:i' }}</dd>
+        {% endif %}
+
+        {% if report.examination_datetime %}
+          <dt class="col-sm-4">Exame pericial</dt>
+          <dd class="col-sm-8">{{ report.examination_datetime|date:'d/m/Y H:i' }}</dd>
+        {% endif %}
+
+        {% if report.photography_by %}
+          <dt class="col-sm-4">Fotografia</dt>
+          <dd class="col-sm-8">{{ report.photography_by }}</dd>
+        {% endif %}
+
+        {% if report.sketch_by %}
+          <dt class="col-sm-4">Croqui</dt>
+          <dd class="col-sm-8">{{ report.sketch_by }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+
+    {# Objetos de exame (ação contextual fica aqui) #}
+    <div class="mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Objetos de exame</h5>
+
+        {% if report.can_edit %}
           <a
-            href="{% url 'report_maker:report_update' report.pk %}"
-            class="btn btn-sm btn-outline-secondary"
+            href="{% url 'report_maker:generic_object_create' report.pk %}"
+            class="btn btn-sm btn-outline-primary"
           >
-            Editar laudo
+            <i class="bi bi-plus-lg"></i>
+            Novo objeto
           </a>
-        </div>
-      {% endif %}
+        {% endif %}
+      </div>
+
+      {% with objs=report.exam_objects.all %}
+        {% if objs %}
+          <div class="list-group" id="examObjectsList" data-report-id="{{ report.pk }}">
+            {% for obj in objs %}
+              <div class="list-group-item d-flex align-items-start gap-2" data-id="{{ obj.pk }}">
+                {% if report.can_edit %}
+                  <span
+                    class="text-muted js-handle"
+                    role="button"
+                    style="cursor: grab; user-select: none;"
+                    title="Arraste para reordenar"
+                  >
+                    <i class="bi bi-grip-vertical"></i>
+                  </span>
+                {% endif %}
+
+                {# Não coloque o handle dentro do link: evita o “bloqueado” e melhora o drag #}
+                <div class="flex-grow-1">
+                  <a
+                    href="{% url 'report_maker:generic_object_detail' obj.pk %}"
+                    class="text-decoration-none text-dark d-block"
+                  >
+                    <div class="fw-semibold">{{ obj.title|default:'Objeto sem título' }}</div>
+
+                    {% if obj.description %}
+                      <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
+                    {% endif %}
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          {% if report.can_edit %}
+            <div id="reorderFeedback" class="small text-muted mt-2" style="display:none;"></div>
+          {% endif %}
+        {% else %}
+          <p class="text-muted small mb-0">Nenhum objeto de exame cadastrado.</p>
+        {% endif %}
+      {% endwith %}
     </div>
-  </div>
 
-  {# Dados principais #}
-  <div class="mb-4">
-    <dl class="row">
+    {# Conclusão #}
+    {% if report.conclusion %}
+      <div class="mb-5">
+        <h5>Conclusão</h5>
+        <p class="text-justify">{{ report.conclusion|linebreaks }}</p>
+      </div>
+    {% endif %}
 
-      <dt class="col-sm-4">Autoridade requisitante</dt>
-      <dd class="col-sm-8">{{ report.requesting_authority }}</dd>
-
-      {% if report.protocol %}
-        <dt class="col-sm-4">Protocolo</dt>
-        <dd class="col-sm-8">{{ report.protocol }}</dd>
-      {% endif %}
-
-      {% if report.police_report %}
-        <dt class="col-sm-4">Boletim de ocorrência</dt>
-        <dd class="col-sm-8">{{ report.police_report }}</dd>
-      {% endif %}
-
-      {% if report.police_inquiry %}
-        <dt class="col-sm-4">Inquérito policial</dt>
-        <dd class="col-sm-8">{{ report.police_inquiry }}</dd>
-      {% endif %}
-
-      {% if report.police_station %}
-        <dt class="col-sm-4">Distrito policial</dt>
-        <dd class="col-sm-8">{{ report.police_station }}</dd>
-      {% endif %}
-
-      {% if report.occurrence_datetime %}
-        <dt class="col-sm-4">Ocorrência</dt>
-        <dd class="col-sm-8">
-          {{ report.occurrence_datetime|date:"d/m/Y H:i" }}
-        </dd>
-      {% endif %}
-
-      {% if report.assignment_datetime %}
-        <dt class="col-sm-4">Designação</dt>
-        <dd class="col-sm-8">
-          {{ report.assignment_datetime|date:"d/m/Y H:i" }}
-        </dd>
-      {% endif %}
-
-      {% if report.examination_datetime %}
-        <dt class="col-sm-4">Exame pericial</dt>
-        <dd class="col-sm-8">
-          {{ report.examination_datetime|date:"d/m/Y H:i" }}
-        </dd>
-      {% endif %}
-
-      {% if report.photography_by %}
-        <dt class="col-sm-4">Fotografia</dt>
-        <dd class="col-sm-8">{{ report.photography_by }}</dd>
-      {% endif %}
-
-      {% if report.sketch_by %}
-        <dt class="col-sm-4">Croqui</dt>
-        <dd class="col-sm-8">{{ report.sketch_by }}</dd>
-      {% endif %}
-
-    </dl>
-  </div>
-
-  {# Conclusão #}
-  {% if report.conclusion %}
-    <div class="mb-5">
-      <h5>Conclusão</h5>
-      <p class="text-justify">{{ report.conclusion|linebreaks }}</p>
-    </div>
-  {% endif %}
-
-  {# Objetos de exame #}
-  <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="mb-0">Objetos de exame</h5>
+    {# Rodapé (ações do laudo) #}
+    <div class="mt-5 d-flex justify-content-between align-items-center">
+      <a href="{% url 'report_maker:report_list' %}" class="btn btn-outline-secondary">Voltar à lista</a>
 
       {% if report.can_edit %}
-        <a
-          href="{% url 'report_maker:generic_object_create' report.pk %}"
-          class="btn btn-sm btn-outline-primary"
-        >
-          <i class="bi bi-plus-lg"></i>
-          Novo objeto
-        </a>
+        <div class="btn-group">
+          <a href="{% url 'report_maker:report_update' report.pk %}" class="btn btn-outline-primary btn-sm">Editar laudo</a>
+          <a href="{% url 'report_maker:report_delete' report.pk %}" class="btn btn-outline-danger btn-sm">Excluir laudo</a>
+        </div>
       {% endif %}
     </div>
-
-    {% with objs=report.exam_objects.all %}
-      {% if objs %}
-        <div class="list-group">
-          {% for obj in objs %}
-            <a
-              href="{% url 'report_maker:generic_object_detail' obj.pk %}"
-              class="list-group-item list-group-item-action"
-            >
-              <div class="fw-semibold">
-                {{ obj.title|default:"Objeto sem título" }}
-              </div>
-
-              {% if obj.description %}
-                <div class="text-muted small">
-                  {{ obj.description|truncatechars:120 }}
-                </div>
-              {% endif %}
-            </a>
-          {% endfor %}
-        </div>
-      {% else %}
-        <p class="text-muted small">
-          Nenhum objeto de exame cadastrado.
-        </p>
-      {% endif %}
-    {% endwith %}
   </div>
 
-  {# Rodapé #}
-  <div class="mt-5">
-    <a
-      href="{% url 'report_maker:report_list' %}"
-      class="btn btn-outline-secondary"
-    >
-      Voltar à lista
-    </a>
-  </div>
-
-</div>
+  {# Garante que o csrftoken exista nesta página (mesmo sem formulário visível) #}
+  {% if report.can_edit %}
+    <form method="post" style="display:none;">
+      {% csrf_token %}
+    </form>
+  {% endif %}
 {% endblock %}
+
+{% block scripts %}
+  {# Preferível servir localmente via static; CDN pode falhar e o drag “não existe”. #}
+  {# Coloque o arquivo em: report_maker/static/report_maker/js/sortable.min.js #}
+  <script src="{% static 'report_maker/js/sortable.min.js' %}"></script>
+
+  <script>
+    (function () {
+      const list = document.getElementById("examObjectsList");
+      if (!list) return;
+
+      const canEdit = {{ report.can_edit|yesno:"true,false" }};
+      if (!canEdit) return;
+
+      const feedback = document.getElementById("reorderFeedback");
+
+      function setFeedback(msg, isError) {
+        if (!feedback) return;
+        feedback.style.display = "block";
+        feedback.className = "small mt-2 " + (isError ? "text-danger" : "text-muted");
+        feedback.textContent = msg;
+        window.clearTimeout(setFeedback._t);
+        setFeedback._t = window.setTimeout(() => {
+          feedback.style.display = "none";
+        }, 2500);
+      }
+
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+      }
+
+      const csrftoken = getCookie("csrftoken");
+
+      if (typeof Sortable === "undefined") {
+        console.error("SortableJS não carregou (arquivo static não encontrado?).");
+        setFeedback("Falha ao ativar reordenação (JS não carregado).", true);
+        return;
+      }
+
+      Sortable.create(list, {
+        animation: 150,
+        handle: ".js-handle",
+        ghostClass: "opacity-50",
+        onEnd: async function () {
+          const orderedIds = Array.from(list.querySelectorAll("[data-id]"))
+            .map(el => el.getAttribute("data-id"));
+
+          try {
+            const resp = await fetch(
+              "{% url 'report_maker:generic_object_reorder' report.pk %}",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": csrftoken,
+                },
+                body: JSON.stringify({ ordered_ids: orderedIds }),
+              }
+            );
+
+            if (!resp.ok) {
+              const txt = await resp.text();
+              console.error("Falha ao reordenar:", resp.status, txt);
+              setFeedback("Falha ao salvar a ordem (" + resp.status + ").", true);
+              return;
+            }
+
+            setFeedback("Ordem atualizada.", false);
+          } catch (err) {
+            console.error("Erro ao reordenar:", err);
+            setFeedback("Erro ao salvar a ordem.", true);
+          }
+        },
+      });
+    })();
+  </script>
+{% endblock scripts %}

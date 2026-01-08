@@ -17,7 +17,6 @@ class GenericExamObjectForm(BootstrapFormMixin, forms.ModelForm):
             "methodology",
             "examination",
             "results",
-            "order",
         )
 
         labels = {
@@ -26,7 +25,6 @@ class GenericExamObjectForm(BootstrapFormMixin, forms.ModelForm):
             "methodology": "Metodologia",
             "examination": "Exame",
             "results": "Resultados",
-            "order": "Ordem de exibição",
         }
 
         help_texts = {
@@ -35,7 +33,6 @@ class GenericExamObjectForm(BootstrapFormMixin, forms.ModelForm):
             "methodology": "Procedimentos e técnicas empregados no exame.",
             "examination": "Descrição objetiva do exame realizado.",
             "results": "Resultados obtidos a partir do exame.",
-            "order": "Define a posição do objeto na sequência do relatório.",
         }
 
         widgets = {
@@ -49,10 +46,4 @@ class GenericExamObjectForm(BootstrapFormMixin, forms.ModelForm):
             "methodology": forms.Textarea(attrs={"rows": 4}),
             "examination": forms.Textarea(attrs={"rows": 4}),
             "results": forms.Textarea(attrs={"rows": 4}),
-            "order": forms.NumberInput(
-                attrs={
-                    "min": 0,
-                    "step": 1,
-                }
-            ),
         }

@@ -8,25 +8,9 @@
 {% block content %}
 <div class="container mt-4" style="max-width: 900px;">
 
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  {# Título apenas informativo, sem botões #}
+  <div class="mb-4">
     <h4 class="mb-0">{{ obj.title }}</h4>
-
-    {% if obj.report_case.can_edit %}
-      <div class="btn-group">
-        <a
-          href="{% url 'report_maker:generic_object_update' obj.pk %}"
-          class="btn btn-sm btn-outline-primary"
-        >
-          Editar
-        </a>
-        <a
-          href="{% url 'report_maker:generic_object_delete' obj.pk %}"
-          class="btn btn-sm btn-outline-danger"
-        >
-          Excluir
-        </a>
-      </div>
-    {% endif %}
   </div>
 
   {% if obj.description %}
@@ -57,7 +41,9 @@
     </section>
   {% endif %}
 
-  <div class="mt-4 d-flex justify-content-between">
+  {# Barra única de ações no rodapé #}
+  <div class="mt-5 d-flex justify-content-between align-items-center">
+
     <a
       href="{% url 'report_maker:report_detail' obj.report_case.pk %}"
       class="btn btn-outline-secondary btn-sm"
@@ -66,13 +52,22 @@
     </a>
 
     {% if obj.report_case.can_edit %}
-      <a
-        href="{% url 'report_maker:generic_object_update' obj.pk %}"
-        class="btn btn-outline-primary btn-sm"
-      >
-        Editar objeto
-      </a>
+      <div class="btn-group">
+        <a
+          href="{% url 'report_maker:generic_object_update' obj.pk %}"
+          class="btn btn-outline-primary btn-sm"
+        >
+          Editar Objeto
+        </a>
+        <a
+          href="{% url 'report_maker:generic_object_delete' obj.pk %}"
+          class="btn btn-outline-danger btn-sm"
+        >
+          Excluir Objeto
+        </a>
+      </div>
     {% endif %}
+
   </div>
 
 </div>

@@ -1,14 +1,40 @@
 from django import forms
 
 from common.form_mixins import BootstrapFormMixin
-
 from report_maker.models import ReportCase
 
 
 class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
     """
     Formulário de criação e edição do Laudo.
+
+    Ajustes principais:
+    - Padronizou DateTimeInput com type="datetime-local" + formatos compatíveis.
+    - Garantiu que campos DateTime aceitem o valor enviado pelo browser (YYYY-MM-DDTHH:MM).
+    - Centralizou validação de coerência temporal (quando aplicável).
     """
+
+    # Aceitou o formato do input HTML datetime-local (com e sem segundos)
+    DATETIME_LOCAL_INPUT_FORMATS = ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S")
+
+    occurrence_datetime = forms.DateTimeField(
+        required=False,
+        input_formats=DATETIME_LOCAL_INPUT_FORMATS,
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        label="Ocorrência",
+    )
+    assignment_datetime = forms.DateTimeField(
+        required=False,
+        input_formats=DATETIME_LOCAL_INPUT_FORMATS,
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        label="Designação",
+    )
+    examination_datetime = forms.DateTimeField(
+        required=False,
+        input_formats=DATETIME_LOCAL_INPUT_FORMATS,
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        label="Exame pericial",
+    )
 
     class Meta:
         model = ReportCase
@@ -28,8 +54,27 @@ class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
             "conclusion",
         ]
         widgets = {
-            "occurrence_datetime": forms.DateTimeInput(attrs={"type": "datetime-local"}),
-            "assignment_datetime": forms.DateTimeInput(attrs={"type": "datetime-local"}),
-            "examination_datetime": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "conclusion": forms.Textarea(attrs={"rows": 6}),
         }
+
+    def clean(self):
+        """
+        Validou coerência básica entre datas quando informadas.
+        """
+        cleaned_data = super().clean()
+
+        occurrence = cleaned_data.get("occurrence_datetime")
+        assignment = cleaned_data.get("assignment_datetime")
+        examination = cleaned_data.get("examination_datetime")
+
+        if occurrence and examination and examination < occurrence:
+            raise forms.ValidationError(
+                "A data do exame pericial não pode ser anterior à data da ocorrência."
+            )
+
+        if assignment and examination and examination < assignment:
+            raise forms.ValidationError(
+                "A data do exame pericial não pode ser anterior à data da designação."
+            )
+
+        return cleaned_data

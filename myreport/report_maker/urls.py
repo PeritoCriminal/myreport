@@ -5,6 +5,7 @@ from report_maker.views.report_case import (
     ReportCaseCreateView,
     ReportCaseDetailView,
     ReportCaseUpdateView,
+    ReportCaseDeleteView,
 )
 
 from report_maker.views.generic_object import (
@@ -12,6 +13,7 @@ from report_maker.views.generic_object import (
     GenericExamObjectUpdateView,
     GenericExamObjectDeleteView,
     GenericExamObjectDetailView,
+    generic_object_reorder,
 )
 
 from report_maker.views.images import (
@@ -27,16 +29,22 @@ urlpatterns = [
     # ─────────────────────────────────────
     path("reports/", ReportCaseListView.as_view(), name="report_list"),
     path("reports/create/", ReportCaseCreateView.as_view(), name="report_create"),
-    path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="report_update"),
     path("reports/<uuid:pk>/", ReportCaseDetailView.as_view(), name="report_detail"),
+    path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="report_update"),
+    path("reports/<uuid:pk>/delete/", ReportCaseDeleteView.as_view(), name="report_delete"),
 
     # ─────────────────────────────────────
     # Objetos de exame (genérico)
     # ─────────────────────────────────────
     path(
-        "reports/<uuid:report_id>/objects/generic/create/",
+        "reports/<uuid:pk>/objects/generic/create/",
         GenericExamObjectCreateView.as_view(),
         name="generic_object_create",
+    ),
+    path(
+        "reports/<uuid:pk>/objects/reorder/",
+        generic_object_reorder,
+        name="generic_object_reorder",
     ),
     path(
         "objects/generic/<uuid:pk>/",
@@ -58,7 +66,7 @@ urlpatterns = [
     # Imagens vinculadas a objetos
     # ─────────────────────────────────────
     path(
-        "reports/<uuid:report_id>/images/<str:app_label>/<str:model>/<uuid:object_id>/add/",
+        "reports/<uuid:pk>/images/<str:app_label>/<str:model>/<uuid:object_id>/add/",
         ObjectImageCreateView.as_view(),
         name="image_add",
     ),

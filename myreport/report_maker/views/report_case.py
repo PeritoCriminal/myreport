@@ -1,10 +1,15 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView, DeleteView
+from django.shortcuts import get_object_or_404
 
 from report_maker.forms import ReportCaseForm
 from report_maker.models import ReportCase
+
+
+
+
 
 
 class ReportCaseListView(LoginRequiredMixin, ListView):
@@ -53,3 +58,22 @@ class ReportCaseDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         return ReportCase.objects.filter(author=self.request.user)
+
+
+
+
+class ReportCaseDeleteView(LoginRequiredMixin, DeleteView):
+    model = ReportCase
+    template_name = "report_maker/reportcase_confirm_delete.html"
+    context_object_name = "report"
+
+    def get_object(self, queryset=None):
+        report = get_object_or_404(ReportCase, pk=self.kwargs["pk"])
+
+        if not report.can_edit:
+            raise Http404("Você não tem permissão para excluir este laudo.")
+
+        return report
+
+    def get_success_url(self):
+        return reverse_lazy("report_maker:report_list")

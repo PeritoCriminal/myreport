@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.db.models import Max
 
 from .report_case import ReportCase
 
@@ -29,3 +30,15 @@ class ExamObject(models.Model):
     class Meta:
         abstract = True
         ordering = ["order", "id"]
+
+    def save(self, *args, **kwargs):
+        if not self.order:
+            last_order = (
+                self.__class__.objects
+                .filter(report_case=self.report_case)
+                .aggregate(max_order=Max("order"))
+                .get("max_order")
+            )
+            self.order = (last_order or 0) + 1
+
+        super().save(*args, **kwargs)
