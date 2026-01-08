@@ -53,7 +53,11 @@ class ReportCaseDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "report"
 
     def get_queryset(self):
-        return ReportCase.objects.filter(author=self.request.user)
+        return (
+            ReportCase.objects
+            .filter(author=self.request.user)
+            .prefetch_related("exam_objects__images")  # objetos + imagens
+        )
 
 
 

@@ -33,3 +33,23 @@ class BootstrapFormMixin:
 
             # Inputs padrão
             widget.attrs["class"] = f"{classes} form-control".strip()
+
+
+
+class ExamObjectMetaContextMixin:
+    """
+    Adiciona ao contexto do template:
+    - obj_app_label
+    - obj_model_name
+
+    Usado para URLs genéricas de objetos examináveis
+    (imagens, anexos, etc.).
+    """
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = context.get("obj") or context.get("object")
+        if obj is not None:
+            context["obj_app_label"] = obj._meta.app_label
+            context["obj_model_name"] = obj._meta.model_name
+        return context

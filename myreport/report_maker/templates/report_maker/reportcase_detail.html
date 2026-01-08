@@ -76,7 +76,7 @@
       </dl>
     </div>
 
-    {# Objetos de exame (ação contextual fica aqui) #}
+    {# Objetos de exame #}
     <div class="mb-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Objetos de exame</h5>
@@ -92,7 +92,7 @@
         {% endif %}
       </div>
 
-      {% with objs=report.exam_objects.all|dictsort:"order" %}
+      {% with objs=report.exam_objects.all %}
         {% if objs %}
           <div class="list-group" id="examObjectsList" data-report-id="{{ report.pk }}">
             {% for obj in objs %}
@@ -108,7 +108,6 @@
                   </span>
                 {% endif %}
 
-                {# Não coloque o handle dentro do link: evita o “bloqueado” e melhora o drag #}
                 <div class="flex-grow-1">
                   <a
                     href="{% url 'report_maker:generic_object_detail' obj.pk %}"
@@ -119,12 +118,23 @@
                     {% if obj.description %}
                       <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
                     {% endif %}
-
-                    {% if obj.order %}
-                      <div class="text-muted small">{{ obj.order }}</div>
-                    {% endif %}
-
                   </a>
+
+                  {# Miniaturas (mínimo necessário) #}
+                  {% if obj.images.exists %}
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                      {% for img in obj.images.all %}
+                        <a href="{{ img.image.url }}" target="_blank" rel="noopener">
+                          <img
+                            src="{{ img.image.url }}"
+                            alt="{{ img.caption|default:'Imagem' }}"
+                            class="rounded border"
+                            style="width: 60px; height: 60px; object-fit: cover;"
+                          />
+                        </a>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
                 </div>
               </div>
             {% endfor %}
@@ -169,8 +179,6 @@
 {% endblock %}
 
 {% block scripts %}
-  {# Preferível servir localmente via static; CDN pode falhar e o drag “não existe”. #}
-  {# Coloque o arquivo em: report_maker/static/report_maker/js/sortable.min.js #}
   <script src="{% static 'report_maker/js/sortable.min.js' %}"></script>
 
   <script>

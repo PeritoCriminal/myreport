@@ -1,66 +1,118 @@
+# report_maker/views/images.py
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.http import Http404
 from django.urls import reverse
-from django.views.generic import CreateView, DeleteView
+from django.views.generic import CreateView, DeleteView, UpdateView
 
-from report_maker.models import ObjectImage, ReportCase
+from report_maker.models import ObjectImage
 
 
-class ObjectImageCreateView(LoginRequiredMixin, CreateView):
+class _ImageAccessMixin(LoginRequiredMixin):
     """
-    Upload de imagem vinculada a um objeto de exame.
+    Mixin para resolver o objeto-alvo (content_object) e validar acesso:
+    - objeto existe
+    - possui report_case
+    - report_case pertence ao usuário
+    - report_case está editável (can_edit)
     """
 
+    def _get_target_object(self):
+        app_label = self.kwargs.get("app_label")
+        model = self.kwargs.get("model")
+        object_id = self.kwargs.get("object_id")
+
+        if not (app_label and model and object_id):
+            raise Http404
+
+        ct = ContentType.objects.filter(app_label=app_label, model=model).first()
+        if not ct:
+            raise Http404
+
+        model_class = ct.model_class()
+        if not model_class:
+            raise Http404
+
+        obj = model_class.objects.filter(pk=object_id).first()
+        if not obj:
+            raise Http404
+
+        report = getattr(obj, "report_case", None)
+        if not report:
+            raise Http404
+        if report.author_id != self.request.user.id:
+            raise Http404
+        if not getattr(report, "can_edit", False):
+            raise Http404
+
+        return ct, obj, report
+
+
+class ObjectImageCreateView(_ImageAccessMixin, CreateView):
     model = ObjectImage
     template_name = "report_maker/image_form.html"
     fields = ["image", "caption", "index"]
 
-    def dispatch(self, request, *args, **kwargs):
-        self.report = ReportCase.objects.filter(
-            pk=kwargs["report_id"],
-            author=request.user,
-        ).first()
-        if not self.report or not self.report.can_edit:
-            raise Http404
-        return super().dispatch(request, *args, **kwargs)
-
     def form_valid(self, form):
-        content_type = ContentType.objects.get(
-            app_label=self.kwargs["app_label"],
-            model=self.kwargs["model"],
-        )
-
-        form.instance.report_case = self.report
-        form.instance.content_type = content_type
-        form.instance.object_id = self.kwargs["object_id"]
-
+        ct, obj, _report = self._get_target_object()
+        form.instance.content_type = ct
+        form.instance.object_id = obj.pk
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse(
-            "report_maker:report_detail",
-            kwargs={"pk": self.report.pk},
-        )
+        _ct, _obj, report = self._get_target_object()
+        return reverse("report_maker:report_detail", kwargs={"pk": report.pk})
+
+
+class ObjectImageUpdateView(LoginRequiredMixin, UpdateView):
+    model = ObjectImage
+    template_name = "report_maker/image_form.html"
+    fields = ["image", "caption", "index"]
+    context_object_name = "image"
+
+    def get_object(self, queryset=None):
+        image = super().get_object(queryset=queryset)
+        obj = image.content_object
+        if not obj:
+            raise Http404
+
+        report = getattr(obj, "report_case", None)
+        if not report:
+            raise Http404
+        if report.author_id != self.request.user.id:
+            raise Http404
+        if not getattr(report, "can_edit", False):
+            raise Http404
+
+        return image
+
+    def get_success_url(self):
+        obj = self.object.content_object
+        return reverse("report_maker:report_detail", kwargs={"pk": obj.report_case.pk})
 
 
 class ObjectImageDeleteView(LoginRequiredMixin, DeleteView):
-    """
-    Exclusão de imagem vinculada a objeto de exame.
-    """
-
     model = ObjectImage
     template_name = "report_maker/image_confirm_delete.html"
     context_object_name = "image"
 
-    def get_queryset(self):
-        return ObjectImage.objects.filter(
-            report_case__author=self.request.user,
-            report_case__status=ReportCase.Status.OPEN,
-        )
+    def get_object(self, queryset=None):
+        image = super().get_object(queryset=queryset)
+        obj = image.content_object
+        if not obj:
+            raise Http404
+
+        report = getattr(obj, "report_case", None)
+        if not report:
+            raise Http404
+        if report.author_id != self.request.user.id:
+            raise Http404
+        if not getattr(report, "can_edit", False):
+            raise Http404
+
+        return image
 
     def get_success_url(self):
-        return reverse(
-            "report_maker:report_detail",
-            kwargs={"pk": self.object.report_case_id},
-        )
+        obj = self.object.content_object
+        return reverse("report_maker:report_detail", kwargs={"pk": obj.report_case.pk})

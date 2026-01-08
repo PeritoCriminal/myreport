@@ -18,6 +18,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_protect
 
+from common.form_mixins import ExamObjectMetaContextMixin
+
 from report_maker.forms import GenericExamObjectForm
 from report_maker.models import GenericExamObject, ReportCase
 
@@ -160,22 +162,24 @@ class GenericExamObjectDeleteView(LoginRequiredMixin, DeleteView):
         )
 
 
-class GenericExamObjectDetailView(LoginRequiredMixin, DetailView):
-    """
-    Exibiu o detalhe de um objeto genérico.
 
-    O acesso foi restrito aos objetos vinculados a laudos do usuário autenticado.
-    """
 
+class GenericExamObjectDetailView(
+    ExamObjectMetaContextMixin,
+    LoginRequiredMixin,
+    DetailView,
+):
     model = GenericExamObject
     template_name = "report_maker/generic_object_detail.html"
     context_object_name = "obj"
 
     def get_queryset(self):
-        """
-        Limitou o acesso aos objetos vinculados a laudos do usuário autenticado.
-        """
-        return GenericExamObject.objects.filter(report_case__author=self.request.user)
+        return (
+            super()
+            .get_queryset()
+            .filter(report_case__author=self.request.user)
+        )
+
 
 
 

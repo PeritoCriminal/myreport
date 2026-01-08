@@ -1,0 +1,35 @@
+{# report_maker/templates/report_maker/image_form.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  {% if object %}Editar imagem{% else %}Adicionar imagem{% endif %}
+{% endblock %}
+
+{% block content %}
+  <div class="container mt-4" style="max-width: 980px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">
+        {% if object %}Editar imagem{% else %}Adicionar imagem{% endif %}
+      </h4>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      {# Fragmento do editor #}
+      {% include "report_maker/partials/image_editor.html" with form=form cancel_url=cancel_url mode=mode initial_image_url=initial_image_url %}
+
+    </form>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'report_maker/js/image_editor.js' %}"></script>
+{% endblock %}

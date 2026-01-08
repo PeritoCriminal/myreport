@@ -1,6 +1,9 @@
+# myreport/report_maker/models/exam_base.py
+
 import uuid
 from django.db import models
 from django.db.models import Max
+from django.contrib.contenttypes.fields import GenericRelation
 
 from .report_case import ReportCase
 
@@ -23,6 +26,14 @@ class ExamObject(models.Model):
     results = models.TextField("Resultados", blank=True)
 
     order = models.PositiveIntegerField("Ordem", default=0)
+
+    # ✅ Relação reversa: cada objeto terá suas imagens
+    images = GenericRelation(
+        "report_maker.ObjectImage",
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="exam_object",
+    )
 
     created_at = models.DateTimeField("Criado em", auto_now_add=True)
     updated_at = models.DateTimeField("Atualizado em", auto_now=True)

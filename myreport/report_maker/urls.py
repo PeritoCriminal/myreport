@@ -18,6 +18,7 @@ from report_maker.views.generic_object import (
 
 from report_maker.views.images import (
     ObjectImageCreateView,
+    ObjectImageUpdateView,
     ObjectImageDeleteView,
 )
 
@@ -64,11 +65,17 @@ urlpatterns = [
 
     # ─────────────────────────────────────
     # Imagens vinculadas a objetos
+    # (o laudo é inferido via object.report_case)
     # ─────────────────────────────────────
     path(
-        "reports/<uuid:pk>/images/<str:app_label>/<str:model>/<uuid:object_id>/add/",
+        "images/<str:app_label>/<str:model>/<uuid:object_id>/add/",
         ObjectImageCreateView.as_view(),
         name="image_add",
+    ),
+    path(
+        "images/<uuid:pk>/edit/",
+        ObjectImageUpdateView.as_view(),
+        name="image_update",
     ),
     path(
         "images/<uuid:pk>/delete/",
