@@ -92,7 +92,7 @@
         {% endif %}
       </div>
 
-      {% with objs=report.exam_objects.all %}
+      {% with objs=report.exam_objects.all|dictsort:"order" %}
         {% if objs %}
           <div class="list-group" id="examObjectsList" data-report-id="{{ report.pk }}">
             {% for obj in objs %}
@@ -119,6 +119,11 @@
                     {% if obj.description %}
                       <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
                     {% endif %}
+
+                    {% if obj.order %}
+                      <div class="text-muted small">{{ obj.order }}</div>
+                    {% endif %}
+
                   </a>
                 </div>
               </div>

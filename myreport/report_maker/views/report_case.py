@@ -8,10 +8,6 @@ from report_maker.forms import ReportCaseForm
 from report_maker.models import ReportCase
 
 
-
-
-
-
 class ReportCaseListView(LoginRequiredMixin, ListView):
     model = ReportCase
     template_name = "report_maker/reportcase_list.html"
