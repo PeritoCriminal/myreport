@@ -6,6 +6,10 @@
 // - Implementa ações: zoom in/out/reset, rotate left/right, crop (retângulo), blur (pintura simples), reset.
 // - No submit, exporta PNG/JPEG via toBlob e injeta no input[type=file] do form.
 //
+// Ajuste solicitado:
+// - Se for CREATE (sem data-initial-image-url): abrir automaticamente o seletor de arquivo ao iniciar.
+// - Se for EDIT (com data-initial-image-url): carregar a imagem do BD no canvas e NÃO abrir o seletor.
+//
 // Observação: este JS é um esqueleto funcional. Você pode evoluir depois (pan, handles de crop, blur por path etc).
 
 (() => {
@@ -70,25 +74,29 @@
       this.fileRow = root.querySelector("[data-file-row]");
       this.fileInput = root.querySelector('input[type="file"][name="image"]');
       this.captionInput = root.querySelector('[name="caption"]');
-      this.indexInput = root.querySelector('[name="index"]');
+      this.indexInput = root.querySelector('[name="index"]'); // pode não existir mais
+
+      // flags do template
+      this.pageMode = (root.dataset.mode || root.getAttribute("data-mode") || "create").toLowerCase();
+      this.initialUrl = root.dataset.initialImageUrl || root.getAttribute("data-initial-image-url") || null;
 
       // Estado da imagem
       this.img = null;
       this.imgFilename = null;
 
       // Transformações/edições
-      this.zoom = 1.0;               // zoom visual (para viewport)
-      this.rotation = 0;             // 0, 90, 180, 270
-      this.crop = null;              // {x,y,w,h} no espaço da imagem ORIGINAL (antes de rotação)
-      this.mode = null;              // "crop" | "blur" | null
+      this.zoom = 1.0; // zoom visual (para viewport)
+      this.rotation = 0; // 0, 90, 180, 270
+      this.crop = null; // {x,y,w,h} no espaço da imagem ORIGINAL (antes de rotação)
+      this.mode = null; // "crop" | "blur" | null
 
       // Crop selection (na tela / canvas display)
       this.cropSelecting = false;
-      this.cropA = null;             // {x,y} display coords
+      this.cropA = null; // {x,y} display coords
       this.cropB = null;
 
       // Blur strokes em coords da IMAGEM (antes de rotação)
-      this.blurStrokes = [];         // [{points:[{x,y}], radius, strength}]
+      this.blurStrokes = []; // [{points:[{x,y}], radius, strength}]
       this.blurIsDrawing = false;
       this.currentStroke = null;
 
@@ -110,7 +118,7 @@
 
       // Init
       this._attach();
-      this._bootstrapInitialImage();
+      this._bootstrapInitialImageOrOpenPicker();
       this._onResize();
     }
 
@@ -146,12 +154,35 @@
       if (form) form.addEventListener("submit", this._onFormSubmit);
     }
 
-    async _bootstrapInitialImage() {
-      const url = this.root.getAttribute("data-initial-image-url");
-      if (!url) return;
+    _openFilePickerOnce() {
+      if (!this.fileInput) return;
+      if (this._pickerOpened) return;
+      this._pickerOpened = true;
 
-      this.imgFilename = getFilenameFromUrl(url);
-      await this.setImageFromUrl(url, /*hideFileRow=*/true);
+      // Evita abrir em navegação "voltar" (bfcache) e garante clique após render
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          try {
+            this.fileInput.click();
+          } catch {
+            // ignore
+          }
+        });
+      });
+    }
+
+    async _bootstrapInitialImageOrOpenPicker() {
+      // EDIT: se tem url inicial, carrega e não abre picker
+      if (this.initialUrl) {
+        this.imgFilename = getFilenameFromUrl(this.initialUrl);
+        await this.setImageFromUrl(this.initialUrl, /*hideFileRow=*/true);
+        return;
+      }
+
+      // CREATE: se não tem url inicial, abre picker automaticamente
+      if (this.pageMode === "create") {
+        this._openFilePickerOnce();
+      }
     }
 
     async setImageFromUrl(url, hideFileRow) {
@@ -374,7 +405,6 @@
       // Retorna ponto no espaço "base" (baseW/baseH) ANTES de rotação e crop.
 
       const r = this.canvas.getBoundingClientRect();
-      const dpr = this.canvas.width / Math.max(1, r.width);
       const p = this._stageToCanvasInternal(stageP);
 
       // parâmetros do viewport do canvas interno
@@ -411,8 +441,6 @@
         case 0:
           return { x, y };
         case 90:
-          // base: (x_base, y_base) -> rot90: (x_rot, y_rot) = (rh - y_base, x_base)
-          // invertendo:
           return { x: y, y: (rw - x) };
         case 180:
           return { x: (rw - x), y: (rh - y) };
@@ -496,13 +524,10 @@
       const bctx = baseCanvas.getContext("2d");
       bctx.drawImage(this.img, 0, 0, this.baseW, this.baseH);
 
-      // 2) aplica blur strokes no baseCanvas (simples: desenhar com filter em recortes)
-      //    Implementação leve: para cada stroke, desenha um círculo blur em camadas.
-      //    (você pode substituir por BlurController depois)
+      // 2) aplica blur strokes no baseCanvas
       if (this.blurStrokes.length) {
         bctx.save();
-        // estratégia: aplicar blur local via compositing.
-        // cria um "buffer" blur total e recorta por máscara.
+
         const blurBuffer = document.createElement("canvas");
         blurBuffer.width = this.baseW;
         blurBuffer.height = this.baseH;
@@ -512,33 +537,6 @@
         bb.drawImage(baseCanvas, 0, 0);
         bb.filter = "none";
 
-        // máscara: pinta o caminho e aplica o blur buffer somente onde houver máscara
-        const mask = document.createElement("canvas");
-        mask.width = this.baseW;
-        mask.height = this.baseH;
-        const m = mask.getContext("2d");
-
-        m.fillStyle = "black";
-        m.fillRect(0, 0, this.baseW, this.baseH);
-        m.globalCompositeOperation = "source-over";
-
-        // pinta “branco” onde deve aplicar blur
-        m.strokeStyle = "white";
-        m.lineCap = "round";
-        m.lineJoin = "round";
-
-        for (const stroke of this.blurStrokes) {
-          m.lineWidth = (stroke.radius || 18) * 2;
-          m.beginPath();
-          const pts = stroke.points || [];
-          if (pts.length) {
-            m.moveTo(pts[0].x, pts[0].y);
-            for (let i = 1; i < pts.length; i++) m.lineTo(pts[i].x, pts[i].y);
-          }
-          m.stroke();
-        }
-
-        // compõe: pega blurBuffer e aplica máscara
         const masked = document.createElement("canvas");
         masked.width = this.baseW;
         masked.height = this.baseH;
@@ -546,9 +544,7 @@
 
         mk.drawImage(blurBuffer, 0, 0);
         mk.globalCompositeOperation = "destination-in";
-        // invertendo máscara: queremos áreas brancas → manter
-        // vamos converter a máscara para alpha: desenhando só as partes brancas
-        // (mais simples: criar outra máscara com alpha)
+
         const alphaMask = document.createElement("canvas");
         alphaMask.width = this.baseW;
         alphaMask.height = this.baseH;
@@ -572,7 +568,6 @@
 
         mk.drawImage(alphaMask, 0, 0);
 
-        // aplica sobre a imagem base
         bctx.globalCompositeOperation = "source-over";
         bctx.drawImage(masked, 0, 0);
 
@@ -620,11 +615,9 @@
 
       // 5) desenha rotCanvas no ctx alvo
       if (forExport) {
-        // export: desenha em 1:1 (sem zoom), preenchendo o canvas de exportação
         ctx.clearRect(0, 0, cw, ch);
         ctx.drawImage(rotCanvas, 0, 0, cw, ch);
       } else {
-        // display: centraliza e aplica zoom para viewport
         const view = this._getViewportRect(cw, ch);
         ctx.save();
         ctx.imageSmoothingEnabled = true;
@@ -633,7 +626,6 @@
         ctx.restore();
       }
 
-      // armazena rotCanvas para export
       this._lastRenderedRotCanvas = rotCanvas;
     }
 
@@ -646,21 +638,18 @@
 
       evt.preventDefault();
 
-      // Exportar a última imagem renderizada (com crop/rot/blur)
-      // Decide dimensão final:
       const src = this._lastRenderedRotCanvas;
       if (!src) {
-        // fallback: re-render export
         this._prepareExportCanvasFromState();
       } else {
         this.exportCanvas.width = src.width;
         this.exportCanvas.height = src.height;
+        this.exportCtx.clearRect(0, 0, src.width, src.height);
         this.exportCtx.drawImage(src, 0, 0);
       }
 
       const blob = await canvasToBlob(this.exportCanvas, this.exportMime, this.exportQuality);
       if (!blob) {
-        // se falhar, submete sem alterar
         evt.target.submit();
         return;
       }
@@ -672,14 +661,10 @@
       const file = fileFromBlob(blob, outName, this.exportMime);
       setFileInput(this.fileInput, file);
 
-      // Agora envia o form de verdade
       evt.target.submit();
     }
 
     _prepareExportCanvasFromState() {
-      // fallback: renderiza estado atual diretamente num export canvas
-      // (usa o pipeline de _drawToContext em modo export)
-      // determina tamanho final baseado no último rot/crop
       const rot = this.rotation % 360;
       let w = this.baseW, h = this.baseH;
       if (this.crop) {

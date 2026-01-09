@@ -11,12 +11,11 @@ class ObjectImageForm(BootstrapFormMixin, forms.ModelForm):
 
     class Meta:
         model = ObjectImage
-        fields = [
-            "image",
-            "caption",
-            "index",
-        ]
+        fields = ["image", "caption"]
         widgets = {
-            "caption": forms.TextInput(attrs={"maxlength": 240}),
-            "index": forms.NumberInput(attrs={"min": 1}),
+            "caption": forms.Textarea(attrs={
+                "rows": 2,
+                "maxlength": 240,
+                "placeholder": "Legenda da imagem",
+            }),
         }
