@@ -20,6 +20,7 @@ from report_maker.views.images import (
     ObjectImageCreateView,
     ObjectImageUpdateView,
     ObjectImageDeleteView,
+    images_reorder,
 )
 
 app_name = "report_maker"
@@ -82,4 +83,5 @@ urlpatterns = [
         ObjectImageDeleteView.as_view(),
         name="image_delete",
     ),
+    path("images/reorder/", images_reorder, name="images_reorder"),
 ]
