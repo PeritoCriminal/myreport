@@ -1,20 +1,20 @@
 import uuid
+import os
 
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Max
-
-
-import os
 from django.utils.text import get_valid_filename
+
 
 def object_image_upload_path(instance, filename):
     obj = instance.content_object
     if not obj or not getattr(obj, "report_case_id", None):
-        raise ValueError("ObjectImage precisa estar associado a um objeto com report_case.")
+        raise ValueError(
+            "ObjectImage precisa estar associado a um objeto com report_case."
+        )
 
-    # sanitiza nome do arquivo
     filename = get_valid_filename(os.path.basename(filename))
 
     return (
@@ -41,11 +41,25 @@ class ObjectImage(models.Model):
     object_id = models.UUIDField("Objeto")
     content_object = GenericForeignKey("content_type", "object_id")
 
-    image = models.ImageField("Imagem", upload_to=object_image_upload_path, max_length=500)
+    image = models.ImageField(
+        "Imagem",
+        upload_to=object_image_upload_path,
+        max_length=500,
+    )
 
     caption = models.CharField("Legenda", max_length=240, blank=True)
 
     index = models.PositiveIntegerField("Índice", default=0)
+
+    # dimensões originais da imagem (base para todas as transformações)
+    original_width = models.PositiveIntegerField(
+        "Largura original (px)",
+        help_text="Largura da imagem original em pixels.",
+    )
+    original_height = models.PositiveIntegerField(
+        "Altura original (px)",
+        help_text="Altura da imagem original em pixels.",
+    )
 
     created_at = models.DateTimeField("Criado em", auto_now_add=True)
 
