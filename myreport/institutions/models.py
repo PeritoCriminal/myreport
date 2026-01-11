@@ -1,85 +1,158 @@
 # institutions/models.py
-
-from django.conf import settings
 from django.db import models
-
-
-class FederationUnit(models.Model):
-    """
-    UF (SP, RJ, MG...), para permitir expansão nacional.
-    """
-    code = models.CharField(max_length=2, unique=True)   # "SP"
-    name = models.CharField(max_length=64)               # "São Paulo"
-
-    class Meta:
-        ordering = ["code"]
-
-    def __str__(self):
-        return self.code
 
 
 class Institution(models.Model):
     """
-    Órgão/Instituição (ex.: Secretaria de Segurança Pública do Estado de SP,
-    Polícia Científica do PR, etc.)
+    Instituição (órgão) que participa do sistema.
+
+    Observação:
+    - Mantemos UMA tabela única para todas as instituições.
+    - Diferenças específicas podem ser tratadas por `kind` e/ou por um perfil OneToOne no futuro.
     """
-    uf = models.ForeignKey(FederationUnit, on_delete=models.PROTECT, related_name="institutions")
-    name = models.CharField(max_length=160)              # "Secretaria da Segurança Pública do Estado de São Paulo"
-    short_name = models.CharField(max_length=80, blank=True)  # "SSP-SP" (opcional)
 
-    class Meta:
-        unique_together = [("uf", "name")]
-        ordering = ["uf__code", "name"]
+    class Kind(models.TextChoices):
+        SPTC_SP = "SPTC_SP", "SPTC (SP)"
+        POLICIA_CIENTIFICA = "POLICIA_CIENTIFICA", "Polícia Científica"
+        POLICIA_CIVIL = "POLICIA_CIVIL", "Polícia Civil"
+        OUTRA = "OUTRA", "Outra"
 
-    def __str__(self):
-        return self.short_name or self.name
+    sigla = models.CharField(max_length=30, unique=True)
+    nome = models.CharField(max_length=255)
 
+    kind = models.CharField(max_length=40, choices=Kind.choices, default=Kind.OUTRA)
 
-class ForensicAgency(models.Model):
-    """
-    Unidade técnica (ex.: Instituto de Criminalística, IML, etc.)
-    """
-    institution = models.ForeignKey(Institution, on_delete=models.PROTECT, related_name="agencies")
-    name = models.CharField(max_length=160)              # "Instituto de Criminalística"
-    city = models.CharField(max_length=80, blank=True)   # pode ficar aqui ou no 'WorkUnit' (depende do seu caso)
-    superintendent_name = models.CharField(max_length=120, blank=True)  # "Dr. Fulano"
+    diretor_nome = models.CharField(max_length=255, blank=True, default="")
+    diretor_cargo = models.CharField(max_length=255, blank=True, default="")
 
-    class Meta:
-        unique_together = [("institution", "name", "city")]
-        ordering = ["institution__uf__code", "name", "city"]
+    # Imagens (brasões)
+    brasao_1 = models.ImageField(upload_to="institutions/brasoes/", blank=True, null=True)
+    brasao_2 = models.ImageField(upload_to="institutions/brasoes/", blank=True, null=True)
 
-    def __str__(self):
-        return self.name
-
-
-class WorkUnit(models.Model):
-    """
-    Unidade/Equipe local (Núcleo, Seção, Equipe etc.).
-    """
-    agency = models.ForeignKey(ForensicAgency, on_delete=models.PROTECT, related_name="work_units")
-    name = models.CharField(max_length=160)              # "Núcleo de Perícias de Santos" / "Equipe Plantão"
-    city = models.CharField(max_length=80, blank=True)   # se preferir granular aqui
-
-    class Meta:
-        unique_together = [("agency", "name")]
-        ordering = ["agency__name", "name"]
-
-    def __str__(self):
-        return self.name
-
-
-class InstitutionalProfile(models.Model):
-    """
-    1:1 com o usuário: “local de trabalho” atual.
-    """
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="institutional_profile",
-    )
-    work_unit = models.ForeignKey(WorkUnit, on_delete=models.PROTECT, null=True, blank=True)
-    examiner_display_name = models.CharField(max_length=120, blank=True)  # se quiser travar “Dr./Dra.” por aqui
+    # Ativação lógica
     is_active = models.BooleanField(default=True)
 
-    def __str__(self):
-        return f"{self.user} - {self.work_unit or 'sem unidade'}"
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Instituição"
+        verbose_name_plural = "Instituições"
+        ordering = ["sigla"]
+
+    def __str__(self) -> str:
+        return f"{self.sigla} - {self.nome}"
+
+    @property
+    def header(self) -> dict:
+        """
+        Retorna um 'pacote' padronizado para cabeçalho (HTML/PDF/DOCX).
+        Você pode consumir isso direto no gerador de documentos.
+        """
+        return {
+            "sigla": self.sigla,
+            "nome": self.nome,
+            "diretor_nome": self.diretor_nome,
+            "diretor_cargo": self.diretor_cargo,
+            "brasao_1": self.brasao_1,
+            "brasao_2": self.brasao_2,
+            "kind": self.kind,
+        }
+
+
+class InstitutionCity(models.Model):
+    """
+    Cidades de atuação/abrangência da Instituição.
+
+    Mantive como tabela própria (e não ManyToMany para um model City externo)
+    para não te amarrar a outro app agora.
+    Se você já tem um common.City, pode trocar este model por FK.
+    """
+
+    institution = models.ForeignKey(
+        Institution, on_delete=models.CASCADE, related_name="cities"
+    )
+    name = models.CharField(max_length=120)
+    state = models.CharField(max_length=2, default="SP")  # UF (ex.: SP, RJ...)
+
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Cidade da Instituição"
+        verbose_name_plural = "Cidades da Instituição"
+        ordering = ["institution__sigla", "order", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["institution", "name", "state"],
+                name="unique_city_per_institution",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name}/{self.state} ({self.institution.sigla})"
+
+
+class Nucleo(models.Model):
+    """
+    Núcleo (unidade regional) de uma Instituição.
+    """
+
+    institution = models.ForeignKey(
+        Institution, on_delete=models.CASCADE, related_name="nucleos"
+    )
+    nome = models.CharField(max_length=255)
+
+    cidade = models.ForeignKey(
+        InstitutionCity,
+        on_delete=models.PROTECT,
+        related_name="nucleos",
+        blank=True,
+        null=True,
+    )
+
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Núcleo"
+        verbose_name_plural = "Núcleos"
+        ordering = ["institution__sigla", "order", "nome"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["institution", "nome"],
+                name="unique_nucleo_name_per_institution",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.nome} ({self.institution.sigla})"
+
+
+class Equipe(models.Model):
+    """
+    Equipe vinculada a um Núcleo.
+    """
+
+    nucleo = models.ForeignKey(Nucleo, on_delete=models.CASCADE, related_name="equipes")
+    nome = models.CharField(max_length=255)
+
+    # Campo opcional: ex.: "Equipe de Local", "Equipe de Balística" etc.
+    descricao = models.CharField(max_length=255, blank=True, default="")
+
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Equipe"
+        verbose_name_plural = "Equipes"
+        ordering = ["nucleo__institution__sigla", "nucleo__order", "order", "nome"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["nucleo", "nome"],
+                name="unique_equipe_name_per_nucleo",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.nome} ({self.nucleo.nome} / {self.nucleo.institution.sigla})"

@@ -1,13 +1,9 @@
+# myreport/settings.py
 from pathlib import Path
 
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  
-
-SESSION_COOKIE_AGE = 600
-
-SESSION_SAVE_EVERY_REQUEST = True
-
-AUTH_USER_MODEL = 'accounts.User'
-
+# ---------------------------------------------------------------------
+# Base
+# ---------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-6f7-s-0=2hwe%pyd+al81e3f13a)ub2c2my%tr$*o7)o)p$byq'
@@ -16,6 +12,22 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+# ---------------------------------------------------------------------
+# Sessão / Autenticação
+# ---------------------------------------------------------------------
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 600
+SESSION_SAVE_EVERY_REQUEST = True
+
+AUTH_USER_MODEL = 'accounts.User'
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "home:dashboard"
+LOGOUT_REDIRECT_URL = "home:index"
+
+# ---------------------------------------------------------------------
+# Apps
+# ---------------------------------------------------------------------
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -23,8 +35,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'django_extensions',
-    "accounts.apps.AccountsConfig",
+
+    'accounts.apps.AccountsConfig',
     'home',
     'groups',
     'social_net',
@@ -34,6 +48,9 @@ INSTALLED_APPS = [
     'institutions',
 ]
 
+# ---------------------------------------------------------------------
+# Middleware
+# ---------------------------------------------------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -44,6 +61,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ---------------------------------------------------------------------
+# URLs / Templates
+# ---------------------------------------------------------------------
 ROOT_URLCONF = 'myreport.urls'
 
 TEMPLATES = [
@@ -63,7 +83,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'myreport.wsgi.application'
 
-
+# ---------------------------------------------------------------------
+# Database
+# ---------------------------------------------------------------------
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -75,42 +97,36 @@ DATABASES = {
     }
 }
 
+# ---------------------------------------------------------------------
+# Password validation
+# ---------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-
+# ---------------------------------------------------------------------
+# Internacionalização
+# ---------------------------------------------------------------------
 LANGUAGE_CODE = 'pt-br'
-
 TIME_ZONE = 'America/Sao_Paulo'
-
 USE_I18N = True
-
 USE_TZ = True
 
-STATIC_URL = 'static/'
-
+# ---------------------------------------------------------------------
+# Static / Media
+# ---------------------------------------------------------------------
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'myreport' / 'static',
 ]
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
-
+# ---------------------------------------------------------------------
+# Default PK
+# ---------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = "home:dashboard"
-LOGOUT_REDIRECT_URL = "home:index"
