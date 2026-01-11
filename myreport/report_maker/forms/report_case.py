@@ -10,12 +10,14 @@ class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
 
     Ajustes principais:
     - Padronizou DateTimeInput com type="datetime-local" + formatos compatíveis.
-    - Garantiu que campos DateTime aceitem o valor enviado pelo browser (YYYY-MM-DDTHH:MM).
-    - Centralizou validação de coerência temporal (quando aplicável).
+    - Aplicou classe JS para padronização automática de campos de protocolo.
+    - Centralizou validação de coerência temporal.
     """
 
-    # Aceitou o formato do input HTML datetime-local (com e sem segundos)
-    DATETIME_LOCAL_INPUT_FORMATS = ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S")
+    DATETIME_LOCAL_INPUT_FORMATS = (
+        "%Y-%m-%dT%H:%M",
+        "%Y-%m-%dT%H:%M:%S",
+    )
 
     occurrence_datetime = forms.DateTimeField(
         required=False,
@@ -57,10 +59,18 @@ class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
             "conclusion": forms.Textarea(attrs={"rows": 6}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        protocol_class = "js-adjust-protocol"
+
+        for field_name in ("report_number", "protocol", "police_report", "police_inquiry"):
+            if field_name in self.fields:
+                attrs = self.fields[field_name].widget.attrs
+                css_class = attrs.get("class", "")
+                attrs["class"] = f"{css_class} {protocol_class}".strip()
+
     def clean(self):
-        """
-        Validou coerência básica entre datas quando informadas.
-        """
         cleaned_data = super().clean()
 
         occurrence = cleaned_data.get("occurrence_datetime")

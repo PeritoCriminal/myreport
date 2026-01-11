@@ -130,3 +130,16 @@
     </form>
   </div>
 {% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'myreport/js/adjust_text.js' %}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".js-adjust-protocol").forEach((input) => {
+        input.addEventListener("blur", () => {
+          input.value = adjustProtocol(input.value);
+        });
+      });
+    });
+  </script>
+{% endblock scripts %}
