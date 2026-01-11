@@ -6,23 +6,20 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.db.models import Max
-from django.http import (
-    Http404,
-    HttpResponseBadRequest,
-    HttpResponseForbidden,
-    JsonResponse,
-)
+from django.http import Http404, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, UpdateView
 
-from report_maker.models import ObjectImage
+from PIL import Image
+
 from report_maker.forms import ObjectImageForm
+from report_maker.models import ObjectImage
 
 
 class _ImageAccessMixin(LoginRequiredMixin):
     """
-    Mixin para resolver o objeto-alvo (content_object) e validar acesso:
+    Resolve o objeto-alvo (content_object) e valida acesso:
     - objeto existe
     - possui report_case
     - report_case pertence ao usuário
@@ -69,16 +66,25 @@ class ObjectImageCreateView(_ImageAccessMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx["mode"] = "create"
         ctx["initial_image_url"] = ""
-        ctx["cancel_url"] = self.get_success_url()
+
+        _ct, _obj, report = self._get_target_object()
+        ctx["cancel_url"] = reverse("report_maker:report_detail", kwargs={"pk": report.pk})
         return ctx
 
     def form_valid(self, form):
         ct, obj, _report = self._get_target_object()
+
+        # vincula o GenericForeignKey ANTES de salvar
         form.instance.content_type = ct
         form.instance.object_id = obj.pk
 
-        # index automático (max + 1) por objeto-alvo, com lock para evitar duplicidade
-        # (sempre calculamos aqui; não dependemos de default / form)
+        # dimensões originais
+        uploaded = form.cleaned_data.get("image")
+        if uploaded:
+            with Image.open(uploaded) as im:
+                form.instance.original_width, form.instance.original_height = im.size
+
+        # index automático (max + 1) por objeto-alvo, com lock
         with transaction.atomic():
             qs = (
                 ObjectImage.objects.select_for_update()
@@ -93,18 +99,11 @@ class ObjectImageCreateView(_ImageAccessMixin, CreateView):
         return reverse("report_maker:report_detail", kwargs={"pk": report.pk})
 
 
-class ObjectImageUpdateView(LoginRequiredMixin, UpdateView):
+class ObjectImageUpdateView(_ImageAccessMixin, UpdateView):
     model = ObjectImage
     template_name = "report_maker/image_form.html"
     form_class = ObjectImageForm
     context_object_name = "image"
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["mode"] = "update"
-        ctx["initial_image_url"] = self.object.image.url if self.object.image else ""
-        ctx["cancel_url"] = self.get_success_url()
-        return ctx
 
     def get_object(self, queryset=None):
         image = super().get_object(queryset=queryset)
@@ -122,8 +121,20 @@ class ObjectImageUpdateView(LoginRequiredMixin, UpdateView):
 
         return image
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["mode"] = "update"
+
+        img = self.get_object()
+        ctx["initial_image_url"] = img.image.url if getattr(img, "image", None) else ""
+
+        obj = img.content_object
+        report = obj.report_case
+        ctx["cancel_url"] = reverse("report_maker:report_detail", kwargs={"pk": report.pk})
+        return ctx
+
     def form_valid(self, form):
-        # garante que o index não seja alterado por qualquer meio
+        # garante que o index não seja alterado
         form.instance.index = self.get_object().index
         return super().form_valid(form)
 
@@ -132,7 +143,7 @@ class ObjectImageUpdateView(LoginRequiredMixin, UpdateView):
         return reverse("report_maker:report_detail", kwargs={"pk": obj.report_case.pk})
 
 
-class ObjectImageDeleteView(LoginRequiredMixin, DeleteView):
+class ObjectImageDeleteView(_ImageAccessMixin, DeleteView):
     model = ObjectImage
     template_name = "report_maker/image_confirm_delete.html"
     context_object_name = "image"
@@ -174,7 +185,6 @@ def images_reorder(request):
     if not first:
         return HttpResponseBadRequest("Imagens não encontradas")
 
-    # garante que todas pertencem ao MESMO objeto
     group_qs = ObjectImage.objects.filter(
         content_type_id=first.content_type_id,
         object_id=first.object_id,
@@ -183,7 +193,6 @@ def images_reorder(request):
     if group_qs.count() != len(ordered_ids):
         return HttpResponseBadRequest("Imagens não pertencem ao mesmo objeto")
 
-    # checa permissão
     obj = first.content_object
     report = getattr(obj, "report_case", None)
     if (
@@ -193,20 +202,16 @@ def images_reorder(request):
     ):
         return HttpResponseForbidden("Sem permissão")
 
-    # normaliza ids como string p/ comparação estável
     ordered_ids_str = [str(x) for x in ordered_ids]
 
     with transaction.atomic():
-        # trava o grupo para reordenação consistente
         locked = list(group_qs.select_for_update().order_by("id"))
 
-        # 1) "descolar" com índices temporários ÚNICOS (para não violar a UNIQUE)
         tmp_base = 1_000_000
         for i, img in enumerate(locked, start=1):
             img.index = tmp_base + i
             img.save(update_fields=["index"])
 
-        # 2) aplicar a ordem final (1..N)
         img_map = {str(img.pk): img for img in locked}
         for idx, img_id in enumerate(ordered_ids_str, start=1):
             img = img_map.get(img_id)
