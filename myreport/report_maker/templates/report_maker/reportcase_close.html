@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="container mt-4" style="max-width: 720px;">
+    <h4 class="mb-3">Concluir laudo</h4>
+
+    <div class="alert alert-warning">
+      Ao concluir, o laudo será bloqueado para edição e a organização (instituição/núcleo/equipe)
+      será congelada para preservar o histórico.
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="card p-3">
+      {% csrf_token %}
+      {{ form.as_p }}
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="submit">Concluir</button>
+        <a class="btn btn-outline-secondary" href="javascript:history.back()">Cancelar</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

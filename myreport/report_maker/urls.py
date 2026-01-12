@@ -8,6 +8,8 @@ from report_maker.views.report_case import (
     ReportCaseDeleteView,
 )
 
+from report_maker.views.report_case_close import ReportCaseCloseView
+
 from report_maker.views.generic_object import (
     GenericExamObjectCreateView,
     GenericExamObjectUpdateView,
@@ -34,6 +36,7 @@ urlpatterns = [
     path("reports/<uuid:pk>/", ReportCaseDetailView.as_view(), name="report_detail"),
     path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="report_update"),
     path("reports/<uuid:pk>/delete/", ReportCaseDeleteView.as_view(), name="report_delete"),
+    path("reports/<uuid:pk>/close/", ReportCaseCloseView.as_view(), name="report_close"),
 
     # ─────────────────────────────────────
     # Objetos de exame (genérico)

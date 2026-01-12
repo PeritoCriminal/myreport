@@ -1,87 +1,98 @@
 # institutions/models.py
 from django.db import models
+from django.conf import settings
+from django.utils import timezone
 
 
 class Institution(models.Model):
     """
-    Instituição (órgão) que participa do sistema.
+    Institution (public body / organization) that participates in the system.
 
-    Observação:
-    - Mantemos UMA tabela única para todas as instituições.
-    - Diferenças específicas podem ser tratadas por `kind` e/ou por um perfil OneToOne no futuro.
+    Notes:
+    - We keep a SINGLE table for all institutions.
+    - Specific differences can be handled later via `kind`
+      and/or OneToOne profile models.
     """
 
     class Kind(models.TextChoices):
         SPTC_SP = "SPTC_SP", "SPTC (SP)"
-        POLICIA_CIENTIFICA = "POLICIA_CIENTIFICA", "Polícia Científica"
-        POLICIA_CIVIL = "POLICIA_CIVIL", "Polícia Civil"
-        OUTRA = "OUTRA", "Outra"
+        SCIENTIFIC_POLICE = "SCIENTIFIC_POLICE", "Scientific Police"
+        CIVIL_POLICE = "CIVIL_POLICE", "Civil Police"
+        OTHER = "OTHER", "Other"
 
-    sigla = models.CharField(max_length=30, unique=True)
-    nome = models.CharField(max_length=255)
+    acronym = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=255)
 
-    kind = models.CharField(max_length=40, choices=Kind.choices, default=Kind.OUTRA)
+    kind = models.CharField(
+        max_length=40,
+        choices=Kind.choices,
+        default=Kind.OTHER,
+    )
 
-    diretor_nome = models.CharField(max_length=255, blank=True, default="")
-    diretor_cargo = models.CharField(max_length=255, blank=True, default="")
+    director_name = models.CharField(max_length=255, blank=True, default="")
+    director_title = models.CharField(max_length=255, blank=True, default="")
 
-    # Imagens (brasões)
-    brasao_1 = models.ImageField(upload_to="institutions/brasoes/", blank=True, null=True)
-    brasao_2 = models.ImageField(upload_to="institutions/brasoes/", blank=True, null=True)
+    # Emblems / coats of arms
+    emblem_primary = models.ImageField(
+        upload_to="institutions/emblems/", blank=True, null=True
+    )
+    emblem_secondary = models.ImageField(
+        upload_to="institutions/emblems/", blank=True, null=True
+    )
 
-    # Ativação lógica
     is_active = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Instituição"
-        verbose_name_plural = "Instituições"
-        ordering = ["sigla"]
+        verbose_name = "Institution"
+        verbose_name_plural = "Institutions"
+        ordering = ["acronym"]
 
     def __str__(self) -> str:
-        return f"{self.sigla} - {self.nome}"
+        return f"{self.acronym} - {self.name}"
 
     @property
     def header(self) -> dict:
         """
-        Retorna um 'pacote' padronizado para cabeçalho (HTML/PDF/DOCX).
-        Você pode consumir isso direto no gerador de documentos.
+        Standardized header payload for HTML / PDF / DOCX rendering.
         """
         return {
-            "sigla": self.sigla,
-            "nome": self.nome,
-            "diretor_nome": self.diretor_nome,
-            "diretor_cargo": self.diretor_cargo,
-            "brasao_1": self.brasao_1,
-            "brasao_2": self.brasao_2,
+            "acronym": self.acronym,
+            "name": self.name,
+            "director_name": self.director_name,
+            "director_title": self.director_title,
+            "emblem_primary": self.emblem_primary,
+            "emblem_secondary": self.emblem_secondary,
             "kind": self.kind,
         }
 
 
 class InstitutionCity(models.Model):
     """
-    Cidades de atuação/abrangência da Instituição.
+    Cities where an Institution operates.
 
-    Mantive como tabela própria (e não ManyToMany para um model City externo)
-    para não te amarrar a outro app agora.
-    Se você já tem um common.City, pode trocar este model por FK.
+    Kept as a standalone model to avoid coupling with external apps.
+    Can be replaced by a FK to common.City later if desired.
     """
 
     institution = models.ForeignKey(
-        Institution, on_delete=models.CASCADE, related_name="cities"
+        Institution,
+        on_delete=models.CASCADE,
+        related_name="cities",
     )
+
     name = models.CharField(max_length=120)
-    state = models.CharField(max_length=2, default="SP")  # UF (ex.: SP, RJ...)
+    state = models.CharField(max_length=2, default="SP")
 
     is_active = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        verbose_name = "Cidade da Instituição"
-        verbose_name_plural = "Cidades da Instituição"
-        ordering = ["institution__sigla", "order", "name"]
+        verbose_name = "Institution City"
+        verbose_name_plural = "Institution Cities"
+        ordering = ["institution__acronym", "order", "name"]
         constraints = [
             models.UniqueConstraint(
                 fields=["institution", "name", "state"],
@@ -90,23 +101,26 @@ class InstitutionCity(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.name}/{self.state} ({self.institution.sigla})"
+        return f"{self.name}/{self.state} ({self.institution.acronym})"
 
 
-class Nucleo(models.Model):
+class Nucleus(models.Model):
     """
-    Núcleo (unidade regional) de uma Instituição.
+    Regional nucleus (unit) of an Institution.
     """
 
     institution = models.ForeignKey(
-        Institution, on_delete=models.CASCADE, related_name="nucleos"
+        Institution,
+        on_delete=models.CASCADE,
+        related_name="nuclei",
     )
-    nome = models.CharField(max_length=255)
 
-    cidade = models.ForeignKey(
+    name = models.CharField(max_length=255)
+
+    city = models.ForeignKey(
         InstitutionCity,
         on_delete=models.PROTECT,
-        related_name="nucleos",
+        related_name="nuclei",
         blank=True,
         null=True,
     )
@@ -115,44 +129,150 @@ class Nucleo(models.Model):
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        verbose_name = "Núcleo"
-        verbose_name_plural = "Núcleos"
-        ordering = ["institution__sigla", "order", "nome"]
+        verbose_name = "Nucleus"
+        verbose_name_plural = "Nuclei"
+        ordering = ["institution__acronym", "order", "name"]
         constraints = [
             models.UniqueConstraint(
-                fields=["institution", "nome"],
-                name="unique_nucleo_name_per_institution",
+                fields=["institution", "name"],
+                name="unique_nucleus_name_per_institution",
             )
         ]
 
     def __str__(self) -> str:
-        return f"{self.nome} ({self.institution.sigla})"
+        return f"{self.name} ({self.institution.acronym})"
 
 
-class Equipe(models.Model):
+class Team(models.Model):
     """
-    Equipe vinculada a um Núcleo.
+    Team linked to a Nucleus.
     """
 
-    nucleo = models.ForeignKey(Nucleo, on_delete=models.CASCADE, related_name="equipes")
-    nome = models.CharField(max_length=255)
+    nucleus = models.ForeignKey(
+        Nucleus,
+        on_delete=models.CASCADE,
+        related_name="teams",
+    )
 
-    # Campo opcional: ex.: "Equipe de Local", "Equipe de Balística" etc.
-    descricao = models.CharField(max_length=255, blank=True, default="")
+    name = models.CharField(max_length=255)
+    description = models.CharField(max_length=255, blank=True, default="")
 
     is_active = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        verbose_name = "Equipe"
-        verbose_name_plural = "Equipes"
-        ordering = ["nucleo__institution__sigla", "nucleo__order", "order", "nome"]
+        verbose_name = "Team"
+        verbose_name_plural = "Teams"
+        ordering = [
+            "nucleus__institution__acronym",
+            "nucleus__order",
+            "order",
+            "name",
+        ]
         constraints = [
             models.UniqueConstraint(
-                fields=["nucleo", "nome"],
-                name="unique_equipe_name_per_nucleo",
+                fields=["nucleus", "name"],
+                name="unique_team_name_per_nucleus",
             )
         ]
 
     def __str__(self) -> str:
-        return f"{self.nome} ({self.nucleo.nome} / {self.nucleo.institution.sigla})"
+        return f"{self.name} ({self.nucleus.name} / {self.nucleus.institution.acronym})"
+
+
+class UserTeamAssignment(models.Model):
+    """
+    Historical assignment of a user to a Team.
+    A user may have many assignments over time,
+    but only ONE active assignment at a time.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="team_assignments",
+    )
+
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.PROTECT,
+        related_name="team_assignments",
+    )
+
+    start_at = models.DateTimeField(default=timezone.now, db_index=True)
+    end_at = models.DateTimeField(blank=True, null=True, db_index=True)
+
+    is_primary = models.BooleanField(
+        default=True,
+        help_text="Defines whether this is the user's primary team for the period.",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "User Team Assignment"
+        verbose_name_plural = "User Team Assignments"
+        ordering = ["-start_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(end_at__isnull=True),
+                name="unique_active_team_per_user",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["user", "end_at"]),
+        ]
+
+    def __str__(self):
+        status = "active" if self.end_at is None else "closed"
+        return f"{self.user} → {self.team} ({status})"
+
+
+class UserInstitutionAssignment(models.Model):
+    """
+    Historical assignment of a user to an Institution.
+    A user may have many assignments over time,
+    but only ONE active assignment at a time.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="institution_assignments",
+    )
+
+    institution = models.ForeignKey(
+        Institution,
+        on_delete=models.PROTECT,
+        related_name="institution_assignments",
+    )
+
+    start_at = models.DateTimeField(default=timezone.now, db_index=True)
+    end_at = models.DateTimeField(blank=True, null=True, db_index=True)
+
+    is_primary = models.BooleanField(
+        default=True,
+        help_text="Defines whether this is the user's primary institution for the period.",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "User Institution Assignment"
+        verbose_name_plural = "User Institution Assignments"
+        ordering = ["-start_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(end_at__isnull=True),
+                name="unique_active_institution_per_user",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["user", "end_at"]),
+        ]
+
+    def __str__(self):
+        status = "active" if self.end_at is None else "closed"
+        return f"{self.user} → {self.institution.acronym} ({status})"
