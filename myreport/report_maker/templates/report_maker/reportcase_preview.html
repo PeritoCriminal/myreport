@@ -1,184 +1,173 @@
-{% extends "base.html" %}
 {% load static %}
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Laudo nº {{ report.report_number }}</title>
 
-{% block extra_css %}
-<style>
-  /* Página tipo A4 */
-  .report-page {
-    max-width: 210mm;
-    margin: 0 auto;
-    padding: 25mm 20mm;
-    background: #fff;
-    color: #000;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 12pt;
-    line-height: 1.5;
-  }
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  /* Cabeçalho */
-  .report-header {
-    text-align: center;
-    margin-bottom: 20px;
-  }
+    <style>
+      body { background: #111; }
 
-  .report-header .emblems {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
+      .report-stage {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
 
-  .report-header img {
-    height: 70px;
-  }
+      .report-page {
+        width: 100%;
+        max-width: 980px;
+        background: #fff;
+        color: #000;
+        border-radius: 16px;
+        padding: 48px 32px;
+        box-shadow: 0 10px 30px rgba(0,0,0,.35);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12pt;
+        line-height: 1.5;
+      }
 
-  .report-header .institution {
-    font-weight: bold;
-    text-transform: uppercase;
-  }
+      .report-title { letter-spacing: .5px; }
 
-  .report-header .honoree {
-    font-weight: bold;
-    margin-top: 2px;
-  }
+      .report-number {
+        margin-top: 10px;
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
 
-  .report-header .unit-line {
-    margin-top: 6px;
-    font-weight: bold;
-  }
+      .close-btn {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+      }
 
-  /* Número do laudo */
-  .report-number {
-    text-align: center;
-    font-weight: bold;
-    font-size: 14pt;
-    margin: 25px 0;
-  }
+      .report-section { margin-top: 32px; }
 
-  /* Títulos de seção */
-  .section-title {
-    font-weight: bold;
-    text-transform: uppercase;
-    margin-top: 20px;
-    margin-bottom: 6px;
-  }
+      .report-section p {
+        text-align: justify;
+        margin-bottom: 12px;
+      }
 
-  /* Texto */
-  .section-text {
-    text-align: justify;
-    margin-bottom: 10px;
-  }
+      .section-heading {
+        font-size: 13pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-top: 28px;
+        margin-bottom: 10px;
+        text-align: left;
+      }
 
-  /* Badge de status */
-  .report-status {
-    text-align: right;
-    margin-bottom: 10px;
-    font-size: 10pt;
-  }
+      .data-list { margin: 0; }
 
-  .badge-editing {
-    color: #856404;
-    background-color: #fff3cd;
-    padding: 3px 6px;
-    border-radius: 4px;
-  }
+      .data-list dt {
+        float: left;
+        clear: left;
+        width: 260px;
+        font-weight: bold;
+      }
 
-  .badge-final {
-    color: #155724;
-    background-color: #d4edda;
-    padding: 3px 6px;
-    border-radius: 4px;
-  }
+      .data-list dd {
+        margin-left: 270px;
+        margin-bottom: 6px;
+      }
 
-  /* Modo impressão */
-  {% if print_mode %}
-  header, nav, aside, footer, .btn, .no-print {
-    display: none !important;
-  }
-  body {
-    background: #fff;
-  }
-  {% endif %}
-</style>
-{% endblock %}
+      .data-list::after {
+        content: "";
+        display: block;
+        clear: both;
+      }
 
-{% block content %}
-<div class="report-page">
+      @media print {
+        body { background: #fff; }
+        .close-btn { display: none !important; }
+        .report-stage { padding: 0; min-height: auto; }
+        .report-page {
+          box-shadow: none;
+          border-radius: 0;
+          max-width: none;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
 
-  <!-- Status -->
-  <div class="report-status">
-    {% if is_consolidated %}
-      <span class="badge-final">LAUDO CONSOLIDADO</span>
-    {% else %}
-      <span class="badge-editing">LAUDO EM EDIÇÃO</span>
-    {% endif %}
-  </div>
+  <body>
+    <button type="button" class="btn btn-light close-btn" onclick="window.close()">
+      Fechar
+    </button>
 
-  <!-- Cabeçalho -->
-  <div class="report-header">
-    <div class="emblems">
-      {% if header.emblem_primary %}
-        <img src="{{ header.emblem_primary.url }}" alt="Brasão principal">
-      {% endif %}
-      {% if header.emblem_secondary %}
-        <img src="{{ header.emblem_secondary.url }}" alt="Brasão secundário">
-      {% endif %}
-    </div>
+    <main class="report-stage">
+      <section class="report-page">
 
-    <div class="institution">{{ header.name }}</div>
+        <header class="text-center">
+          <h1 class="display-6 fw-semibold report-title mb-1">Laudo Pericial</h1>
 
-    {% if header.honoree %}
-      <div class="honoree">"{{ header.honoree }}"</div>
-    {% endif %}
+          <div class="report-number">
+            LAUDO Nº {{ report.report_number }}
+          </div>
+        </header>
 
-    {% if header.unit_line %}
-      <div class="unit-line">{{ header.unit_line }}</div>
-    {% endif %}
-  </div>
+        {% if report.preamble %}
+          <section class="report-section preamble">
+            {{ report.preamble|linebreaks }}
+          </section>
+        {% endif %}
 
-  <!-- Número do Laudo -->
-  <div class="report-number">
-    LAUDO Nº {{ report.number }}
-  </div>
+        <section class="report-section">
+          <h2 class="section-heading">Dados da Requisição</h2>
 
-  <!-- Preâmbulo -->
-  {% if report.preamble %}
-    <div class="section-text">
-      {{ report.preamble|linebreaks }}
-    </div>
-  {% endif %}
+          <dl class="data-list">
+            <dt>Autoridade requisitante</dt>
+            <dd>{{ report.requesting_authority|default:"—" }}</dd>
 
-  <!-- Objetivo -->
-  {% if report.objective %}
-    <div class="section-title">Objetivo</div>
-    <div class="section-text">
-      {{ report.objective|linebreaks }}
-    </div>
-  {% endif %}
+            <dt>Distrito policial</dt>
+            <dd>{{ report.police_district|default:"—" }}</dd>
 
-  <!-- Metodologia -->
-  {% if report.methodology %}
-    <div class="section-title">Metodologia</div>
-    <div class="section-text">
-      {{ report.methodology|linebreaks }}
-    </div>
-  {% endif %}
+            <dt>Boletim de ocorrência</dt>
+            <dd>{{ report.occurrence_report|default:"—" }}</dd>
 
-  <!-- Exame / Desenvolvimento -->
-  {% if report.examination %}
-    <div class="section-title">Exame</div>
-    <div class="section-text">
-      {{ report.examination|linebreaks }}
-    </div>
-  {% endif %}
+            <dt>Data e hora do boletim</dt>
+            <dd>
+              {% if report.occurrence_datetime %}
+                {{ report.occurrence_datetime|date:"d/m/Y H:i" }}
+              {% else %}
+                —
+              {% endif %}
+            </dd>
 
-  <!-- Conclusão -->
-  {% if report.conclusion %}
-    <div class="section-title">Conclusão</div>
-    <div class="section-text">
-      {{ report.conclusion|linebreaks }}
-    </div>
-  {% endif %}
+            <dt>Natureza criminal</dt>
+            <dd>{{ report.criminal_nature|default:"—" }}</dd>
+          </dl>
+        </section>
 
-</div>
-{% endblock %}
+        <section class="report-section">
+          <h2 class="section-heading">Dados do Atendimento</h2>
+
+          <dl class="data-list">
+            <dt>Protocolo</dt>
+            <dd>{{ report.protocol|default:"—" }}</dd>
+
+            <dt>Data e hora do atendimento</dt>
+            <dd>
+              {% if report.service_datetime %}
+                {{ report.service_datetime|date:"d/m/Y H:i" }}
+              {% else %}
+                —
+              {% endif %}
+            </dd>
+
+            <dt>Perito</dt>
+            <dd>{{ report.expert_name|default:"—" }}</dd>
+          </dl>
+        </section>
+
+      </section>
+    </main>
+  </body>
+</html>

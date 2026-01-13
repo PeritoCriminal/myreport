@@ -33,7 +33,7 @@ app_name = "report_maker"
 
 urlpatterns = [
     # ─────────────────────────────────────
-    # Laudos
+    # Laudos 
     # ─────────────────────────────────────
     path("reports/", ReportCaseListView.as_view(), name="report_list"),
     path("reports/create/", ReportCaseCreateView.as_view(), name="report_create"),
