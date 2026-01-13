@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  /* Página tipo A4 */
+  .report-page {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 25mm 20mm;
+    background: #fff;
+    color: #000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  /* Cabeçalho */
+  .report-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .report-header .emblems {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .report-header img {
+    height: 70px;
+  }
+
+  .report-header .institution {
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .report-header .honoree {
+    font-weight: bold;
+    margin-top: 2px;
+  }
+
+  .report-header .unit-line {
+    margin-top: 6px;
+    font-weight: bold;
+  }
+
+  /* Número do laudo */
+  .report-number {
+    text-align: center;
+    font-weight: bold;
+    font-size: 14pt;
+    margin: 25px 0;
+  }
+
+  /* Títulos de seção */
+  .section-title {
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-top: 20px;
+    margin-bottom: 6px;
+  }
+
+  /* Texto */
+  .section-text {
+    text-align: justify;
+    margin-bottom: 10px;
+  }
+
+  /* Badge de status */
+  .report-status {
+    text-align: right;
+    margin-bottom: 10px;
+    font-size: 10pt;
+  }
+
+  .badge-editing {
+    color: #856404;
+    background-color: #fff3cd;
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
+
+  .badge-final {
+    color: #155724;
+    background-color: #d4edda;
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
+
+  /* Modo impressão */
+  {% if print_mode %}
+  header, nav, aside, footer, .btn, .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  {% endif %}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-page">
+
+  <!-- Status -->
+  <div class="report-status">
+    {% if is_consolidated %}
+      <span class="badge-final">LAUDO CONSOLIDADO</span>
+    {% else %}
+      <span class="badge-editing">LAUDO EM EDIÇÃO</span>
+    {% endif %}
+  </div>
+
+  <!-- Cabeçalho -->
+  <div class="report-header">
+    <div class="emblems">
+      {% if header.emblem_primary %}
+        <img src="{{ header.emblem_primary.url }}" alt="Brasão principal">
+      {% endif %}
+      {% if header.emblem_secondary %}
+        <img src="{{ header.emblem_secondary.url }}" alt="Brasão secundário">
+      {% endif %}
+    </div>
+
+    <div class="institution">{{ header.name }}</div>
+
+    {% if header.honoree %}
+      <div class="honoree">"{{ header.honoree }}"</div>
+    {% endif %}
+
+    {% if header.unit_line %}
+      <div class="unit-line">{{ header.unit_line }}</div>
+    {% endif %}
+  </div>
+
+  <!-- Número do Laudo -->
+  <div class="report-number">
+    LAUDO Nº {{ report.number }}
+  </div>
+
+  <!-- Preâmbulo -->
+  {% if report.preamble %}
+    <div class="section-text">
+      {{ report.preamble|linebreaks }}
+    </div>
+  {% endif %}
+
+  <!-- Objetivo -->
+  {% if report.objective %}
+    <div class="section-title">Objetivo</div>
+    <div class="section-text">
+      {{ report.objective|linebreaks }}
+    </div>
+  {% endif %}
+
+  <!-- Metodologia -->
+  {% if report.methodology %}
+    <div class="section-title">Metodologia</div>
+    <div class="section-text">
+      {{ report.methodology|linebreaks }}
+    </div>
+  {% endif %}
+
+  <!-- Exame / Desenvolvimento -->
+  {% if report.examination %}
+    <div class="section-title">Exame</div>
+    <div class="section-text">
+      {{ report.examination|linebreaks }}
+    </div>
+  {% endif %}
+
+  <!-- Conclusão -->
+  {% if report.conclusion %}
+    <div class="section-title">Conclusão</div>
+    <div class="section-text">
+      {{ report.conclusion|linebreaks }}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

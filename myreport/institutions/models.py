@@ -32,7 +32,18 @@ class Institution(models.Model):
     director_name = models.CharField(max_length=255, blank=True, default="")
     director_title = models.CharField(max_length=255, blank=True, default="")
 
-    # Emblems / coats of arms
+    # in honor of / emblems / coats of arms
+    honoree_title = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Título honorífico (ex.: Perito Criminal Dr.)"
+    )
+    honoree_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Nome do patrono ou homenageado institucional"
+    )
+
     emblem_primary = models.ImageField(
         upload_to="institutions/emblems/", blank=True, null=True
     )
@@ -58,14 +69,20 @@ class Institution(models.Model):
         """
         Standardized header payload for HTML / PDF / DOCX rendering.
         """
+        honoree = None
+        if self.honoree_name:
+            if self.honoree_title:
+                honoree = f'{self.honoree_title} {self.honoree_name}'
+            else:
+                honoree = self.honoree_name
+
         return {
-            "acronym": self.acronym,
-            "name": self.name,
-            "director_name": self.director_name,
-            "director_title": self.director_title,
+            "acronym": self.acronym,  # Ex.: SPTC
+            "name": self.name,        # Superintendência da Polícia Técnico-Científica (SPTC)
+            "honoree": honoree,       # Ex.: PERITO CRIMINAL DR. OCTÁVIO EDUARDO DE BRITO ALVARENGA
             "emblem_primary": self.emblem_primary,
             "emblem_secondary": self.emblem_secondary,
-            "kind": self.kind,
+            "kind": self.kind,        # não renderiza, só lógica
         }
 
 
