@@ -505,6 +505,90 @@
           maxScale: 6
         })
       })()
+
+      ;(function () {
+      const instSel = document.getElementById('id_institution')
+      const nucSel  = document.getElementById('id_nucleus')
+      const teamSel = document.getElementById('id_team')
+
+      if (!instSel || !nucSel || !teamSel) return
+
+      function setOptions(select, items, placeholder) {
+        select.innerHTML = ''
+        const opt0 = document.createElement('option')
+        opt0.value = ''
+        opt0.textContent = placeholder
+        select.appendChild(opt0)
+
+        for (const it of items) {
+          const opt = document.createElement('option')
+          opt.value = it.id
+          opt.textContent = it.name
+          select.appendChild(opt)
+        }
+      }
+
+      async function loadNuclei(institutionId, keepSelectedId = null) {
+        if (!institutionId) {
+          setOptions(nucSel, [], '— selecione —')
+          setOptions(teamSel, [], '— selecione —')
+          return
+        }
+        const url = "{% url 'accounts:ajax_nuclei' %}" + "?institution=" + encodeURIComponent(institutionId)
+        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        const data = await res.json()
+
+        setOptions(nucSel, data.results || [], '— selecione —')
+
+        if (keepSelectedId) {
+          nucSel.value = keepSelectedId
+        }
+
+        // ao carregar núcleos, se não tiver núcleo selecionado, zera teams
+        if (!nucSel.value) {
+          setOptions(teamSel, [], '— selecione —')
+        }
+      }
+
+      async function loadTeams(nucleusId, keepSelectedId = null) {
+        if (!nucleusId) {
+          setOptions(teamSel, [], '— selecione —')
+          return
+        }
+        const url = "{% url 'accounts:ajax_teams' %}" + "?nucleus=" + encodeURIComponent(nucleusId)
+        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        const data = await res.json()
+
+        setOptions(teamSel, data.results || [], '— selecione —')
+
+        if (keepSelectedId) {
+          teamSel.value = keepSelectedId
+        }
+      }
+
+      // eventos
+      instSel.addEventListener('change', async () => {
+        await loadNuclei(instSel.value)
+      })
+
+      nucSel.addEventListener('change', async () => {
+        await loadTeams(nucSel.value)
+      })
+
+      // inicialização (para edição: mantém valores já setados pelo Django)
+      const initialInstitution = instSel.value
+      const initialNucleus = nucSel.value
+      const initialTeam = teamSel.value
+
+      // recarrega lista de núcleos e, depois, de equipes preservando seleção atual
+      loadNuclei(initialInstitution, initialNucleus).then(() => {
+        loadTeams(nucSel.value, initialTeam)
+      })
+    })()
+
+
+
+
     </script>
   {% endblock %}
 {% endblock %}

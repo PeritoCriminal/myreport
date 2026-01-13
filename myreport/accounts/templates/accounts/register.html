@@ -3,16 +3,60 @@
 {% block form_title %}Cadastro de Usuário{% endblock %}
 
 {% block extra_fields %}
+
+  {% if form.institution %}
+    <div class="mb-3">
+      <label class="form-label" for="{{ form.institution.id_for_label }}">{{ form.institution.label }}</label>
+      {{ form.institution }}
+      {% if form.institution.errors %}
+        <div class="invalid-feedback d-block">{{ form.institution.errors|join:", " }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if form.nucleus %}
+    <div class="mb-3">
+      <label class="form-label" for="{{ form.nucleus.id_for_label }}">{{ form.nucleus.label }}</label>
+      {{ form.nucleus }}
+      {% if form.nucleus.errors %}
+        <div class="invalid-feedback d-block">{{ form.nucleus.errors|join:", " }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if form.team %}
+    <div class="mb-3">
+      <label class="form-label" for="{{ form.team.id_for_label }}">{{ form.team.label }}</label>
+      {{ form.team }}
+      {% if form.team.errors %}
+        <div class="invalid-feedback d-block">{{ form.team.errors|join:", " }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+{% endblock %}
+
+
   <div class="mb-3">
-    <label class="form-label">{{ form.password1.label }}</label>
+    <label class="form-label" for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
     {{ form.password1 }}
-    {{ form.password1.errors }}
+    {% if form.password1.help_text %}
+      <div class="form-text">{{ form.password1.help_text }}</div>
+    {% endif %}
+    {% if form.password1.errors %}
+      <div class="invalid-feedback d-block">{{ form.password1.errors|join:", " }}</div>
+    {% endif %}
   </div>
 
   <div class="mb-3">
-    <label class="form-label">{{ form.password2.label }}</label>
+    <label class="form-label" for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
     {{ form.password2 }}
-    {{ form.password2.errors }}
+    {% if form.password2.help_text %}
+      <div class="form-text">{{ form.password2.help_text }}</div>
+    {% endif %}
+    {% if form.password2.errors %}
+      <div class="invalid-feedback d-block">{{ form.password2.errors|join:", " }}</div>
+    {% endif %}
   </div>
 {% endblock %}
 

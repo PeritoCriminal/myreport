@@ -4,6 +4,8 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, DeleteView
 from django.shortcuts import get_object_or_404
 
+from common.form_mixins import CanEditReportsRequiredMixin
+
 from report_maker.forms import ReportCaseForm
 from report_maker.models import ReportCase
 
@@ -18,7 +20,7 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
         return ReportCase.objects.filter(author=self.request.user)
 
 
-class ReportCaseCreateView(LoginRequiredMixin, CreateView):
+class ReportCaseCreateView(LoginRequiredMixin, CanEditReportsRequiredMixin, CreateView):
     model = ReportCase
     form_class = ReportCaseForm
     template_name = "report_maker/reportcase_form.html"
@@ -29,7 +31,7 @@ class ReportCaseCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class ReportCaseUpdateView(LoginRequiredMixin, UpdateView):
+class ReportCaseUpdateView(LoginRequiredMixin, CanEditReportsRequiredMixin, UpdateView):
     model = ReportCase
     form_class = ReportCaseForm
     template_name = "report_maker/reportcase_form.html"
@@ -60,9 +62,7 @@ class ReportCaseDetailView(LoginRequiredMixin, DetailView):
         )
 
 
-
-
-class ReportCaseDeleteView(LoginRequiredMixin, DeleteView):
+class ReportCaseDeleteView(LoginRequiredMixin, CanEditReportsRequiredMixin, DeleteView):
     model = ReportCase
     template_name = "report_maker/reportcase_confirm_delete.html"
     context_object_name = "report"

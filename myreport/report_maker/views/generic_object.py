@@ -18,13 +18,13 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_protect
 
-from common.form_mixins import ExamObjectMetaContextMixin
+from common.form_mixins import ExamObjectMetaContextMixin, CanEditReportsRequiredMixin
 
 from report_maker.forms import GenericExamObjectForm
 from report_maker.models import GenericExamObject, ReportCase
 
 
-class GenericExamObjectCreateView(LoginRequiredMixin, CreateView):
+class GenericExamObjectCreateView(LoginRequiredMixin, CanEditReportsRequiredMixin, CreateView):
     """
     Cria um objeto de exame genérico vinculado a um laudo (ReportCase).
 
@@ -80,7 +80,7 @@ class GenericExamObjectCreateView(LoginRequiredMixin, CreateView):
         )
 
 
-class GenericExamObjectUpdateView(LoginRequiredMixin, UpdateView):
+class GenericExamObjectUpdateView(LoginRequiredMixin, CanEditReportsRequiredMixin, UpdateView):
     """
     Editou um objeto genérico, respeitando:
     - acesso restrito ao autor do laudo;
@@ -126,7 +126,7 @@ class GenericExamObjectUpdateView(LoginRequiredMixin, UpdateView):
         )
 
 
-class GenericExamObjectDeleteView(LoginRequiredMixin, DeleteView):
+class GenericExamObjectDeleteView(LoginRequiredMixin, CanEditReportsRequiredMixin, DeleteView):
     """
     Excluiu um objeto genérico, respeitando:
     - acesso restrito ao autor do laudo;

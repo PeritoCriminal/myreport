@@ -10,6 +10,9 @@ from .views import (
     AllUserListView,
     UserProfileView,
     FollowToggleView,
+    LinkInstitutionView,
+    ajax_nuclei,
+    ajax_teams,
 )
 
 app_name = 'accounts'
@@ -23,4 +26,9 @@ urlpatterns = [
     path("users/", AllUserListView.as_view(), name="user_list"),
     path("u/<uuid:user_id>/", UserProfileView.as_view(), name="user_profile"),
     path("u/<uuid:user_id>/follow-toggle/", FollowToggleView.as_view(), name="follow_toggle"),
+    path("vinculo/", LinkInstitutionView.as_view(), name="link_institution"),
+
+    # AJAX
+    path("ajax/nuclei/", ajax_nuclei, name="ajax_nuclei"),
+    path("ajax/teams/", ajax_teams, name="ajax_teams"),
 ]

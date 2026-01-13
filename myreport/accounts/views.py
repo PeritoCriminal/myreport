@@ -1,22 +1,29 @@
 # accounts/views.py
 
+from __future__ import annotations
+
+from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, PasswordChangeView
-from django.shortcuts import redirect, get_object_or_404
-from django.urls import reverse_lazy, reverse
-from django.urls.exceptions import NoReverseMatch
-from django.views.generic import CreateView, UpdateView, TemplateView
-from django.db.models import Q, Avg, Count, Exists, OuterRef, Subquery
-from django.views.generic import ListView
+from django.db.models import Avg, Count, Exists, OuterRef, Q, Subquery
 from django.http import HttpResponseBadRequest
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
+from django.urls.exceptions import NoReverseMatch
 from django.views import View
+from django.views.generic import CreateView, FormView, ListView, TemplateView, UpdateView
 
-from .forms import UserRegistrationForm, UserProfileEditForm, UserSetPasswordForm
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+
+from institutions.models import Nucleus, Team
+
+from .forms import UserProfileEditForm, UserRegistrationForm, UserSetPasswordForm, LinkInstitutionForm
 from .models import User, UserFollow
 
-from social_net.models import Post, PostLike, PostRating
 
+from social_net.models import Post, PostLike, PostRating
 
 
 
@@ -225,3 +232,49 @@ class FollowToggleView(LoginRequiredMixin, View):
 
         next_url = (request.POST.get("next") or "").strip()
         return redirect(next_url or reverse("accounts:user_profile", kwargs={"user_id": target.pk}))
+    
+
+
+
+
+
+class LinkInstitutionView(LoginRequiredMixin, FormView):
+    template_name = "accounts/link_institution.html"
+    form_class = LinkInstitutionForm
+    success_url = reverse_lazy("accounts:link_institution")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form: LinkInstitutionForm):
+        form.save()
+        messages.success(self.request, "Vínculo institucional atualizado.")
+        return super().form_valid(form)
+
+
+
+
+
+
+@require_GET
+def ajax_nuclei(request):
+    institution_id = (request.GET.get("institution") or "").strip()
+    if not institution_id:
+        return JsonResponse({"results": []})
+
+    qs = Nucleus.objects.filter(institution_id=institution_id).order_by("name")
+    data = [{"id": str(n.pk), "name": str(n)} for n in qs]
+    return JsonResponse({"results": data})
+
+
+@require_GET
+def ajax_teams(request):
+    nucleus_id = (request.GET.get("nucleus") or "").strip()
+    if not nucleus_id:
+        return JsonResponse({"results": []})
+
+    qs = Team.objects.filter(nucleus_id=nucleus_id).order_by("name")
+    data = [{"id": str(t.pk), "name": str(t)} for t in qs]
+    return JsonResponse({"results": data})

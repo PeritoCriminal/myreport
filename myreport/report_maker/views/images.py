@@ -13,6 +13,7 @@ from django.views.generic import CreateView, DeleteView, UpdateView
 
 from PIL import Image
 
+from common.form_mixins import CanEditReportsRequiredMixin
 from report_maker.forms import ObjectImageForm
 from report_maker.models import ObjectImage
 
@@ -57,7 +58,7 @@ class _ImageAccessMixin(LoginRequiredMixin):
         return ct, obj, report
 
 
-class ObjectImageCreateView(_ImageAccessMixin, CreateView):
+class ObjectImageCreateView(_ImageAccessMixin, CanEditReportsRequiredMixin, CreateView):
     model = ObjectImage
     template_name = "report_maker/image_form.html"
     form_class = ObjectImageForm  # index não é editável pelo usuário
@@ -99,7 +100,7 @@ class ObjectImageCreateView(_ImageAccessMixin, CreateView):
         return reverse("report_maker:report_detail", kwargs={"pk": report.pk})
 
 
-class ObjectImageUpdateView(_ImageAccessMixin, UpdateView):
+class ObjectImageUpdateView(_ImageAccessMixin, CanEditReportsRequiredMixin, UpdateView):
     model = ObjectImage
     template_name = "report_maker/image_form.html"
     form_class = ObjectImageForm
@@ -143,7 +144,7 @@ class ObjectImageUpdateView(_ImageAccessMixin, UpdateView):
         return reverse("report_maker:report_detail", kwargs={"pk": obj.report_case.pk})
 
 
-class ObjectImageDeleteView(_ImageAccessMixin, DeleteView):
+class ObjectImageDeleteView(_ImageAccessMixin, CanEditReportsRequiredMixin, DeleteView):
     model = ObjectImage
     template_name = "report_maker/image_confirm_delete.html"
     context_object_name = "image"

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Vínculo institucional{% endblock %}
+
+{% block content %}
+  <div class="container mt-4" style="max-width: 720px;">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Vínculo institucional</h5>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.institution.id_for_label }}">Instituição</label>
+            {{ form.institution }}
+            {% if form.institution.errors %}
+              <div class="invalid-feedback d-block">{{ form.institution.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.team.id_for_label }}">Equipe</label>
+            {{ form.team }}
+            {% if form.team.errors %}
+              <div class="invalid-feedback d-block">{{ form.team.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Salvar vínculo</button>
+            <a href="{% url 'accounts:profile' request.user.pk %}" class="btn btn-outline-secondary">Voltar</a>
+          </div>
+        </form>
+
+        <hr class="my-4">
+
+        <div class="small text-muted">
+          A edição de laudos depende de vínculo institucional ativo e da habilitação administrativa.
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

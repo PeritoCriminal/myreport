@@ -1,3 +1,9 @@
+# common/mixins.py
+# (ou onde esses mixins já vivem hoje)
+
+from django.core.exceptions import PermissionDenied
+
+
 class BootstrapFormMixin:
     """
     Aplica automaticamente classes Bootstrap aos campos do formulário.
@@ -12,7 +18,7 @@ class BootstrapFormMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        for field_name, field in self.fields.items():
+        for field in self.fields.values():
             widget = field.widget
 
             # Ignora campos ocultos
@@ -34,6 +40,27 @@ class BootstrapFormMixin:
             # Inputs padrão
             widget.attrs["class"] = f"{classes} form-control".strip()
 
+
+class CanEditReportsRequiredMixin:
+    """
+    Restringe acesso a views de criação/edição de laudos.
+
+    Exige:
+    - usuário autenticado;
+    - habilitação administrativa;
+    - vínculo institucional ativo.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+
+        if not user.is_authenticated:
+            return self.handle_no_permission()
+
+        if not getattr(user, "can_edit_reports_effective", False):
+            raise PermissionDenied
+
+        return super().dispatch(request, *args, **kwargs)
 
 
 class ExamObjectMetaContextMixin:
