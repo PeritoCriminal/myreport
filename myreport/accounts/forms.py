@@ -171,6 +171,7 @@ class UserRegistrationForm(_InstitutionNucleusTeamFieldsMixin, UserCreationForm)
         fields = (
             "username",
             "display_name",
+            "report_signature_name",
             "email",
             "role",
             "profile_image",
@@ -181,6 +182,7 @@ class UserRegistrationForm(_InstitutionNucleusTeamFieldsMixin, UserCreationForm)
         widgets = {
             "username": forms.TextInput(attrs={"class": "form-control"}),
             "display_name": forms.TextInput(attrs={"class": "form-control"}),
+            "report_signature_name": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
             "role": forms.Select(attrs={"class": "form-select"}),
             "profile_image": forms.ClearableFileInput(attrs={"class": "form-control"}),
@@ -217,6 +219,7 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, forms.ModelForm):
         fields = (
             "username",
             "display_name",
+            "report_signature_name",
             "email",
             "role",
             "profile_image",
@@ -225,6 +228,7 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, forms.ModelForm):
         widgets = {
             "username": forms.TextInput(attrs={"class": "form-control", "readonly": True}),
             "display_name": forms.TextInput(attrs={"class": "form-control"}),
+            "report_signature_name": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
             "role": forms.Select(attrs={"class": "form-select"}),
             "profile_image": forms.ClearableFileInput(attrs={"class": "form-control"}),

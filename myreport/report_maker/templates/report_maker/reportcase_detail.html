@@ -23,6 +23,23 @@
       </div>
     </div>
 
+
+    {# Preâmbulo #}
+    {% if report.preamble %}
+      <div class="mb-4">
+        <p class="text-justify">
+          {{ report.preamble }}
+        </p>
+      </div>
+      {% else %}
+      <div class="mb-4">
+        <p class="text-justify">
+          Não tem preâmbulo.  {# Está renderizando esse linha #}
+        </p>
+      </div>
+
+    {% endif %}
+
     {# Dados Gerais #}
     <div class="mb-4">
       <dl class="row">

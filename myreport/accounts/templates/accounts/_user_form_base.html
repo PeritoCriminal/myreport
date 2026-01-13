@@ -34,6 +34,13 @@
         {{ form.display_name.errors }}
       </div>
 
+      <!-- Name for report -->
+      <div class="mb-3">
+        <label class="form-label">{{ form.report_signature_name.label }}</label>
+        {{ form.report_signature_name }}
+        {{ form.report_signature_name.errors }}
+      </div>
+
       <!-- Email -->
       <div class="mb-3">
         <label class="form-label">{{ form.email.label }}</label>

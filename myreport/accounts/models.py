@@ -37,6 +37,12 @@ class User(AbstractUser):
         help_text="Nome exibido na interface.",
     )
 
+    report_signature_name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Nome exibido nos Laudos. Ex: Dr. Marcos Capristo",
+    )
+
     ROLE_PERITO = "PERITO"
     ROLE_DELEGADO = "DELEGADO"
     ROLE_ESCRIVAO = "ESCRIVAO"

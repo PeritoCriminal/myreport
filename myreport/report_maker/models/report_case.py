@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.formats import date_format
 
 from institutions.models import Institution, Nucleus, Team
 
@@ -362,3 +363,91 @@ class ReportCase(models.Model):
         """
         self.full_clean()
         super().save(*args, **kwargs)
+
+    
+    @staticmethod
+    def _gendered_roles_from_name(name: str, masculine: str, feminine: str, neutral: str) -> str:
+            """
+            Retorna a forma de tratamento conforme 'Dr.'/'Dra.' no início do nome.
+            """
+            if not name:
+                return neutral
+            n = name.strip().lower()
+            if n.startswith("dra.") or n.startswith("dra "):
+                return feminine
+            if n.startswith("dr.") or n.startswith("dr "):
+                return masculine
+            return neutral
+
+
+
+
+    @property
+    def preamble(self) -> str:
+        """
+        Preâmbulo institucional do laudo (modelo inspirado no sistema legado).
+
+        - Usa snapshot institucional (histórico) quando existir.
+        - Usa data da designação (assignment_datetime) quando existir.
+        - Mantém redação objetiva no passado simples.
+        """
+        examiner = (
+            getattr(self.author, "report_signature_name", "") 
+            or getattr(self.author, "display_name", "") 
+            or str(self.author)
+        )
+        
+        authority = self.requesting_authority or ""
+
+        # Data por extenso (sem dia da semana, para ficar mais "institucional")
+        if self.assignment_datetime:
+            full_date = date_format(self.assignment_datetime.date(), format="j \\d\\e F \\d\\e Y", use_l10n=True).lower()
+        else:
+            full_date = ""
+
+        # Blocos institucionais (priorizam snapshot)
+        inst = self.institution_display
+        nuc = self.nucleus_display
+        team = self.team_display
+
+        # Tratamentos (Dr./Dra.)
+        d_examiner = self._gendered_roles_from_name(
+            examiner,
+            masculine="foi designado o Perito Criminal",
+            feminine="foi designada a Perita Criminal",
+            neutral="foi designado o Perito Criminal",
+        )
+        d_authority = self._gendered_roles_from_name(
+            authority,
+            masculine="pelo Exmo. Sr. Delegado de Polícia",
+            feminine="pela Exma. Sra. Delegada de Polícia",
+            neutral="pelo(a) Exmo(a). Sr(a). Delegado(a) de Polícia",
+        )
+
+        # Montagem do cabeçalho institucional (somente o que existir)
+        org_parts = [p for p in [inst, nuc, team] if p]
+        org_text = " / ".join(org_parts)
+
+        # Se houver data e informação institucional
+        if full_date and org_text:
+            return (
+                f"Aos {full_date}, em conformidade com o disposto no artigo 178 do Decreto-Lei nº 3.689, "
+                f"de 3 de outubro de 1941, foi designado o Perito Criminal {examiner} para proceder ao exame pericial "
+                f"no âmbito de {org_text}, em atendimento à requisição expedida {d_authority} {authority}."
+            )
+
+        # Se houver apenas a data
+        if full_date:
+            return (
+                f"Aos {full_date}, em conformidade com o disposto no artigo 178 do Decreto-Lei nº 3.689, "
+                f"de 3 de outubro de 1941, foi designado o Perito Criminal {examiner} para proceder ao exame pericial "
+                f"em atendimento à requisição expedida {d_authority} {authority}."
+            )
+
+        # Fallback mínimo (sem data)
+        return (
+            f"Em conformidade com o disposto no artigo 178 do Decreto-Lei nº 3.689, de 3 de outubro de 1941, "
+            f"foi designado o Perito Criminal {examiner} para proceder ao exame pericial "
+            f"em atendimento à requisição expedida {d_authority} {authority}."
+        )
+

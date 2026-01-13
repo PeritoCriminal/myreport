@@ -55,12 +55,21 @@ class ReportCaseDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "report"
 
     def get_queryset(self):
+        from django.db.models import Prefetch
+        from report_maker.models import GenericExamObject, ObjectImage  # ajuste os imports conforme seus nomes reais
+
         return (
             ReportCase.objects
             .filter(author=self.request.user)
-            .prefetch_related("exam_objects__images")  # objetos + imagens
+            .prefetch_related(
+                Prefetch(
+                    "exam_objects",
+                    queryset=GenericExamObject.objects.order_by("order", "created_at").prefetch_related(
+                        Prefetch("images", queryset=ObjectImage.objects.order_by("index", "created_at"))
+                    ),
+                )
+            )
         )
-
 
 class ReportCaseDeleteView(LoginRequiredMixin, CanEditReportsRequiredMixin, DeleteView):
     model = ReportCase
