@@ -66,6 +66,11 @@
           <dd class="col-sm-8">{{ report.occurrence_datetime|date:'d/m/Y H:i' }}</dd>
         {% endif %}
 
+        {% if report.criminal_typification %}
+          <dt class="col-sm-4">Tificação Criminal</dt>
+          <dd class="col-sm-8">{{ report.criminal_typification|date:'d/m/Y H:i' }}</dd>
+        {% endif %}
+
         {% if report.protocol %}
           <dt class="col-sm-4">Protocolo</dt>
           <dd class="col-sm-8">{{ report.protocol }}</dd>

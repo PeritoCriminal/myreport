@@ -136,6 +136,7 @@ class ReportCase(models.Model):
     police_report = models.CharField("Boletim de ocorrência", max_length=60, blank=True)
     police_inquiry = models.CharField("Inquérito policial", max_length=60, blank=True)
     police_station = models.CharField("Distrito policial", max_length=120, blank=True)
+    criminal_typification = models.CharField("Tipificação penal", max_length=80, blank=True, help_text="Ex.: furto, roubo, homicídio, latrocínio")
 
     occurrence_datetime = models.DateTimeField("Data e hora da ocorrência", null=True, blank=True)
     assignment_datetime = models.DateTimeField("Data e hora da designação", null=True, blank=True)

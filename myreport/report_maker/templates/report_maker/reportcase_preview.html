@@ -127,10 +127,10 @@
             <dd>{{ report.requesting_authority|default:"—" }}</dd>
 
             <dt>Distrito policial</dt>
-            <dd>{{ report.police_district|default:"—" }}</dd>
+            <dd>{{ report.police_station|default:"—" }}</dd>
 
             <dt>Boletim de ocorrência</dt>
-            <dd>{{ report.occurrence_report|default:"—" }}</dd>
+            <dd>{{ report.police_report|default:"—" }}</dd>
 
             <dt>Data e hora do boletim</dt>
             <dd>
@@ -142,7 +142,7 @@
             </dd>
 
             <dt>Natureza criminal</dt>
-            <dd>{{ report.criminal_nature|default:"—" }}</dd>
+            <dd>{{ report.criminal_typification|default:"—" }}</dd>
           </dl>
         </section>
 
@@ -155,15 +155,15 @@
 
             <dt>Data e hora do atendimento</dt>
             <dd>
-              {% if report.service_datetime %}
-                {{ report.service_datetime|date:"d/m/Y H:i" }}
+              {% if report.examination_datetime %}
+                {{ report.examination_datetime|date:"d/m/Y H:i" }}
               {% else %}
                 —
               {% endif %}
             </dd>
 
             <dt>Perito</dt>
-            <dd>{{ report.expert_name|default:"—" }}</dd>
+            <dd>{{ report.author.report_signature_name|default:"—" }}</dd>
           </dl>
         </section>
 

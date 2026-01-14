@@ -48,6 +48,7 @@ class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
             "police_report",
             "police_inquiry",
             "police_station",
+            "criminal_typification",
             "occurrence_datetime",
             "assignment_datetime",
             "examination_datetime",

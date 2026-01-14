@@ -81,6 +81,12 @@
         </div>
 
         <div class="col-12 mb-3">
+          {{ form.criminal_typification.label_tag }}
+          {{ form.criminal_typification }}
+          {{ form.criminal_typification.errors }}
+        </div>
+
+        <div class="col-12 mb-3">
           {{ form.occurrence_datetime.label_tag }}
           {{ form.occurrence_datetime }}
           {{ form.occurrence_datetime.errors }}
