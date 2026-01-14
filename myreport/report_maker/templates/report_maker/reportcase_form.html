@@ -139,13 +139,43 @@
 
 {% block scripts %}
   <script src="{% static 'myreport/js/adjust_text.js' %}"></script>
+
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      // Ajuste de protocolo (já existente)
       document.querySelectorAll(".js-adjust-protocol").forEach((input) => {
         input.addEventListener("blur", () => {
           input.value = adjustProtocol(input.value);
         });
       });
+
+      // Defaults APENAS para "novo" (não sobrescreve valores vindos do BD)
+      {% if not object %}
+        const pad2 = (n) => String(n).padStart(2, "0");
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = pad2(now.getMonth() + 1);
+        const dd = pad2(now.getDate());
+
+        const setDefaultDateTime = (el) => {
+          if (!el || el.value) return; // não mexe se já tiver algo (inclusive autofill)
+
+          const t = (el.getAttribute("type") || "").toLowerCase();
+
+          if (t === "datetime-local") {
+            el.value = `${yyyy}-${mm}-${dd}T00:00`;
+          } else if (t === "date") {
+            el.value = `${yyyy}-${mm}-${dd}`;
+          } else if (t === "time") {
+            el.value = `00:00`;
+          }
+        };
+
+        // IDs padrão que o Django costuma gerar: id_<nome_do_campo>
+        setDefaultDateTime(document.getElementById("id_occurrence_datetime"));
+        setDefaultDateTime(document.getElementById("id_assignment_datetime"));
+        setDefaultDateTime(document.getElementById("id_examination_datetime"));
+      {% endif %}
     });
   </script>
 {% endblock scripts %}

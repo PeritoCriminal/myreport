@@ -3,6 +3,7 @@ from django import forms
 from common.form_mixins import BootstrapFormMixin
 from report_maker.models import ReportCase
 
+DT_LOCAL_FORMAT = "%Y-%m-%dT%H:%M"
 
 class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
     """
@@ -57,12 +58,28 @@ class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
             "conclusion",
         ]
         widgets = {
-            "conclusion": forms.Textarea(attrs={"rows": 6}),
+            "conclusion": forms.Textarea(
+                attrs={"rows": 6}),
+            "occurrence_datetime": forms.DateTimeInput(
+                attrs={"type": "datetime-local", "class": "form-control"},
+                format=DT_LOCAL_FORMAT,
+            ),
+            "assignment_datetime": forms.DateTimeInput(
+                attrs={"type": "datetime-local", "class": "form-control"},
+                format=DT_LOCAL_FORMAT,
+            ),
+            "examination_datetime": forms.DateTimeInput(
+                attrs={"type": "datetime-local", "class": "form-control"},
+                format=DT_LOCAL_FORMAT,
+            ),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # ─────────────────────────────────────
+        # Classe JS para ajuste de protocolo
+        # ─────────────────────────────────────
         protocol_class = "js-adjust-protocol"
 
         for field_name in ("report_number", "protocol", "police_report", "police_inquiry"):
@@ -70,6 +87,22 @@ class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
                 attrs = self.fields[field_name].widget.attrs
                 css_class = attrs.get("class", "")
                 attrs["class"] = f"{css_class} {protocol_class}".strip()
+
+        # ─────────────────────────────────────
+        # Correção de renderização datetime-local (EDIT)
+        # ─────────────────────────────────────
+        DT_LOCAL_FORMAT = "%Y-%m-%dT%H:%M"
+
+        for field_name in (
+            "occurrence_datetime",
+            "assignment_datetime",
+            "examination_datetime",
+        ):
+            if field_name in self.fields:
+                value = self.initial.get(field_name) or getattr(self.instance, field_name, None)
+                if value:
+                    self.initial[field_name] = value.strftime(DT_LOCAL_FORMAT)
+
 
     def clean(self):
         cleaned_data = super().clean()
