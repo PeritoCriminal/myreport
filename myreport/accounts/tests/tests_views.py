@@ -1,4 +1,4 @@
-# myreport/accounts/tests/tests_views.py
+# accounts/tests/tests_views.py
 
 from django.test import TestCase
 from django.urls import reverse
@@ -77,7 +77,11 @@ class AccountsAccessTests(TestCase):
     def test_anonymous_cannot_post_follow_toggle(self):
         resp = self.client.post(
             reverse("accounts:follow_toggle", kwargs={"user_id": self.other.pk}),
-            data={"next": reverse("accounts:user_profile", kwargs={"user_id": self.other.pk})},
+            data={
+                "next": reverse(
+                    "accounts:user_profile", kwargs={"user_id": self.other.pk}
+                )
+            },
         )
         self.assertEqual(resp.status_code, 302)
         self.assertIn(reverse("accounts:login"), resp["Location"])
@@ -98,8 +102,7 @@ class AccountsAccessTests(TestCase):
         # LoginView.redirect_authenticated_user = True
         resp = self.client.get(reverse("accounts:login"))
         self.assertEqual(resp.status_code, 302)
-        # normalmente vai para LOGIN_REDIRECT_URL / ou home:dashboard dependendo do projeto;
-        # aqui o mínimo é garantir que NÃO fica na tela de login
+        # mínimo: garantir que NÃO fica na tela de login
         self.assertNotIn(reverse("accounts:login"), resp["Location"])
 
     def test_authenticated_can_access_profile_edit(self):
@@ -146,3 +149,90 @@ class AccountsAccessTests(TestCase):
         resp = self.client.post(reverse("accounts:logout"))
         self.assertEqual(resp.status_code, 302)
         self.assertIn(reverse("home:index"), resp["Location"])
+
+
+class AccountsSecurityHardeningTests(TestCase):
+    """
+    Testes específicos de endurecimento contra acesso não autorizado/abuso:
+    - AJAX protegido por login
+    - open-redirect bloqueado no follow_toggle
+    - follow_toggle: follow self e alvo inativo
+    - user_list não expõe usuários inativos
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.password = "TestPass!12345"
+
+        cls.user = User.objects.create_user(
+            username="sec_user1",
+            email="sec_user1@example.com",
+            password=cls.password,
+            is_active=True,
+        )
+
+        cls.other = User.objects.create_user(
+            username="sec_user2",
+            email="sec_user2@example.com",
+            password=cls.password,
+            is_active=True,
+        )
+
+        cls.inactive = User.objects.create_user(
+            username="sec_inactive",
+            email="sec_inactive@example.com",
+            password=cls.password,
+            is_active=False,
+        )
+
+    def login(self):
+        ok = self.client.login(username=self.user.username, password=self.password)
+        self.assertTrue(ok)
+
+    def test_anonymous_cannot_access_ajax_nuclei(self):
+        resp = self.client.get(reverse("accounts:ajax_nuclei"), data={"institution": "1"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse("accounts:login"), resp["Location"])
+
+    def test_anonymous_cannot_access_ajax_teams(self):
+        resp = self.client.get(reverse("accounts:ajax_teams"), data={"nucleus": "1"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse("accounts:login"), resp["Location"])
+
+    def test_follow_toggle_rejects_external_next_url(self):
+        self.login()
+
+        resp = self.client.post(
+            reverse("accounts:follow_toggle", kwargs={"user_id": self.other.pk}),
+            data={"next": "https://evil.com"},
+        )
+
+        self.assertEqual(resp.status_code, 302)
+        # Deve redirecionar para dentro do sistema (fallback)
+        self.assertIn(
+            reverse("accounts:user_profile", kwargs={"user_id": self.other.pk}),
+            resp["Location"],
+        )
+
+    def test_authenticated_cannot_follow_self_returns_400(self):
+        self.login()
+
+        resp = self.client.post(
+            reverse("accounts:follow_toggle", kwargs={"user_id": self.user.pk})
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_follow_toggle_target_inactive_returns_404(self):
+        self.login()
+
+        resp = self.client.post(
+            reverse("accounts:follow_toggle", kwargs={"user_id": self.inactive.pk})
+        )
+        self.assertEqual(resp.status_code, 404)
+
+    def test_user_list_excludes_inactive_users(self):
+        self.login()
+
+        resp = self.client.get(reverse("accounts:user_list"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, self.inactive.username)

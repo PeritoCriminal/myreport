@@ -4,33 +4,36 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.db.models import Avg, Count, Exists, OuterRef, Q, Subquery
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.urls.exceptions import NoReverseMatch
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
+from django.views.decorators.http import require_GET
 from django.views.generic import CreateView, FormView, ListView, TemplateView, UpdateView
 
-from django.http import JsonResponse
-from django.views.decorators.http import require_GET
-
 from institutions.models import Nucleus, Team
-
-from .forms import UserProfileEditForm, UserRegistrationForm, UserSetPasswordForm, LinkInstitutionForm
-from .models import User, UserFollow
-
-
 from social_net.models import Post, PostLike, PostRating
 
+from .forms import (
+    LinkInstitutionForm,
+    UserProfileEditForm,
+    UserRegistrationForm,
+    UserSetPasswordForm,
+)
+from .models import User, UserFollow
 
 
 class UserRegisterView(CreateView):
     """
     Cadastro de usuário
     """
+
     model = User
     form_class = UserRegistrationForm
     template_name = "accounts/register.html"
@@ -43,34 +46,28 @@ class UserRegisterView(CreateView):
         return super().dispatch(request, *args, **kwargs)
 
 
-
-
 class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = User
-    form_class = UserProfileEditForm   # <-- AQUI
+    form_class = UserProfileEditForm
     template_name = "accounts/profile_edit.html"
     success_url = reverse_lazy("home:index")
 
     def get_object(self, queryset=None):
         return self.request.user
-    
-
 
 
 class UserLoginView(LoginView):
     template_name = "accounts/login.html"
-    redirect_authenticated_user = True 
+    redirect_authenticated_user = True
 
     def get_success_url(self):
         next_url = super().get_success_url()
-        
+
         try:
-            reverse(next_url) 
+            reverse(next_url)
             return next_url
         except NoReverseMatch:
             return reverse("home:dashboard")
-
-
 
 
 def user_logout(request):
@@ -82,36 +79,33 @@ def user_logout(request):
     return redirect("home:index")
 
 
-
 class UserPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     template_name = "accounts/password_change.html"
     form_class = UserSetPasswordForm
     success_url = reverse_lazy("accounts:profile_edit")  # ou home:index
 
 
-
-
 class AllUserListView(LoginRequiredMixin, ListView):
     """
     Diretório de usuários para envio de solicitações de amizade.
     """
+
     model = User
     template_name = "social_net/friendship.html"
     context_object_name = "users"
     paginate_by = 24
 
     def get_queryset(self):
-        qs = User.objects.exclude(id=self.request.user.id).order_by(
-            "display_name", "username"
+        qs = (
+            User.objects.filter(is_active=True)
+            .exclude(id=self.request.user.id)
+            .order_by("display_name", "username")
         )
 
         q = (self.request.GET.get("q") or "").strip()
         if q:
-            qs = qs.filter(
-                Q(display_name__icontains=q) |
-                Q(username__icontains=q)
-            )
-        
+            qs = qs.filter(Q(display_name__icontains=q) | Q(username__icontains=q))
+
         qs = qs.annotate(
             is_following=Exists(
                 UserFollow.objects.filter(
@@ -125,13 +119,13 @@ class AllUserListView(LoginRequiredMixin, ListView):
         return qs
 
 
-
-
 class UserProfileView(LoginRequiredMixin, TemplateView):
     template_name = "accounts/user_profile.html"
 
     def dispatch(self, request, *args, **kwargs):
-        self.profile_user = get_object_or_404(User, pk=kwargs["user_id"], is_active=True)
+        self.profile_user = get_object_or_404(
+            User, pk=kwargs["user_id"], is_active=True
+        )
         return super().dispatch(request, *args, **kwargs)
 
     def _get_active_tab(self) -> str:
@@ -144,14 +138,12 @@ class UserProfileView(LoginRequiredMixin, TemplateView):
         author = self.profile_user
 
         user_rating_value_sq = (
-            PostRating.objects
-            .filter(post_id=OuterRef("pk"), user_id=viewer.pk)
+            PostRating.objects.filter(post_id=OuterRef("pk"), user_id=viewer.pk)
             .values("value")[:1]
         )
 
         return (
-            Post.objects
-            .filter(is_active=True, user=author)
+            Post.objects.filter(is_active=True, user=author)
             .select_related("user")
             .annotate(
                 has_liked=Exists(
@@ -161,14 +153,12 @@ class UserProfileView(LoginRequiredMixin, TemplateView):
                     PostRating.objects.filter(post_id=OuterRef("pk"), user_id=viewer.pk)
                 ),
                 user_rating_value=Subquery(user_rating_value_sq),
-
                 likes_count=Count("likes", distinct=True),
                 rating_total=Count("ratings", distinct=True),
                 rating_avg=Avg("ratings__value"),
             )
             .order_by("-created_at")
         )
-
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -181,32 +171,27 @@ class UserProfileView(LoginRequiredMixin, TemplateView):
         viewer = self.request.user
         target = self.profile_user
 
-        ctx["is_me"] = (viewer.pk == target.pk)
+        ctx["is_me"] = viewer.pk == target.pk
         ctx["is_following"] = UserFollow.objects.filter(
             follower=viewer,
             following=target,
             is_active=True,
         ).exists()
 
-        # número de seguidores
         ctx["followers_count"] = UserFollow.objects.filter(
             following=target,
             is_active=True,
         ).count()
 
-        # número de usuários que ele segue
         ctx["following_count"] = UserFollow.objects.filter(
             follower=target,
             is_active=True,
         ).count()
 
-
         if active_tab == "posts":
             ctx["posts"] = self._get_posts_queryset()
 
         return ctx
-
-
 
 
 class FollowToggleView(LoginRequiredMixin, View):
@@ -231,11 +216,18 @@ class FollowToggleView(LoginRequiredMixin, View):
             rel.save(update_fields=["is_active"])
 
         next_url = (request.POST.get("next") or "").strip()
-        return redirect(next_url or reverse("accounts:user_profile", kwargs={"user_id": target.pk}))
-    
 
+        # Bloqueia open-redirect: aceita apenas URL relativa/host permitido
+        if next_url and not url_has_allowed_host_and_scheme(
+            url=next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            next_url = ""
 
-
+        return redirect(
+            next_url or reverse("accounts:user_profile", kwargs={"user_id": target.pk})
+        )
 
 
 class LinkInstitutionView(LoginRequiredMixin, FormView):
@@ -254,10 +246,7 @@ class LinkInstitutionView(LoginRequiredMixin, FormView):
         return super().form_valid(form)
 
 
-
-
-
-
+@login_required
 @require_GET
 def ajax_nuclei(request):
     institution_id = (request.GET.get("institution") or "").strip()
@@ -269,6 +258,7 @@ def ajax_nuclei(request):
     return JsonResponse({"results": data})
 
 
+@login_required
 @require_GET
 def ajax_teams(request):
     nucleus_id = (request.GET.get("nucleus") or "").strip()
