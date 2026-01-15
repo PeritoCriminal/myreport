@@ -5,9 +5,30 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView, D
 from django.shortcuts import get_object_or_404
 
 from common.form_mixins import CanEditReportsRequiredMixin
-
 from report_maker.forms import ReportCaseForm
 from report_maker.models import ReportCase
+
+def _resolve(value):
+    return value() if callable(value) else value
+
+def _get_user_org(user):
+    inst_asg = _resolve(getattr(user, "active_institution_assignment", None))
+    team_asg = _resolve(getattr(user, "active_team_assignment", None))
+
+    team = getattr(team_asg, "team", None)
+
+    institution = (
+        getattr(inst_asg, "institution", None)
+        or getattr(team_asg, "institution", None)
+    )
+
+    nucleus = (
+        getattr(inst_asg, "nucleus", None)
+        or getattr(team_asg, "nucleus", None)
+        or (getattr(team, "nucleus", None) if team else None)
+    )
+
+    return institution, nucleus, team
 
 
 class ReportCaseListView(LoginRequiredMixin, ListView):
@@ -28,6 +49,12 @@ class ReportCaseCreateView(LoginRequiredMixin, CanEditReportsRequiredMixin, Crea
 
     def form_valid(self, form):
         form.instance.author = self.request.user
+
+        institution, nucleus, team = _get_user_org(self.request.user)
+        form.instance.institution = institution
+        form.instance.nucleus = nucleus
+        form.instance.team = team
+
         return super().form_valid(form)
 
 
@@ -45,6 +72,23 @@ class ReportCaseUpdateView(LoginRequiredMixin, CanEditReportsRequiredMixin, Upda
             raise Http404
         return super().dispatch(request, *args, **kwargs)
 
+    def form_valid(self, form):
+        """
+        Se o laudo ainda não tiver vínculos preenchidos, preenche automaticamente
+        a partir das assignments do usuário.
+        """
+        obj = form.save(commit=False)
+
+        if obj.institution_id is None and obj.nucleus_id is None and obj.team_id is None:
+            institution, nucleus, team = _get_user_org(self.request.user)
+            obj.institution = institution
+            obj.nucleus = nucleus
+            obj.team = team
+
+        obj.save()
+        self.object = obj
+        return super().form_valid(form)
+
     def get_success_url(self):
         return reverse("report_maker:report_detail", kwargs={"pk": self.object.pk})
 
@@ -56,7 +100,7 @@ class ReportCaseDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         from django.db.models import Prefetch
-        from report_maker.models import GenericExamObject, ObjectImage  # ajuste os imports conforme seus nomes reais
+        from report_maker.models import GenericExamObject, ObjectImage  # ajuste conforme seus nomes reais
 
         return (
             ReportCase.objects
@@ -70,6 +114,7 @@ class ReportCaseDetailView(LoginRequiredMixin, DetailView):
                 )
             )
         )
+
 
 class ReportCaseDeleteView(LoginRequiredMixin, CanEditReportsRequiredMixin, DeleteView):
     model = ReportCase

@@ -32,8 +32,6 @@
         line-height: 1.5;
       }
 
-      .report-title { letter-spacing: .5px; }
-
       .report-number {
         margin-top: 10px;
         font-weight: 700;
@@ -94,6 +92,52 @@
           padding: 0;
         }
       }
+
+      /* ─────────────────────────────────────────────
+         Header institucional (tabela: emblema | texto | emblema)
+         ───────────────────────────────────────────── */
+      .report-header {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 12px;
+      }
+
+      .report-header td { vertical-align: middle; }
+
+      .rh-img {
+        width: 92px;
+        text-align: center;
+      }
+
+      .rh-emblem {
+        width: 72px;
+        height: 72px;
+        object-fit: contain;
+        display: inline-block;
+      }
+
+      .rh-center {
+        text-align: center;
+        padding: 0 10px;
+      }
+
+      .rh-line {
+        line-height: 1.15;
+        margin: 2px 0;
+      }
+
+      .rh-1 { font-size: 12px; font-weight: 700; letter-spacing: .3px; }
+      .rh-2 { font-size: 12px; font-weight: 600; }
+      .rh-3 { font-size: 12px; font-weight: 800; }
+      .rh-4 { font-size: 11px; font-weight: 700; }
+      .rh-5 { font-size: 11px; font-weight: 600; }
+
+      @media (max-width: 576px) {
+        .rh-img { width: 72px; }
+        .rh-emblem { width: 56px; height: 56px; }
+        .rh-1, .rh-2, .rh-3 { font-size: 11px; }
+        .rh-4, .rh-5 { font-size: 10px; }
+      }
     </style>
   </head>
 
@@ -106,7 +150,47 @@
       <section class="report-page">
 
         <header class="text-center">
-          <h1 class="display-6 fw-semibold report-title mb-1">Laudo Pericial</h1>
+
+
+          <table class="report-header" role="presentation">
+            <tr>
+              <td class="rh-img rh-left">
+                {% if header.emblem_primary %}
+                  {# Como é um dicionário, acessamos direto o atributo .url do ImageField contido nele #}
+                  <img src="{{ header.emblem_primary.url }}" alt="Emblema" class="rh-emblem">
+                {% endif %}
+              </td>
+
+              <td class="rh-center">
+                <div class="rh-line rh-1">SECRETARIA DA SEGURANÇA PÚBLICA</div>
+
+                {% if header.name or header.acronym %}
+                  <div class="rh-line rh-2">
+                    {{ header.name|default:"" }}
+                    {% if header.acronym %} ({{ header.acronym }}){% endif %}
+                  </div>
+                {% endif %}
+
+                {% if header.kind_display %}
+                  <div class="rh-line rh-3">{{ header.kind_display }}</div>
+                {% endif %}
+
+                {% if header.honoree_line %}
+                  <div class="rh-line rh-4">{{ header.honoree_line|upper }}</div>
+                {% endif %}
+
+                {% if header.unit_line %}
+                  <div class="rh-line rh-5">{{ header.unit_line }}</div>
+                {% endif %}
+              </td>
+
+              <td class="rh-img rh-right">
+                {% if header.emblem_secondary %}
+                  <img src="{{ header.emblem_secondary.url }}" alt="Emblema" class="rh-emblem">
+                {% endif %}
+              </td>
+            </tr>
+          </table>
 
           <div class="report-number">
             LAUDO Nº {{ report.report_number }}

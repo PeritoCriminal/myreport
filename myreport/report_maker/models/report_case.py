@@ -18,15 +18,22 @@ def report_pdf_upload_path(instance, filename):
     return f"reports/{instance.id}/final/laudo_{instance.report_number}.pdf"
 
 
+def report_header_emblem_upload_path(instance, filename: str) -> str:
+    """
+    Caminho para armazenar snapshots de emblemas do cabeçalho do laudo.
+    """
+    return f"reports/{instance.id}/header/{filename}"
+
+
 class ReportCase(models.Model):
     """
     Representa o Laudo Pericial, entidade central do exame,
     agregando objetos periciais, imagens e documento final.
 
-    Este modelo também preserva HISTÓRICO institucional por meio de snapshot imutável:
-    - Institution / Nucleus / Team são referenciados por FK (para filtros e navegação);
-    - Nomes e siglas são copiados para campos snapshot (para manter consistência histórica),
-      evitando que renomeações futuras alterem a exibição de laudos antigos.
+    Histórico institucional por snapshot imutável:
+    - Enquanto OPEN: exibe dados via FKs (Institution/Nucleus/Team).
+    - Ao fechar (close): congela snapshots no BD.
+    - Após CLOSED: exibe exclusivamente snapshots (imutável).
     """
 
     # ---------------------------------------------------------------------
@@ -89,7 +96,7 @@ class ReportCase(models.Model):
     )
 
     # ---------------------------------------------------------------------
-    # Organization snapshot (imutável) — consistência histórica de exibição
+    # Organization snapshot (imutável) — congelado SOMENTE no fechamento
     # ---------------------------------------------------------------------
     institution_acronym_snapshot = models.CharField(
         "Sigla da instituição (snapshot)",
@@ -115,6 +122,41 @@ class ReportCase(models.Model):
         blank=True,
         default="",
     )
+
+    # ---------------------------------------------------------------------
+    # Header snapshot (imutável) — congelado SOMENTE no fechamento
+    # ---------------------------------------------------------------------
+    emblem_primary_snapshot = models.ImageField(
+        "Emblema primário (snapshot)",
+        upload_to=report_header_emblem_upload_path,
+        null=True,
+        blank=True,
+    )
+    emblem_secondary_snapshot = models.ImageField(
+        "Emblema secundário (snapshot)",
+        upload_to=report_header_emblem_upload_path,
+        null=True,
+        blank=True,
+    )
+    honoree_title_snapshot = models.CharField(
+        "Título do homenageado (snapshot)",
+        max_length=60,
+        blank=True,
+        default="",
+    )
+    honoree_name_snapshot = models.CharField(
+        "Nome do homenageado (snapshot)",
+        max_length=120,
+        blank=True,
+        default="",
+    )
+    institution_kind_snapshot = models.CharField(
+        "Kind institucional (snapshot)",
+        max_length=120,
+        blank=True,
+        default="",
+    )
+
     organization_frozen_at = models.DateTimeField(
         "Organização congelada em",
         null=True,
@@ -136,7 +178,12 @@ class ReportCase(models.Model):
     police_report = models.CharField("Boletim de ocorrência", max_length=60, blank=True)
     police_inquiry = models.CharField("Inquérito policial", max_length=60, blank=True)
     police_station = models.CharField("Distrito policial", max_length=120, blank=True)
-    criminal_typification = models.CharField("Tipificação penal", max_length=80, blank=True, help_text="Ex.: furto, roubo, homicídio, latrocínio")
+    criminal_typification = models.CharField(
+        "Tipificação penal",
+        max_length=80,
+        blank=True,
+        help_text="Ex.: furto, roubo, homicídio, latrocínio",
+    )
 
     occurrence_datetime = models.DateTimeField("Data e hora da ocorrência", null=True, blank=True)
     assignment_datetime = models.DateTimeField("Data e hora da designação", null=True, blank=True)
@@ -185,6 +232,16 @@ class ReportCase(models.Model):
         return f"Laudo {self.report_number}"
 
     # ---------------------------------------------------------------------
+    # Frozen flag
+    # ---------------------------------------------------------------------
+    @property
+    def is_frozen(self) -> bool:
+        """
+        Verdadeiro apenas após o congelamento (close()).
+        """
+        return bool(self.organization_frozen_at)
+
+    # ---------------------------------------------------------------------
     # Organization snapshot API
     # ---------------------------------------------------------------------
     def freeze_organization_snapshot(self, force: bool = False) -> None:
@@ -193,15 +250,17 @@ class ReportCase(models.Model):
 
         Regras:
         - Se já estiver congelado, não faz nada (a menos que force=True).
-        - O congelamento deve ocorrer no momento da FINALIZAÇÃO do laudo,
-          garantindo que o histórico não seja alterado por renomeações futuras.
+        - O congelamento ocorre SOMENTE no fechamento do laudo (close()).
         """
         if self.organization_frozen_at and not force:
             return
 
+        # ─────────────────────────────────────────────
+        # Snapshots de organização (texto)
+        # ─────────────────────────────────────────────
         if self.institution:
-            self.institution_acronym_snapshot = self.institution.acronym
-            self.institution_name_snapshot = self.institution.name
+            self.institution_acronym_snapshot = self.institution.acronym or ""
+            self.institution_name_snapshot = self.institution.name or ""
         else:
             self.institution_acronym_snapshot = ""
             self.institution_name_snapshot = ""
@@ -209,41 +268,118 @@ class ReportCase(models.Model):
         self.nucleus_name_snapshot = self.nucleus.name if self.nucleus else ""
         self.team_name_snapshot = self.team.name if self.team else ""
 
+        # ─────────────────────────────────────────────
+        # Snapshots do cabeçalho (emblemas / honraria / kind)
+        # ─────────────────────────────────────────────
+        if self.institution:
+            self.emblem_primary_snapshot = getattr(self.institution, "emblem_primary", None)
+            self.emblem_secondary_snapshot = getattr(self.institution, "emblem_secondary", None)
+
+            self.honoree_title_snapshot = getattr(self.institution, "honoree_title", "") or ""
+            self.honoree_name_snapshot = getattr(self.institution, "honoree_name", "") or ""
+
+            # kind pode ser choice; guardamos texto bruto (string) como snapshot
+            self.institution_kind_snapshot = str(getattr(self.institution, "kind", "") or "")
+        else:
+            self.emblem_primary_snapshot = None
+            self.emblem_secondary_snapshot = None
+            self.honoree_title_snapshot = ""
+            self.honoree_name_snapshot = ""
+            self.institution_kind_snapshot = ""
+
         self.organization_frozen_at = timezone.now()
 
     # ---------------------------------------------------------------------
-    # Display helpers (priorizam snapshot quando existir)
+    # Display helpers (OPEN -> FK, CLOSED -> snapshot)
     # ---------------------------------------------------------------------
+    @property
+    def institution_name_for_display(self) -> str:
+        if self.is_frozen:
+            return self.institution_name_snapshot or ""
+        return (self.institution.name if self.institution else "") or ""
+
+    @property
+    def institution_acronym_for_display(self) -> str:
+        if self.is_frozen:
+            return self.institution_acronym_snapshot or ""
+        return (self.institution.acronym if self.institution else "") or ""
+
     @property
     def institution_display(self) -> str:
         """
         Texto institucional para exibição/geração (HTML/PDF/DOCX).
 
-        Prioridade:
-        1) snapshot (histórico)
-        2) FK atual (rascunho)
+        OPEN: via FK atual
+        CLOSED: via snapshot
         """
-        if self.institution_acronym_snapshot or self.institution_name_snapshot:
-            if self.institution_acronym_snapshot and self.institution_name_snapshot:
-                return f"{self.institution_acronym_snapshot} - {self.institution_name_snapshot}"
-            return self.institution_acronym_snapshot or self.institution_name_snapshot
-
-        if self.institution:
-            return f"{self.institution.acronym} - {self.institution.name}"
-
-        return ""
+        name = self.institution_name_for_display
+        acr = self.institution_acronym_for_display
+        if name and acr:
+            return f"{name} ({acr})"
+        return name or acr
 
     @property
     def nucleus_display(self) -> str:
-        if self.nucleus_name_snapshot:
-            return self.nucleus_name_snapshot
-        return self.nucleus.name if self.nucleus else ""
+        if self.is_frozen:
+            return self.nucleus_name_snapshot or ""
+        return (self.nucleus.name if self.nucleus else "") or ""
 
     @property
     def team_display(self) -> str:
-        if self.team_name_snapshot:
-            return self.team_name_snapshot
-        return self.team.name if self.team else ""
+        if self.is_frozen:
+            return self.team_name_snapshot or ""
+        return (self.team.name if self.team else "") or ""
+
+    # ---------------------------------------------------------------------
+    # Header helper (OPEN -> FK, CLOSED -> snapshot)
+    # ---------------------------------------------------------------------
+    @property
+    def header_context(self) -> dict:
+        """
+        Contexto do cabeçalho do laudo (HTML/PDF/DOCX).
+
+        OPEN: dados via FKs (cadastro atual)
+        CLOSED: dados via snapshot (imutável)
+        """
+        if self.is_frozen:
+            name = self.institution_name_snapshot or ""
+            acronym = self.institution_acronym_snapshot or ""
+            emblem_primary = self.emblem_primary_snapshot
+            emblem_secondary = self.emblem_secondary_snapshot
+            hon_title = self.honoree_title_snapshot or ""
+            hon_name = self.honoree_name_snapshot or ""
+            kind_display = self.institution_kind_snapshot or ""
+        else:
+            inst = self.institution
+            name = (inst.name if inst else "") or ""
+            acronym = (inst.acronym if inst else "") or ""
+            emblem_primary = getattr(inst, "emblem_primary", None) if inst else None
+            emblem_secondary = getattr(inst, "emblem_secondary", None) if inst else None
+            hon_title = (getattr(inst, "honoree_title", "") if inst else "") or ""
+            hon_name = (getattr(inst, "honoree_name", "") if inst else "") or ""
+
+            if inst and hasattr(inst, "get_kind_display"):
+                kind_display = inst.get_kind_display()
+            else:
+                kind_display = str(getattr(inst, "kind", "") or "") if inst else ""
+
+        honoree_line = ""
+        if hon_title and hon_name:
+            honoree_line = f"{hon_title} {hon_name}"
+        elif hon_name:
+            honoree_line = hon_name
+
+        unit_line = " - ".join([p for p in [self.nucleus_display, self.team_display] if p])
+
+        return {
+            "name": name or None,
+            "acronym": acronym or None,
+            "kind_display": kind_display or None,
+            "honoree_line": honoree_line or None,
+            "unit_line": unit_line or None,
+            "emblem_primary": emblem_primary,
+            "emblem_secondary": emblem_secondary,
+        }
 
     # ---------------------------------------------------------------------
     # Validation
@@ -277,9 +413,8 @@ class ReportCase(models.Model):
         """
         Se a organização já estava congelada no BANCO, impede alterações.
 
-        Regra importante:
-        - Permite o PRIMEIRO congelamento (quando organization_frozen_at ainda era NULL no banco).
-        - Bloqueia qualquer alteração posterior, preservando o histórico.
+        - Permite o PRIMEIRO congelamento (quando organization_frozen_at era NULL no banco).
+        - Bloqueia qualquer alteração posterior.
         """
         if not self.pk:
             return
@@ -292,17 +427,21 @@ class ReportCase(models.Model):
             "institution_name_snapshot",
             "nucleus_name_snapshot",
             "team_name_snapshot",
+            "emblem_primary_snapshot",
+            "emblem_secondary_snapshot",
+            "honoree_title_snapshot",
+            "honoree_name_snapshot",
+            "institution_kind_snapshot",
             "organization_frozen_at",
         ).first()
 
         if not old:
             return
 
-        # ✅ Se ainda NÃO estava congelado no banco, estamos no "primeiro freeze" — permitir.
+        # ✅ Se ainda NÃO estava congelado no banco, permitir salvar (inclusive no momento do close()).
         if old["organization_frozen_at"] is None:
             return
 
-        # A partir daqui, o laudo JÁ estava congelado: qualquer mudança é proibida.
         fk_changed = (
             old["institution_id"] != self.institution_id
             or old["nucleus_id"] != self.nucleus_id
@@ -314,12 +453,22 @@ class ReportCase(models.Model):
             or old["institution_name_snapshot"] != self.institution_name_snapshot
             or old["nucleus_name_snapshot"] != self.nucleus_name_snapshot
             or old["team_name_snapshot"] != self.team_name_snapshot
+            or old["honoree_title_snapshot"] != self.honoree_title_snapshot
+            or old["honoree_name_snapshot"] != self.honoree_name_snapshot
+            or old["institution_kind_snapshot"] != self.institution_kind_snapshot
             or old["organization_frozen_at"] != self.organization_frozen_at
         )
 
-        if fk_changed or snapshot_changed:
-            raise ValidationError("A organização deste laudo foi congelada e não pode ser alterada.")
+        # ImageField: compara pelo "name" (path)
+        emb_primary_old = old["emblem_primary_snapshot"] or ""
+        emb_secondary_old = old["emblem_secondary_snapshot"] or ""
+        emb_primary_new = (self.emblem_primary_snapshot.name if self.emblem_primary_snapshot else "") or ""
+        emb_secondary_new = (self.emblem_secondary_snapshot.name if self.emblem_secondary_snapshot else "") or ""
 
+        emblems_changed = (emb_primary_old != emb_primary_new) or (emb_secondary_old != emb_secondary_new)
+
+        if fk_changed or snapshot_changed or emblems_changed:
+            raise ValidationError("A organização deste laudo foi congelada e não pode ser alterada.")
 
     def clean(self):
         """
@@ -345,7 +494,7 @@ class ReportCase(models.Model):
         self.is_locked = True
         self.concluded_at = timezone.now()
 
-        # Congelamento no ato de finalização (ponto de verdade do histórico)
+        # Congelamento no ato de finalização
         self.freeze_organization_snapshot()
 
     @property
@@ -365,53 +514,50 @@ class ReportCase(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
-    
     @staticmethod
     def _gendered_roles_from_name(name: str, masculine: str, feminine: str, neutral: str) -> str:
-            """
-            Retorna a forma de tratamento conforme 'Dr.'/'Dra.' no início do nome.
-            """
-            if not name:
-                return neutral
-            n = name.strip().lower()
-            if n.startswith("dra.") or n.startswith("dra "):
-                return feminine
-            if n.startswith("dr.") or n.startswith("dr "):
-                return masculine
+        """
+        Retorna a forma de tratamento conforme 'Dr.'/'Dra.' no início do nome.
+        """
+        if not name:
             return neutral
-
-
-
+        n = name.strip().lower()
+        if n.startswith("dra.") or n.startswith("dra "):
+            return feminine
+        if n.startswith("dr.") or n.startswith("dr "):
+            return masculine
+        return neutral
 
     @property
     def preamble(self) -> str:
         """
         Preâmbulo institucional do laudo (modelo inspirado no sistema legado).
 
-        - Usa snapshot institucional (histórico) quando existir.
+        - Usa snapshots quando congelado.
         - Usa data da designação (assignment_datetime) quando existir.
         - Mantém redação objetiva no passado simples.
         """
         examiner = (
-            getattr(self.author, "report_signature_name", "") 
-            or getattr(self.author, "display_name", "") 
+            getattr(self.author, "report_signature_name", "")
+            or getattr(self.author, "display_name", "")
             or str(self.author)
         )
-        
+
         authority = self.requesting_authority or ""
 
-        # Data por extenso (sem dia da semana, para ficar mais "institucional")
         if self.assignment_datetime:
-            full_date = date_format(self.assignment_datetime.date(), format="j \\d\\e F \\d\\e Y", use_l10n=True).lower()
+            full_date = date_format(
+                self.assignment_datetime.date(),
+                format="j \\d\\e F \\d\\e Y",
+                use_l10n=True,
+            ).lower()
         else:
             full_date = ""
 
-        # Blocos institucionais (priorizam snapshot)
         inst = self.institution_display
         nuc = self.nucleus_display
         team = self.team_display
 
-        # Tratamentos (Dr./Dra.)
         d_examiner = self._gendered_roles_from_name(
             examiner,
             masculine="foi designado o Perito Criminal",
@@ -425,30 +571,25 @@ class ReportCase(models.Model):
             neutral="pelo(a) Exmo(a). Sr(a). Delegado(a) de Polícia",
         )
 
-        # Montagem do cabeçalho institucional (somente o que existir)
         org_parts = [p for p in [inst, nuc, team] if p]
         org_text = " / ".join(org_parts)
 
-        # Se houver data e informação institucional
         if full_date and org_text:
             return (
                 f"Aos {full_date}, em conformidade com o disposto no artigo 178 do Decreto-Lei nº 3.689, "
-                f"de 3 de outubro de 1941, foi designado o Perito Criminal {examiner} para proceder ao exame pericial "
+                f"de 3 de outubro de 1941, {d_examiner} {examiner} para proceder ao exame pericial "
                 f"no âmbito de {org_text}, em atendimento à requisição expedida {d_authority} {authority}."
             )
 
-        # Se houver apenas a data
         if full_date:
             return (
                 f"Aos {full_date}, em conformidade com o disposto no artigo 178 do Decreto-Lei nº 3.689, "
-                f"de 3 de outubro de 1941, foi designado o Perito Criminal {examiner} para proceder ao exame pericial "
+                f"de 3 de outubro de 1941, {d_examiner} {examiner} para proceder ao exame pericial "
                 f"em atendimento à requisição expedida {d_authority} {authority}."
             )
 
-        # Fallback mínimo (sem data)
         return (
             f"Em conformidade com o disposto no artigo 178 do Decreto-Lei nº 3.689, de 3 de outubro de 1941, "
-            f"foi designado o Perito Criminal {examiner} para proceder ao exame pericial "
+            f"{d_examiner} {examiner} para proceder ao exame pericial "
             f"em atendimento à requisição expedida {d_authority} {authority}."
         )
-

@@ -15,10 +15,11 @@ class Institution(models.Model):
     """
 
     class Kind(models.TextChoices):
-        SPTC_SP = "SPTC_SP", "SPTC (SP)"
-        SCIENTIFIC_POLICE = "SCIENTIFIC_POLICE", "Scientific Police"
-        CIVIL_POLICE = "CIVIL_POLICE", "Civil Police"
-        OTHER = "OTHER", "Other"
+        SCIENTIFIC_POLICE = "SCIENTIFIC_POLICE", "Polícia Técnico-Científica"
+        CIVIL_POLICE = "CIVIL_POLICE", "Polícia Civil"
+        MEDICAL_LEGAL = "MEDICAL_LEGAL", "Instituto Médico-Legal"
+        CRIMINALISTICS = "CRIMINALISTICS", "Instituto de Criminalística"
+        OTHER = "OTHER", "Outro"
 
     acronym = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=255)
