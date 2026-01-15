@@ -17,7 +17,7 @@ from .models import (
 class InstitutionCityInline(admin.TabularInline):
     model = InstitutionCity
     extra = 0
-    fields = ("order", "name", "state", "is_active")
+    fields = ("order", "name", "state", "is_active") # aqui precisamos incluir "honoree"
     ordering = ("order", "name")
 
 
@@ -56,6 +56,7 @@ class InstitutionAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ("Identification", {"fields": ("acronym", "name", "kind", "is_active")}),
+        ("Homenagem institucional", {"fields": ("honoree_title", "honoree_name")}),
         ("Direction", {"fields": ("director_name", "director_title")}),
         ("Emblems", {"fields": ("emblem_primary", "emblem_secondary")}),
         ("Audit", {"fields": ("created_at", "updated_at")}),

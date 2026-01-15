@@ -341,20 +341,22 @@ class ReportCase(models.Model):
         OPEN: dados via FKs (cadastro atual)
         CLOSED: dados via snapshot (imutável)
         """
+        inst = self.institution  # FK continua sendo a fonte dos emblemas
+
         if self.is_frozen:
             name = self.institution_name_snapshot or ""
             acronym = self.institution_acronym_snapshot or ""
-            emblem_primary = self.emblem_primary_snapshot
-            emblem_secondary = self.emblem_secondary_snapshot
             hon_title = self.honoree_title_snapshot or ""
             hon_name = self.honoree_name_snapshot or ""
             kind_display = self.institution_kind_snapshot or ""
+
+            # 🔹 Emblemas: snapshot se existir, senão fallback para Institution
+            emblem_primary = self.emblem_primary_snapshot or (inst.emblem_primary if inst else None)
+            emblem_secondary = self.emblem_secondary_snapshot or (inst.emblem_secondary if inst else None)
+
         else:
-            inst = self.institution
             name = (inst.name if inst else "") or ""
             acronym = (inst.acronym if inst else "") or ""
-            emblem_primary = getattr(inst, "emblem_primary", None) if inst else None
-            emblem_secondary = getattr(inst, "emblem_secondary", None) if inst else None
             hon_title = (getattr(inst, "honoree_title", "") if inst else "") or ""
             hon_name = (getattr(inst, "honoree_name", "") if inst else "") or ""
 
@@ -363,13 +365,24 @@ class ReportCase(models.Model):
             else:
                 kind_display = str(getattr(inst, "kind", "") or "") if inst else ""
 
+            emblem_primary = inst.emblem_primary if (inst and inst.emblem_primary) else None
+            emblem_secondary = inst.emblem_secondary if (inst and inst.emblem_secondary) else None
+
         honoree_line = ""
         if hon_title and hon_name:
             honoree_line = f"{hon_title} {hon_name}"
         elif hon_name:
             honoree_line = hon_name
 
-        unit_line = " - ".join([p for p in [self.nucleus_display, self.team_display] if p])
+        # 🔹 unit_line: respeita snapshot se frozen, senão FKs
+        if self.is_frozen:
+            unit_line = " - ".join(
+                p for p in [self.nucleus_display, self.team_display] if p
+            )
+        else:
+            nucleus_name = self.nucleus.name if self.nucleus else ""
+            team_name = self.team.name if self.team else ""
+            unit_line = " - ".join(p for p in [nucleus_name, team_name] if p)
 
         return {
             "name": name or None,
@@ -380,6 +393,7 @@ class ReportCase(models.Model):
             "emblem_primary": emblem_primary,
             "emblem_secondary": emblem_secondary,
         }
+
 
     # ---------------------------------------------------------------------
     # Validation
