@@ -1,29 +1,31 @@
-// (ajustado) - acrescenta deleção de comentários, mantendo seu padrão atual
-// :contentReference[oaicite:0]{index=0}
+// static/js/social_net/post_form.js
+// (ajustado) - acrescenta bypass do AJAX quando o form estiver em modo de edicao (data-mode="edit")
+
+/* === SUBSTITUA DO INÍCIO ATÉ O FIM DA FUNÇÃO GETCOOKIE POR ESTE BLOCO === */
 
 document.addEventListener("DOMContentLoaded", function () {
-
-  /* ==============================
-     Validação do formulário de post
-     ============================== */
   const form = document.getElementById("post-form");
   const MIN_TEXT_LEN = 10;
 
   if (form) {
     form.addEventListener("submit", async function (e) {
+
+      // ✅ TRAVA DE EDIÇÃO: Se for edição, sai da função e deixa o Django trabalhar
+      const isEditMode = form.dataset.mode === "edit" || form.action.includes("/edit/");
+      if (isEditMode) return;
+
+      // ⬇️ FLUXO DE CRIAÇÃO (AJAX)
       e.preventDefault();
 
       const titleInput = form.querySelector('[name="title"]');
-      const textInput  = form.querySelector('[name="text"]');
+      const textInput = form.querySelector('[name="text"]');
       const mediaInput = form.querySelector('[name="media"]');
-      const groupInput = form.querySelector('[name="group"]');
 
       const title = titleInput ? titleInput.value.trim() : "";
-      const text  = textInput  ? textInput.value.trim()  : "";
-      const media = mediaInput && mediaInput.files ? mediaInput.files.length : 0;
+      const text = textInput ? textInput.value.trim() : "";
+      const mediaCount = mediaInput && mediaInput.files ? mediaInput.files.length : 0;
 
-      // validação mínima
-      if (!title && !text && !media) {
+      if (!title && !text && !mediaCount) {
         alert("Preencha ao menos um dos campos: título, texto ou mídia.");
         return;
       }
@@ -36,7 +38,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (errorsBox) errorsBox.innerHTML = "";
 
       const submitBtn = form.querySelector('button[type="submit"]');
-      const cancelBtn = document.getElementById("btnCancelPost");
       if (submitBtn) submitBtn.disabled = true;
 
       try {
@@ -46,80 +47,59 @@ document.addEventListener("DOMContentLoaded", function () {
             "X-CSRFToken": getCookie("csrftoken"),
             "X-Requested-With": "XMLHttpRequest",
           },
-          body: new FormData(form), // inclui group/title/text/media
+          body: new FormData(form),
         });
 
         const data = await resp.json().catch(() => ({}));
 
         if (!resp.ok || !data.success) {
           if (errorsBox) {
-            errorsBox.innerHTML =
-              data.errors_html ||
-              "<div class='alert alert-danger py-2 mb-0'>Erro ao criar postagem.</div>";
+            errorsBox.innerHTML = data.errors_html || "<div class='alert alert-danger py-2 mb-0'>Erro ao processar postagem.</div>";
           }
           return;
         }
 
-        // insere no topo do feed
         const feed = document.getElementById("posts-feed");
         if (feed && data.html) {
-          // remove placeholder "Nenhuma postagem encontrada."
           const placeholder = feed.querySelector(".alert.alert-secondary");
           if (placeholder) placeholder.remove();
-
           feed.insertAdjacentHTML("afterbegin", data.html);
         }
 
-        // limpa campos
-        if (titleInput) titleInput.value = "";
-        if (textInput) textInput.value = "";
-        if (mediaInput) mediaInput.value = "";
-        if (groupInput) groupInput.value = ""; // volta para "Público"
+        form.reset();
+        const wrapper = document.getElementById("post-media-preview-wrapper");
+        if (wrapper) wrapper.classList.add("d-none");
 
-        // fecha o collapse (opcional)
         const collapseEl = document.getElementById("postFormCollapse");
         if (collapseEl && window.bootstrap?.Collapse) {
           bootstrap.Collapse.getOrCreateInstance(collapseEl).hide();
         }
 
       } catch (err) {
-        if (errorsBox) {
-          errorsBox.innerHTML =
-            "<div class='alert alert-danger py-2 mb-0'>Falha de comunicação.</div>";
-        }
+        if (errorsBox) errorsBox.innerHTML = "<div class='alert alert-danger py-2 mb-0'>Falha de comunicação.</div>";
       } finally {
         if (submitBtn) submitBtn.disabled = false;
       }
     });
   }
 
-  /* ==============================
-     Like via fetch
-     ============================== */
-  document.addEventListener("click", function (e) {
-    const btn = e.target.closest(".js-like-btn");
-    if (!btn) return;
 
-    const url = btn.dataset.likeUrl;
-    const icon = btn.querySelector("i");
-    const counter = btn.querySelector(".likes-count");
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let c of cookies) {
+        c = c.trim();
+        if (c.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(c.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
 
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": getCookie("csrftoken"),
-        "X-Requested-With": "XMLHttpRequest",
-      },
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (!data.success) return;
-        counter.textContent = data.likes_count;
-        icon.classList.toggle("bi-heart", !data.liked);
-        icon.classList.toggle("bi-heart-fill", data.liked);
-        icon.classList.toggle("text-danger", data.liked);
-      });
-  });
+  /* === MANTENHA O RESTANTE DO ARQUIVO (Curtidas, Comentários, Delete) PARA BAIXO === */
 
   /* ==============================
      Rating via fetch (dropdown)
@@ -218,7 +198,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // adiciona o novo comentário no topo
         listEl.insertAdjacentHTML("afterbegin", data.html);
 
-        // mantém somente os 5 comentários mais recentes (itens com id="comment-...")
+        // mantém somente os 5 comentários mais recentes
         const items = Array.from(listEl.children).filter(el =>
           el.id && el.id.startsWith("comment-")
         );
@@ -299,8 +279,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (card) card.remove();
   });
 
-
-
   /* ==============================
      Ocultar postagem (feed do usuário)
      ============================== */
@@ -322,13 +300,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) return;
 
-    // remove visualmente do feed
     const card = document.querySelector(`#post-${postId}`);
     if (card) card.remove();
   });
-
-
-
 
   /* ==============================
      Deleção de comentários
@@ -376,9 +350,7 @@ function getCookie(name) {
 }
 
 
-
-// static/js/social_net/post_form.js
-
+// ===== Preview de imagem (mantido) =====
 (function () {
   function initPostMediaPreview() {
     const input = document.querySelector('#post-form input[type="file"][name="media"]');
@@ -396,7 +368,6 @@ function getCookie(name) {
         return;
       }
 
-      // Se não for imagem, só oculta o preview (evita mostrar lixo)
       if (!file.type || !file.type.startsWith('image/')) {
         img.removeAttribute('src');
         wrapper.classList.add('d-none');
@@ -407,7 +378,6 @@ function getCookie(name) {
       img.src = url;
       wrapper.classList.remove('d-none');
 
-      // libera o blob quando a imagem carregar
       img.onload = function () {
         URL.revokeObjectURL(url);
       };

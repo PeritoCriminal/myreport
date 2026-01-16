@@ -46,7 +46,6 @@
         </a>
       </div>
     {% endif %}
-    
 
     {% if post.media %}
       <div class="mt-2">
@@ -77,11 +76,15 @@
           <i class="bi
           {% if post.has_liked %}
               
+
             bi-heart-fill text-danger
+
 
             {% else %}
               
+
             bi-heart
+
 
             {% endif %}
           ">
@@ -95,11 +98,15 @@
             <i class="bi
               {% if post.has_rated %}
                 
+
                 bi-star-fill text-warning
+
 
               {% else %}
                 
+
                 bi-star
+
 
               {% endif %}
               js-rating-icon">
@@ -121,9 +128,13 @@
                   <span class="d-flex align-items-center gap-1">
                     {% for _ in stars_5 %}
                       <i class="bi {% if forloop.counter <= i %}
+                          
                           bi-star-fill
+
                         {% else %}
+                          
                           bi-star
+
                         {% endif %}">
 
                       </i>
@@ -138,6 +149,13 @@
         <button class="btn btn-sm btn-light js-comments-toggle" data-bs-toggle="collapse" data-bs-target="#commentFormBox-{{ post.id }}" aria-controls="commentFormBox-{{ post.id }}" aria-expanded="false" data-post-id="{{ post.id }}" title="Comentar"><i class="bi bi-chat"></i></button>
 
         {% if request.user.id == post.user_id %}
+          {# EDITAR: só aparece se ainda não foi aberta por terceiros #}
+          {% if post.is_active and not post.opened_by_third_party %}
+            <a href="{% url 'social_net:post_update' post.id %}" class="btn btn-sm text-primary" title="Editar postagem"><i class="bi bi-pencil"></i></a>
+          {% else %}
+            <span class="btn btn-sm text-muted" title="Esta postagem não pode mais ser editada porque já foi visualizada por outros usuários." style="cursor: not-allowed;"><i class="bi bi-pencil"></i></span>
+          {% endif %}
+
           {% if post.is_active %}
             <button type="button" class="btn btn-sm text-danger js-post-delete" data-delete-url="{% url 'social_net:post_delete' post.id %}" data-post-id="{{ post.id }}" title="Excluir postagem"><i class="bi bi-trash"></i></button>
           {% else %}

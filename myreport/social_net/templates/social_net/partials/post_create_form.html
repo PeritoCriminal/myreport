@@ -1,14 +1,17 @@
-{# templates/social_net/partials/post_create_form.html #}
-
-{# Form de criação #}
+{# Form de criação / edição (reutilizável) #}
 <div class="collapse" id="postFormCollapse">
   <div class="card mb-3">
     <div class="card-body">
-      <form id="post-form" method="post" enctype="multipart/form-data" action="{% url 'social_net:post_create' %}">
+      <form
+        id="post-form"
+        method="post"
+        enctype="multipart/form-data"
+        action="{% if action_url %}{{ action_url }}{% else %}{% url 'social_net:post_create' %}{% endif %}"
+        {% if is_edit %}data-mode="edit"{% endif %}
+      >
         {% csrf_token %}
 
-        <input type="hidden" name="related_url" id="id_related_url" value="">
-
+        <input type="hidden" name="related_url" id="id_related_url" value="{{ form.instance.related_url|default:'' }}">
 
         {% if request.GET.share %}
           <input type="hidden" name="share" value="{{ request.GET.share }}">
@@ -40,16 +43,27 @@
           {% endif %}
         </div>
 
-        <div class="mb-2">{{ form.title }}</div>
-        <div class="mb-2">{{ form.text }}</div>
+        <div class="mb-2">
+          <label class="form-label" for="{{ form.title.id_for_label }}">Título</label>
+          {{ form.title }}
+        </div>
+        
+        <div class="mb-2">
+          <label class="form-label" for="{{ form.text.id_for_label }}">Texto</label>
+          {{ form.text }}
+        </div>
 
         <div class="mb-2">
           <label class="form-label mb-1">Mídia</label>
           {{ form.media }}
 
           {# Preview (aparece quando escolher arquivo) #}
-          <div class="mt-2 d-none" id="post-media-preview-wrapper">
-            <img id="post-media-preview" class="img-fluid rounded border" alt="Pré-visualização da mídia" />
+          <div class="mt-2 {% if not form.instance.media %}d-none{% endif %}" id="post-media-preview-wrapper">
+            {% if form.instance.media %}
+                <img id="post-media-preview" src="{{ form.instance.media.url }}" class="img-fluid rounded border" alt="Pré-visualização da mídia" />
+            {% else %}
+                <img id="post-media-preview" class="img-fluid rounded border" alt="Pré-visualização da mídia" />
+            {% endif %}
           </div>
         </div>
 
@@ -64,7 +78,9 @@
             Cancelar
           </button>
 
-          <button class="btn btn-primary btn-sm" type="submit">Publicar</button>
+          <button class="btn btn-primary btn-sm" type="submit">
+            {% if submit_label %}{{ submit_label }}{% else %}Publicar{% endif %}
+          </button>
         </div>
       </form>
     </div>

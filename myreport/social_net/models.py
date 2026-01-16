@@ -138,6 +138,9 @@ class Post(models.Model):
 
     is_active = models.BooleanField(default=True)
 
+    opened_by_third_party = models.BooleanField(default=False)
+    opened_by_third_party_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

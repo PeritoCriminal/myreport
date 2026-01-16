@@ -3,36 +3,34 @@ from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Exists, OuterRef, Prefetch, Subquery, Count, Q, Case, When, Value, IntegerField
-from django.http import JsonResponse, HttpResponseRedirect, request
+from django.contrib.staticfiles import finders
+from django.core.files import File
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    IntegerField,
+    OuterRef,
+    Prefetch,
+    Q,
+    Subquery,
+    Value,
+    When,
+)
+from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
-from django.urls import reverse_lazy, reverse
-from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, ListView, DetailView
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views import View
+from django.views.decorators.http import require_POST
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
+
+from accounts.models import UserFollow
+from groups.models import GroupMembership
 
 from .forms import PostCommentForm, PostForm
-from .models import Post, PostComment, PostLike, PostRating, PostHidden
-from groups.models import GroupMembership
-from accounts.models import UserFollow
-
-
-
-
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import (
-    Q, Exists, OuterRef, Subquery,
-    Case, When, Value, IntegerField, Prefetch
-)
-from django.views.generic import ListView
-
-from accounts.models import UserFollow
-from groups.models import GroupMembership
-from social_net.models import (
-    Post, PostComment, PostLike, PostRating, PostHidden
-)
-from social_net.forms import PostForm
+from .models import Post, PostComment, PostHidden, PostLike, PostRating
 
 
 class PostListView(LoginRequiredMixin, ListView):
@@ -64,15 +62,10 @@ class PostListView(LoginRequiredMixin, ListView):
             .order_by("-created_at")
         )
 
-        user_groups_sq = GroupMembership.objects.filter(
-            user_id=user.pk
-        ).values("group_id")
+        user_groups_sq = GroupMembership.objects.filter(user_id=user.pk).values("group_id")
 
         user_rating_value_sq = (
-            PostRating.objects.filter(
-                post_id=OuterRef("pk"),
-                user_id=user.pk
-            )
+            PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
             .values("value")[:1]
         )
 
@@ -85,53 +78,29 @@ class PostListView(LoginRequiredMixin, ListView):
 
         qs = (
             Post.objects.filter(is_active=True)
-            .filter(
-                Q(group__isnull=True) |
-                Q(group_id__in=user_groups_sq)
-            )
+            .filter(Q(group__isnull=True) | Q(group_id__in=user_groups_sq))
             .select_related("user", "group")
             .annotate(
-                # flags do usuário
                 has_liked=Exists(
-                    PostLike.objects.filter(
-                        post_id=OuterRef("pk"),
-                        user_id=user.pk
-                    )
+                    PostLike.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
                 ),
                 has_rated=Exists(
-                    PostRating.objects.filter(
-                        post_id=OuterRef("pk"),
-                        user_id=user.pk
-                    )
+                    PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
                 ),
                 user_rating_value=Subquery(user_rating_value_sq),
-
-                # flag: 1 = autor seguido | 0 = não seguido
                 is_from_followed=Case(
-                    When(
-                        Exists(is_from_followed_user_sq),
-                        then=Value(1)
-                    ),
+                    When(Exists(is_from_followed_user_sq), then=Value(1)),
                     default=Value(0),
                     output_field=IntegerField(),
                 ),
-
-                # flag: 1 = ocultada | 0 = visível
                 is_hidden=Case(
-                    When(
-                        Exists(hidden_sq),
-                        then=Value(1)
-                    ),
+                    When(Exists(hidden_sq), then=Value(1)),
                     default=Value(0),
                     output_field=IntegerField(),
                 ),
             )
-            # exclui ocultadas
             .filter(is_hidden=0)
-            .prefetch_related(
-                Prefetch("comments", queryset=comments_qs)
-            )
-            # primeiro seguidos, depois os demais; ambos por atualização
+            .prefetch_related(Prefetch("comments", queryset=comments_qs))
             .order_by("-is_from_followed", "-updated_at")
         )
 
@@ -144,27 +113,37 @@ class PostListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        for post in ctx["posts"]:
-            post.last_comments = list(post.comments.all())[:5]
-
+        # o feed depende disso
         ctx["form"] = PostForm(user=self.request.user)
         ctx["rating_range"] = range(1, 6)
         ctx["stars_5"] = range(1, 6)
+
+        # mantém last_comments usado no post_item.html
+        for post in ctx["posts"]:
+            post.last_comments = list(post.comments.all())[:5]
+
+        # marca opened no list (apenas os exibidos na página)
+        user = self.request.user
+        page_obj = ctx.get("page_obj")
+        page_posts = list(page_obj.object_list) if page_obj else list(ctx.get("object_list") or [])
+        post_ids = [p.id for p in page_posts]
+
+        if post_ids:
+            now = timezone.now()
+            (
+                Post.objects.filter(id__in=post_ids, opened_by_third_party=False)
+                .exclude(user_id=user.id)
+                .update(opened_by_third_party=True, opened_by_third_party_at=now)
+            )
+
         return ctx
 
 
-
-
-
 class PostDetailView(LoginRequiredMixin, DetailView):
-    """ 
-    Exibe o detalhe de uma postagem específica, incluindo seu conteúdo completo 
-    e a listagem de todos os comentários associados. A view atua como ponto canônico 
-    da postagem, podendo ser acessada a partir do feed geral, da página pessoal do 
-    autor ou por link direto. Apenas postagens ativas são exibidas. Os comentários 
-    são recuperados em ordem cronológica crescente e acompanhados de um formulário 
-    para inserção de novos comentários. 
     """
+    Exibe o detalhe de uma postagem específica, com listagem de comentários e formulário.
+    """
+
     model = Post
     template_name = "social_net/post_detail.html"
     context_object_name = "post"
@@ -172,16 +151,13 @@ class PostDetailView(LoginRequiredMixin, DetailView):
     def get_queryset(self):
         user = self.request.user
 
-        # valor da avaliação do usuário logado para esta postagem (None se não existir)
         user_rating_value_sq = (
-            PostRating.objects
-            .filter(post_id=OuterRef("pk"), user_id=user.pk)
+            PostRating.objects.filter(post_id=OuterRef("pk"), user_id=user.pk)
             .values("value")[:1]
         )
 
         return (
-            Post.objects
-            .filter(is_active=True)
+            Post.objects.filter(is_active=True)
             .select_related("user")
             .annotate(
                 has_liked=Exists(
@@ -199,20 +175,15 @@ class PostDetailView(LoginRequiredMixin, DetailView):
         post = self.object
 
         comments_qs = (
-            PostComment.objects
-            .filter(post=post, is_active=True)
+            PostComment.objects.filter(post=post, is_active=True)
             .select_related("user")
             .order_by("created_at")
         )
 
-        # Contagem total de curtidas (evita hits extras no template)
         likes_count = PostLike.objects.filter(post=post).count()
 
-        # Contagem por estrelas (1..5) num único query
-        # retorna algo como: [{'value': 5, 'total': 3}, {'value': 4, 'total': 1}, ...]
         rating_rows = (
-            PostRating.objects
-            .filter(post=post)
+            PostRating.objects.filter(post=post)
             .values("value")
             .annotate(total=Count("id"))
         )
@@ -227,36 +198,17 @@ class PostDetailView(LoginRequiredMixin, DetailView):
 
         ctx["comments"] = comments_qs
         ctx["comments_count"] = comments_qs.count()
-
         ctx["comment_form"] = PostCommentForm()
 
-        # Curtidas
         ctx["likes_count"] = likes_count
+        ctx["rating_counts"] = rating_counts
+        ctx["rating_total"] = rating_total
+        ctx["rating_avg"] = rating_avg
+        ctx["user_rating_value"] = post.user_rating_value
 
-        # Avaliações
-        ctx["rating_counts"] = rating_counts          # dict: 1..5
-        ctx["rating_total"] = rating_total            # total de avaliações
-        ctx["rating_avg"] = rating_avg                # média (0 se não houver)
-        ctx["user_rating_value"] = post.user_rating_value  # 1..5 ou None
-
-        # Se você usa no template para desenhar estrelas
         ctx["stars_5"] = range(1, 6)
 
         return ctx
-
-
-
-
-from django.contrib.staticfiles import finders
-from django.core.files import File
-from django.http import JsonResponse, HttpResponseRedirect
-from django.template.loader import render_to_string
-from django.urls import reverse_lazy
-from django.views.generic import CreateView
-
-from .forms import PostForm
-from .models import Post
-from groups.models import GroupMembership  # ajuste o import conforme seu projeto
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -281,7 +233,6 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         post.user = self.request.user
         post.related_url = (self.request.POST.get("related_url") or "").strip() or None
 
-
         # Regra: se escolheu grupo, precisa ser membro
         if post.group_id:
             is_member = GroupMembership.objects.filter(
@@ -305,7 +256,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         post.save()
         self.object = post
 
-        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+        if (self.request.headers.get("x-requested-with") or "") == "XMLHttpRequest":
             post.has_liked = False
             post.has_rated = False
             post.last_comments = []
@@ -313,11 +264,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
             html = render_to_string(
                 "social_net/partials/post_item.html",
-                {
-                    "post": post,
-                    "rating_range": range(1, 6),
-                    "stars_5": range(1, 6),
-                },
+                {"post": post, "rating_range": range(1, 6), "stars_5": range(1, 6)},
                 request=self.request,
             )
             return JsonResponse({"success": True, "html": html}, status=200)
@@ -325,7 +272,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
     def form_invalid(self, form):
-        if self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+        if (self.request.headers.get("x-requested-with") or "") == "XMLHttpRequest":
             errors_html = render_to_string(
                 "social_net/partials/post_form_errors.html",
                 {"form": form},
@@ -336,8 +283,54 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
+class PostUpdateView(LoginRequiredMixin, UpdateView):
+    model = Post
+    form_class = PostForm
+    template_name = "social_net/post_update.html"
 
+    def get_queryset(self):
+        return Post.objects.filter(user=self.request.user, is_active=True)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if self.object.opened_by_third_party:
+            return redirect("social_net:post_list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        post = form.save(commit=False)
+
+        # mantém related_url vindo do hidden input
+        post.related_url = (self.request.POST.get("related_url") or "").strip() or None
+
+        # Regra: se escolheu grupo, precisa ser membro
+        if post.group_id:
+            is_member = GroupMembership.objects.filter(
+                user_id=self.request.user.pk,
+                group_id=post.group_id,
+            ).exists()
+            if not is_member:
+                form.add_error("group", "Você não é membro deste grupo.")
+                return self.form_invalid(form)
+
+        post.save()
+        self.object = post
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["action_url"] = reverse("social_net:post_update", kwargs={"pk": self.object.pk})
+        ctx["submit_label"] = "Salvar"
+        ctx["is_edit"] = True
+        return ctx
+
+    def get_success_url(self):
+        return reverse("social_net:post_list")
 
 
 @login_required
@@ -345,7 +338,6 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 def post_delete(request, post_id):
     """
     Inativa uma postagem do usuário autenticado (soft delete).
-
     Retorna JSON para remoção do card no front.
     """
     post = get_object_or_404(Post, id=post_id, is_active=True)
@@ -359,17 +351,13 @@ def post_delete(request, post_id):
     return JsonResponse({"success": True, "post_id": str(post.id)})
 
 
-
-
 @login_required
 @require_POST
 def post_like(request, post_id):
     """
     Alterna a curtida do usuário autenticado na postagem informada.
-
     Retorna JSON com o estado final (`liked`) e a contagem atualizada.
     """
-
     post = get_object_or_404(Post, id=post_id, is_active=True)
     like_qs = PostLike.objects.filter(post=post, user=request.user)
 
@@ -380,15 +368,7 @@ def post_like(request, post_id):
         PostLike.objects.create(post=post, user=request.user)
         liked = True
 
-    return JsonResponse(
-        {
-            "success": True,
-            "liked": liked,
-            "likes_count": post.likes.count(),
-        }
-    )
-
-
+    return JsonResponse({"success": True, "liked": liked, "likes_count": post.likes.count()})
 
 
 @login_required
@@ -396,10 +376,8 @@ def post_like(request, post_id):
 def post_rate(request, post_id):
     """
     Registra ou atualiza a avaliação (1 a 5) do usuário autenticado na postagem.
-
     Retorna JSON indicando sucesso e o valor aplicado.
     """
-
     post = get_object_or_404(Post, id=post_id, is_active=True)
 
     try:
@@ -416,21 +394,12 @@ def post_rate(request, post_id):
         defaults={"value": value},
     )
 
-    return JsonResponse(
-        {
-            "success": True,
-            "rated": True,
-            "rating_value": value,
-        }
-    )
-
-
+    return JsonResponse({"success": True, "rated": True, "rating_value": value})
 
 
 class PostCommentListView(LoginRequiredMixin, ListView):
     """
     Lista comentários (nível raiz) de uma postagem, ordenados por data de criação.
-
     Esta view serve para renderização parcial (HTML) quando necessário.
     """
 
@@ -448,14 +417,10 @@ class PostCommentListView(LoginRequiredMixin, ListView):
         )
 
 
-
-
 class PostCommentCreateView(LoginRequiredMixin, CreateView):
     """
     Cria comentário em uma postagem, com suporte a resposta encadeada (parent).
-
-    Quando a requisição é AJAX, retorna JSON com o HTML do comentário renderizado
-    para inserção dinâmica na lista já exibida.
+    Quando a requisição é AJAX, retorna JSON com o HTML do comentário renderizado.
     """
 
     model = PostComment
@@ -470,7 +435,7 @@ class PostCommentCreateView(LoginRequiredMixin, CreateView):
         form.instance.user = self.request.user
         response = super().form_valid(form)
 
-        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        if (self.request.headers.get("X-Requested-With") or "") == "XMLHttpRequest":
             html = render_to_string(
                 "social_net/partials/comment_item.html",
                 {"comment": self.object, "user": self.request.user},
@@ -479,9 +444,9 @@ class PostCommentCreateView(LoginRequiredMixin, CreateView):
             return JsonResponse({"success": True, "html": html}, status=200)
 
         return response
-    
+
     def form_invalid(self, form):
-        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        if (self.request.headers.get("X-Requested-With") or "") == "XMLHttpRequest":
             return JsonResponse({"success": False, "errors": form.errors}, status=400)
         return super().form_invalid(form)
 
@@ -489,16 +454,11 @@ class PostCommentCreateView(LoginRequiredMixin, CreateView):
         return reverse("social_net:post_detail", kwargs={"pk": self.post_obj.pk})
 
 
-
-
-# social_net/views.py
-
 @login_required
 @require_POST
 def comment_delete(request, comment_id):
     """
     Inativa (soft delete) um comentário do usuário autenticado.
-
     Retorna JSON para remoção do comentário no front-end.
     """
     comment = get_object_or_404(PostComment, id=comment_id, is_active=True)
@@ -509,14 +469,7 @@ def comment_delete(request, comment_id):
     comment.is_active = False
     comment.save(update_fields=["is_active"])
 
-    return JsonResponse(
-        {
-            "success": True,
-            "comment_id": str(comment.id),
-        }
-    )
-
-
+    return JsonResponse({"success": True, "comment_id": str(comment.id)})
 
 
 @require_POST
@@ -531,10 +484,7 @@ def toggle_hide_post(request, post_id):
     """
     post = get_object_or_404(Post, pk=post_id)
 
-    obj, created = PostHidden.objects.get_or_create(
-        post=post,
-        user=request.user,
-    )
+    obj, created = PostHidden.objects.get_or_create(post=post, user=request.user)
 
     hidden = True
     if not created:
@@ -549,20 +499,9 @@ def toggle_hide_post(request, post_id):
     return redirect(request.META.get("HTTP_REFERER") or reverse("social_net:post_list"))
 
 
-
-
-
 class ExcludedPostListView(LoginRequiredMixin, ListView):
     """
     Lista as postagens excluídas (inativas) do usuário autenticado.
-
-    Esta view exibe apenas postagens marcadas como inativas (soft delete),
-    de autoria do próprio usuário logado, ordenadas pela data de última
-    atualização, da mais recente para a mais antiga.
-
-    É utilizada como página dedicada para consulta e gerenciamento do
-    histórico de postagens excluídas, podendo servir também como base
-    para exibições resumidas (preview) no dashboard inicial.
     """
     model = Post
     template_name = "social_net/excluded_post_list.html"
@@ -570,13 +509,7 @@ class ExcludedPostListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return (
-            Post.objects
-            .filter(user=self.request.user, is_active=False)
-            .order_by("-updated_at")
-        )
-    
-
+        return Post.objects.filter(user=self.request.user, is_active=False).order_by("-updated_at")
 
 
 class ExcludedPostDetailView(LoginRequiredMixin, DetailView):
@@ -589,8 +522,6 @@ class ExcludedPostDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         return Post.objects.filter(user=self.request.user, is_active=False)
-    
-
 
 
 class RestorePostView(LoginRequiredMixin, View):
@@ -599,30 +530,15 @@ class RestorePostView(LoginRequiredMixin, View):
     """
 
     def post(self, request, pk):
-        post = get_object_or_404(
-            Post,
-            pk=pk,
-            user=request.user,
-            is_active=False,
-        )
-
+        post = get_object_or_404(Post, pk=pk, user=request.user, is_active=False)
         post.is_active = True
         post.save(update_fields=["is_active"])
-
         return redirect(reverse("social_net:post_detail", args=[post.pk]))
-    
-
 
 
 class HiddenPostListView(LoginRequiredMixin, ListView):
     """
     Lista as postagens ocultadas pelo usuário autenticado.
-
-    Exibe postagens ativas que foram explicitamente ocultadas pelo usuário,
-    ordenadas pela data de última atualização, da mais recente para a mais antiga.
-
-    Esta view permite ao usuário revisar postagens ocultadas e reverter
-    a ocultação (voltar a visualizar) quando desejado.
     """
     model = Post
     template_name = "social_net/hidden_post_list.html"
@@ -630,16 +546,9 @@ class HiddenPostListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        hidden_post_ids = PostHidden.objects.filter(
-            user=self.request.user
-        ).values("post_id")
-
+        hidden_post_ids = PostHidden.objects.filter(user=self.request.user).values("post_id")
         return (
-            Post.objects
-            .filter(id__in=Subquery(hidden_post_ids), is_active=True)
+            Post.objects.filter(id__in=Subquery(hidden_post_ids), is_active=True)
             .select_related("user", "group")
             .order_by("-updated_at")
         )
-    
-
-toggle_hide_post

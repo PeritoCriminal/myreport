@@ -195,3 +195,51 @@ class SocialNetAccessTests(TestCase):
 
         self.comment.refresh_from_db()
         self.assertFalse(self.comment.is_active)
+
+    # ---------------------------
+    # EDIÇÃO DE POST: bloqueio após visualização por terceiro
+    # ---------------------------
+
+    def test_owner_can_access_edit_when_not_opened_by_third_party(self):
+        """
+        O autor da postagem pode acessar a edição
+        enquanto a postagem ainda não foi aberta por terceiros.
+        """
+        ok = self.client.login(username=self.other.username, password=self.password)
+        self.assertTrue(ok)
+
+        url = reverse("social_net:post_update", kwargs={"pk": self.post.pk})
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.status_code, 200)
+
+    def test_owner_cannot_access_edit_when_opened_by_third_party(self):
+        """
+        O autor da postagem NÃO pode acessar a edição
+        se a postagem já foi aberta por outro usuário.
+        """
+        # marca como aberta por terceiro
+        self.post.opened_by_third_party = True
+        self.post.save(update_fields=["opened_by_third_party"])
+
+        ok = self.client.login(username=self.other.username, password=self.password)
+        self.assertTrue(ok)
+
+        url = reverse("social_net:post_update", kwargs={"pk": self.post.pk})
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse("social_net:post_list"))
+
+    def test_non_owner_cannot_access_edit_even_if_not_opened(self):
+        """
+        Um usuário que NÃO é o autor nunca pode editar a postagem,
+        independentemente do status opened_by_third_party.
+        """
+        self.login()  # self.user (não autor)
+
+        url = reverse("social_net:post_update", kwargs={"pk": self.post.pk})
+        resp = self.client.get(url)
+
+        # filtrado pelo queryset (user=self.request.user)
+        self.assertEqual(resp.status_code, 404)
