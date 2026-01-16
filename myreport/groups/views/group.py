@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import BooleanField, Case, Exists, OuterRef, Q, Value, When, Prefetch, Subquery
 from django.http import Http404
@@ -151,12 +152,10 @@ class GroupUpdateView(LoginRequiredMixin, UpdateView):
 
 
 @require_POST
+@login_required
 def group_deactivate_view(request, pk):
     group = get_object_or_404(Group, pk=pk)
-    try:
-        inactivate_group(group=group, user=request.user)
-    except PermissionDenied:
-        raise Http404("Grupo não encontrado.")
+    inactivate_group(group=group, user=request.user)
     return redirect("groups:group_detail", pk=group.pk)
 
 

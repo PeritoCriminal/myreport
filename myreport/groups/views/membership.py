@@ -14,10 +14,7 @@ from ..services import join_group, leave_group
 @login_required
 def group_join_view(request, pk):
     group = get_object_or_404(Group, pk=pk)
-    try:
-        join_group(group=group, user=request.user)
-    except PermissionDenied:
-        raise Http404("Grupo não encontrado.")
+    join_group(group=group, user=request.user)
     return redirect("groups:group_detail", pk=group.pk)
 
 
