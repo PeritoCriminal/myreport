@@ -4,6 +4,10 @@ from django import forms
 from django.core.exceptions import PermissionDenied
 from django.views.generic.base import ContextMixin
 
+from django.http import HttpResponseRedirect
+
+from django.shortcuts import redirect
+
 
 class BootstrapFormMixin:
     """
@@ -139,3 +143,140 @@ class ExamObjectMetaContextMixin(ContextMixin):
             context["obj_model_name"] = obj._meta.model_name
 
         return context
+    
+
+
+# ─────────────────────────────────────────
+# VIEW MIXINS (CBVs)
+# ─────────────────────────────────────────
+
+
+
+class BootstrapFormViewMixin:
+    """
+    Injeta automaticamente um mixin base de Bootstrap no form da view.
+
+    Uso:
+        class MinhaView(BootstrapFormViewMixin, CreateView):
+            form_base_class = BootstrapFormMixin
+    """
+
+    form_base_class = None
+
+    def get_form_class(self):
+        form_class = super().get_form_class()
+
+        if self.form_base_class and self.form_base_class not in form_class.__mro__:
+            class WrappedForm(self.form_base_class, form_class):
+                pass
+
+            return WrappedForm
+
+        return form_class
+
+
+class OwnerRequiredMixin:
+    """
+    Restringe acesso à view apenas ao proprietário do objeto.
+    """
+
+    owner_field = "user"
+
+    def dispatch(self, request, *args, **kwargs):
+        obj = self.get_object()
+        owner = getattr(obj, self.owner_field, None)
+
+        if owner != request.user:
+            raise PermissionDenied("Acesso restrito ao proprietário do registro.")
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ActiveObjectRequiredMixin:
+    """
+    Impede ações sobre objetos marcados como inativos.
+    """
+
+    active_field = "is_active"
+
+    def dispatch(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        if hasattr(obj, self.active_field) and not getattr(obj, self.active_field):
+            raise PermissionDenied("Este registro encontra-se inativo.")
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class UserAssignMixin:
+    """
+    Atribui automaticamente o usuário logado ao salvar o form.
+    """
+
+    user_field = "user"
+
+    def form_valid(self, form):
+        if not getattr(form.instance, self.user_field, None):
+            setattr(form.instance, self.user_field, self.request.user)
+
+        return super().form_valid(form)
+
+
+class SoftDeleteMixin:
+    """
+    Substitui a exclusão física por desativação lógica.
+    """
+
+    active_field = "is_active"
+
+    def delete(self, request, *args, **kwargs):
+        obj = self.get_object()
+        setattr(obj, self.active_field, False)
+        obj.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class ContextTitleMixin:
+    """
+    Padroniza títulos e subtítulos no contexto do template.
+    """
+
+    page_title = None
+    page_subtitle = None
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        if self.page_title:
+            context["page_title"] = self.page_title
+        if self.page_subtitle:
+            context["page_subtitle"] = self.page_subtitle
+
+        return context
+
+# ─────────────────────────────────────────
+# BLOCKING MIXINS
+# ─────────────────────────────────────────
+
+class BlockIfOpenedByThirdPartyMixin:
+    """
+    Bloqueia ações (Update/Delete) se o objeto já foi aberto por terceiro.
+
+    Útil para regras de imutabilidade após visualização externa.
+    """
+
+    block_field = "opened_by_third_party"
+    redirect_url_name = None  # ex: "social_net:post_list"
+
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+
+        # garante que self.object já existe
+        if getattr(self.object, self.block_field, False):
+            if self.redirect_url_name:
+                return redirect(self.redirect_url_name)
+
+            raise PermissionDenied("Este registro não pode mais ser alterado.")
+
+        return response
+

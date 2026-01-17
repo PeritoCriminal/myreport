@@ -27,6 +27,13 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from accounts.models import UserFollow
+from common.mixins import (
+    ActiveObjectRequiredMixin,
+    BlockIfOpenedByThirdPartyMixin,
+    OwnerRequiredMixin,
+    SoftDeleteMixin,
+    UserAssignMixin,
+)
 from groups.models import GroupMembership
 
 from .forms import PostCommentForm, PostForm
@@ -211,7 +218,7 @@ class PostDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class PostCreateView(LoginRequiredMixin, CreateView):
+class PostCreateView(LoginRequiredMixin, UserAssignMixin, CreateView):
     """
     Cria uma nova postagem do usuário autenticado.
 
@@ -223,6 +230,8 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     form_class = PostForm
     success_url = reverse_lazy("social_net:post_list")
 
+    user_field = "user"
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
@@ -230,7 +239,11 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         post = form.save(commit=False)
-        post.user = self.request.user
+        # user vem do UserAssignMixin via form_valid; mas aqui ainda estamos com commit=False,
+        # então aplicamos antes de salvar:
+        if not getattr(post, self.user_field, None):
+            setattr(post, self.user_field, self.request.user)
+
         post.related_url = (self.request.POST.get("related_url") or "").strip() or None
 
         # Regra: se escolheu grupo, precisa ser membro
@@ -283,24 +296,29 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
-class PostUpdateView(LoginRequiredMixin, UpdateView):
+class PostUpdateView(
+    LoginRequiredMixin,
+    OwnerRequiredMixin,
+    ActiveObjectRequiredMixin,
+    BlockIfOpenedByThirdPartyMixin,
+    UpdateView,
+):
     model = Post
     form_class = PostForm
     template_name = "social_net/post_update.html"
 
+    owner_field = "user"
+    active_field = "is_active"
+    redirect_url_name = "social_net:post_list"
+
     def get_queryset(self):
-        return Post.objects.filter(user=self.request.user, is_active=True)
+        # dono é garantido pelo OwnerRequiredMixin; aqui fica só o filtro de ativo
+        return Post.objects.filter(is_active=True)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
         return kwargs
-
-    def dispatch(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if self.object.opened_by_third_party:
-            return redirect("social_net:post_list")
-        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         post = form.save(commit=False)
@@ -333,22 +351,32 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
         return reverse("social_net:post_list")
 
 
-@login_required
-@require_POST
-def post_delete(request, post_id):
+class PostDeleteView(
+    LoginRequiredMixin,
+    OwnerRequiredMixin,
+    ActiveObjectRequiredMixin,
+    SoftDeleteMixin,
+    View,
+):
     """
     Inativa uma postagem do usuário autenticado (soft delete).
     Retorna JSON para remoção do card no front.
     """
-    post = get_object_or_404(Post, id=post_id, is_active=True)
 
-    if post.user_id != request.user.id:
-        return JsonResponse({"success": False, "error": "forbidden"}, status=403)
+    model = Post
+    owner_field = "user"
+    active_field = "is_active"
 
-    post.is_active = False
-    post.save(update_fields=["is_active"])
+    def get_object(self):
+        return get_object_or_404(Post, id=self.kwargs["post_id"], is_active=True)
 
-    return JsonResponse({"success": True, "post_id": str(post.id)})
+    def post(self, request, *args, **kwargs):
+        # valida owner + active via mixins (dispatch)
+        self.object = self.get_object()
+        # usa SoftDeleteMixin
+        setattr(self.object, self.active_field, False)
+        self.object.save(update_fields=[self.active_field])
+        return JsonResponse({"success": True, "post_id": str(self.object.id)})
 
 
 @login_required
