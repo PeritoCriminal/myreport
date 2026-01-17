@@ -75,20 +75,11 @@
         <button type="button" class="btn btn-sm btn-light d-flex align-items-center gap-1 js-like-btn" data-like-url="{% url 'social_net:post_like' post.id %}" title="Curtir">
           <i class="bi
           {% if post.has_liked %}
-              
-
             bi-heart-fill text-danger
-
-
-            {% else %}
-              
-
+            {% else %}       
             bi-heart
-
-
             {% endif %}
           ">
-
           </i>
           <span class="likes-count">{{ post.likes.count }}</span>
         </button>
@@ -96,21 +87,12 @@
         <div class="dropdown js-rating-container">
           <button class="btn btn-sm btn-light d-flex align-items-center gap-1 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Avaliar">
             <i class="bi
-              {% if post.has_rated %}
-                
-
+              {% if post.has_rated %}     
                 bi-star-fill text-warning
-
-
               {% else %}
-                
-
                 bi-star
-
-
               {% endif %}
               js-rating-icon">
-
             </i>
 
             {% if post.user_rating_value %}
@@ -127,16 +109,11 @@
                   <span class="text-nowrap">{{ i }}</span>
                   <span class="d-flex align-items-center gap-1">
                     {% for _ in stars_5 %}
-                      <i class="bi {% if forloop.counter <= i %}
-                          
+                      <i class="bi {% if forloop.counter <= i %}                          
                           bi-star-fill
-
-                        {% else %}
-                          
+                        {% else %}                          
                           bi-star
-
                         {% endif %}">
-
                       </i>
                     {% endfor %}
                   </span>

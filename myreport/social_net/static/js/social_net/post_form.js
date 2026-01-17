@@ -1,7 +1,4 @@
 // static/js/social_net/post_form.js
-// (ajustado) - acrescenta bypass do AJAX quando o form estiver em modo de edicao (data-mode="edit")
-
-/* === SUBSTITUA DO INÍCIO ATÉ O FIM DA FUNÇÃO GETCOOKIE POR ESTE BLOCO === */
 
 document.addEventListener("DOMContentLoaded", function () {
   const form = document.getElementById("post-form");
@@ -99,7 +96,72 @@ document.addEventListener("DOMContentLoaded", function () {
     return cookieValue;
   }
 
-  /* === MANTENHA O RESTANTE DO ARQUIVO (Curtidas, Comentários, Delete) PARA BAIXO === */
+  /* ==============================
+     Curtidas: toggle via fetch
+     ============================== */
+  document.addEventListener("click", async function (e) {
+    const btn = e.target.closest(".js-like-btn");
+    if (!btn) return;
+
+    e.preventDefault();
+
+    const url = btn.dataset.likeUrl;
+    if (!url) return;
+
+    const icon = btn.querySelector("i");
+    const countEl = btn.querySelector(".likes-count");
+
+    // fallback caso a view não devolva contador
+    const currentCount = countEl ? parseInt(countEl.textContent || "0", 10) : 0;
+
+    try {
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken"),
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || !data.success) return;
+
+      // tenta ler o que a view devolve
+      const liked = ("liked" in data) ? !!data.liked : null;
+      const likesCount = ("likes_count" in data) ? parseInt(data.likes_count, 10) : null;
+
+      // atualiza contador
+      if (countEl) {
+        if (Number.isFinite(likesCount)) {
+          countEl.textContent = likesCount;
+        } else if (liked === true) {
+          countEl.textContent = String(currentCount + 1);
+        } else if (liked === false) {
+          countEl.textContent = String(Math.max(0, currentCount - 1));
+        }
+      }
+
+      // atualiza ícone
+      if (icon) {
+        if (liked === true) {
+          icon.classList.add("bi-heart-fill", "text-danger");
+          icon.classList.remove("bi-heart");
+        } else if (liked === false) {
+          icon.classList.add("bi-heart");
+          icon.classList.remove("bi-heart-fill", "text-danger");
+        } else {
+          // fallback: alterna visualmente se a view não informar
+          const isFilled = icon.classList.contains("bi-heart-fill");
+          icon.classList.toggle("bi-heart-fill", !isFilled);
+          icon.classList.toggle("text-danger", !isFilled);
+          icon.classList.toggle("bi-heart", isFilled);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao curtir:", err);
+    }
+  });
+  
 
   /* ==============================
      Rating via fetch (dropdown)
