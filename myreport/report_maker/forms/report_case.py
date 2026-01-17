@@ -99,15 +99,6 @@ class ReportCaseForm(BaseModelForm):
                 if value:
                     self.initial[field_name] = value.strftime(DT_LOCAL_FORMAT)
 
-        # garante selects do ModelChoiceField como form-select
-        for field_name in ("objective", "institution", "nucleus", "team"):
-            if field_name in self.fields:
-                classes = (self.fields[field_name].widget.attrs.get("class") or "").split()
-                classes = [c for c in classes if c != "form-control"]
-                if "form-select" not in classes:
-                    classes.append("form-select")
-                self.fields[field_name].widget.attrs["class"] = " ".join(classes)
-
     def clean(self):
         cleaned_data = super().clean()
 

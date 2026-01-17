@@ -10,58 +10,92 @@ class BootstrapFormMixin:
     Aplica automaticamente classes Bootstrap aos campos do formulário.
 
     Regras:
-    - Inputs padrão -> form-control
-    - Textarea -> form-control
-    - Select -> form-select
-    - Campos hidden são ignorados
-
-    Observação:
-    - Não executa nada sozinho no __init__. Use via BaseForm/BaseModelForm
-      (ou chame apply_bootstrap() manualmente).
+    - Inputs padrão / textarea / file -> form-control
+    - Select / SelectMultiple -> form-select
+    - Checkbox / radio -> form-check-input
+    - Hidden -> ignora
+    - Após validação: campos com erro recebem is-invalid
     """
+
+    def _add_class(self, widget: forms.Widget, css: str) -> None:
+        current = (widget.attrs.get("class") or "").strip()
+        if not current:
+            widget.attrs["class"] = css
+            return
+        parts = set(current.split())
+        for item in css.split():
+            parts.add(item)
+        widget.attrs["class"] = " ".join(sorted(parts))
+
+    def _remove_class(self, widget: forms.Widget, css: str) -> None:
+        current = (widget.attrs.get("class") or "").strip()
+        if not current:
+            return
+        parts = [c for c in current.split() if c != css]
+        widget.attrs["class"] = " ".join(parts).strip()
+
+    def _apply_bootstrap_to_field(self, field: forms.Field) -> None:
+        widget = field.widget
+
+        # hidden: não estiliza
+        if getattr(widget, "input_type", None) == "hidden":
+            return
+
+        # checkbox / radio
+        if isinstance(widget, (forms.CheckboxInput, forms.RadioSelect, forms.CheckboxSelectMultiple)):
+            self._add_class(widget, "form-check-input")
+            self._remove_class(widget, "form-control")
+            self._remove_class(widget, "form-select")
+            return
+
+        # selects
+        if isinstance(widget, (forms.Select, forms.SelectMultiple)):
+            self._add_class(widget, "form-select")
+            self._remove_class(widget, "form-control")
+            return
+
+        # file input
+        if isinstance(widget, forms.ClearableFileInput):
+            self._add_class(widget, "form-control")
+            return
+
+        # textarea e inputs em geral
+        self._add_class(widget, "form-control")
 
     def apply_bootstrap(self) -> None:
         for field in self.fields.values():
-            widget = field.widget
+            self._apply_bootstrap_to_field(field)
 
-            # Ignora campos ocultos
-            if getattr(widget, "input_type", None) == "hidden":
-                continue
-
-            classes = (widget.attrs.get("class") or "").strip()
-
-            # Select
-            if widget.__class__.__name__ in ("Select", "SelectMultiple"):
-                widget.attrs["class"] = f"{classes} form-select".strip()
-                continue
-
-            # Textarea
-            if widget.__class__.__name__ == "Textarea":
-                widget.attrs["class"] = f"{classes} form-control".strip()
-                continue
-
-            # Inputs padrão
-            widget.attrs["class"] = f"{classes} form-control".strip()
+    def apply_error_classes(self) -> None:
+        """
+        Marca campos com erro com a classe Bootstrap `is-invalid`.
+        Deve rodar após o Django preencher `self.errors`.
+        """
+        for name in self.errors.keys():
+            if name in self.fields:
+                self._add_class(self.fields[name].widget, "is-invalid")
 
 
 class BaseForm(BootstrapFormMixin, forms.Form):
-    """
-    Base para forms.Form com Bootstrap automático.
-    """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.apply_bootstrap()
+
+    def full_clean(self):
+        super().full_clean()
+        if self.is_bound:
+            self.apply_error_classes()
 
 
 class BaseModelForm(BootstrapFormMixin, forms.ModelForm):
-    """
-    Base para forms.ModelForm com Bootstrap automático.
-    """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.apply_bootstrap()
+
+    def full_clean(self):
+        super().full_clean()
+        if self.is_bound:
+            self.apply_error_classes()
 
 
 class CanEditReportsRequiredMixin:
