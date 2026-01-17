@@ -1,117 +1,103 @@
-# <seu_app>/mixins.py
 from __future__ import annotations
 
 from django import forms
 from django.core.exceptions import PermissionDenied
+from django.views.generic.base import ContextMixin
 
 
-class BootstrapFormMixin:
+class BaseForm:
     """
-    Aplica automaticamente classes Bootstrap aos campos do formulário.
+    Aplica automaticamente classes Bootstrap aos widgets do form.
 
     Regras:
-    - Inputs padrão / textarea / file -> form-control
-    - Select / SelectMultiple -> form-select
-    - Checkbox / radio -> form-check-input
-    - Hidden -> ignora
-    - Após validação: campos com erro recebem is-invalid
+    - TextInput, EmailInput, NumberInput, Textarea, FileInput, Date/DateTimeInput → form-control
+    - Select / SelectMultiple → form-select
+    - HiddenInput, Checkbox, Radio, widgets de lista → ignorados
     """
 
-    def _add_class(self, widget: forms.Widget, css: str) -> None:
-        current = (widget.attrs.get("class") or "").strip()
-        if not current:
-            widget.attrs["class"] = css
-            return
-        parts = set(current.split())
-        for item in css.split():
-            parts.add(item)
-        widget.attrs["class"] = " ".join(sorted(parts))
+    CONTROL_WIDGETS = (
+        forms.TextInput,
+        forms.EmailInput,
+        forms.NumberInput,
+        forms.URLInput,
+        forms.PasswordInput,
+        forms.Textarea,
+        forms.FileInput,
+        forms.ClearableFileInput,
+        forms.DateInput,
+        forms.DateTimeInput,
+        forms.TimeInput,
+    )
 
-    def _remove_class(self, widget: forms.Widget, css: str) -> None:
-        current = (widget.attrs.get("class") or "").strip()
-        if not current:
-            return
-        parts = [c for c in current.split() if c != css]
-        widget.attrs["class"] = " ".join(parts).strip()
+    SELECT_WIDGETS = (
+        forms.Select,
+        forms.SelectMultiple,
+    )
 
-    def _apply_bootstrap_to_field(self, field: forms.Field) -> None:
-        widget = field.widget
-
-        # hidden: não estiliza
-        if getattr(widget, "input_type", None) == "hidden":
-            return
-
-        # checkbox / radio
-        if isinstance(widget, (forms.CheckboxInput, forms.RadioSelect, forms.CheckboxSelectMultiple)):
-            self._add_class(widget, "form-check-input")
-            self._remove_class(widget, "form-control")
-            self._remove_class(widget, "form-select")
-            return
-
-        # selects
-        if isinstance(widget, (forms.Select, forms.SelectMultiple)):
-            self._add_class(widget, "form-select")
-            self._remove_class(widget, "form-control")
-            return
-
-        # file input
-        if isinstance(widget, forms.ClearableFileInput):
-            self._add_class(widget, "form-control")
-            return
-
-        # textarea e inputs em geral
-        self._add_class(widget, "form-control")
+    IGNORE_WIDGETS = (
+        forms.HiddenInput,
+        forms.CheckboxInput,
+        forms.RadioSelect,
+        forms.CheckboxSelectMultiple,
+    )
 
     def apply_bootstrap(self) -> None:
         for field in self.fields.values():
-            self._apply_bootstrap_to_field(field)
+            widget = field.widget
 
-    def apply_error_classes(self) -> None:
-        """
-        Marca campos com erro com a classe Bootstrap `is-invalid`.
-        Deve rodar após o Django preencher `self.errors`.
-        """
-        for name in self.errors.keys():
-            if name in self.fields:
-                self._add_class(self.fields[name].widget, "is-invalid")
+            if isinstance(widget, self.IGNORE_WIDGETS):
+                continue
+
+            if isinstance(widget, self.SELECT_WIDGETS):
+                self._remove_class(widget, "form-control")
+                self._add_class(widget, "form-select")
+                continue
+
+            if isinstance(widget, self.CONTROL_WIDGETS):
+                self._remove_class(widget, "form-select")
+                self._add_class(widget, "form-control")
+
+    @staticmethod
+    def _add_class(widget: forms.Widget, css_class: str) -> None:
+        classes = (widget.attrs.get("class") or "").split()
+        if css_class not in classes:
+            classes.append(css_class)
+        widget.attrs["class"] = " ".join(classes)
+
+    @staticmethod
+    def _remove_class(widget: forms.Widget, css_class: str) -> None:
+        classes = (widget.attrs.get("class") or "").split()
+        classes = [c for c in classes if c != css_class]
+        if classes:
+            widget.attrs["class"] = " ".join(classes)
+        else:
+            widget.attrs.pop("class", None)
 
 
-class BaseForm(BootstrapFormMixin, forms.Form):
+class BaseModelForm(BaseForm, forms.ModelForm):
+    """
+    Base para todos os ModelForms do projeto.
+
+    - Aplica Bootstrap automaticamente no __init__
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.apply_bootstrap()
-
-    def full_clean(self):
-        super().full_clean()
-        if self.is_bound:
-            self.apply_error_classes()
-
-
-class BaseModelForm(BootstrapFormMixin, forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.apply_bootstrap()
-
-    def full_clean(self):
-        super().full_clean()
-        if self.is_bound:
-            self.apply_error_classes()
 
 
 class CanEditReportsRequiredMixin:
     """
-    Restringe acesso a views de criação/edição de laudos.
-
-    Exige:
-    - usuário autenticado;
-    - habilitação administrativa;
-    - vínculo institucional ativo.
+    Mixin de permissão:
+    exige user autenticado com can_edit_reports_effective = True
     """
 
-    def dispatch(self, request, *args, **kwargs):
-        user = request.user
+    raise_exception = True
 
-        if not user.is_authenticated:
+    def dispatch(self, request, *args, **kwargs):
+        user = getattr(request, "user", None)
+
+        if not user or not user.is_authenticated:
             return self.handle_no_permission()
 
         if not getattr(user, "can_edit_reports_effective", False):
@@ -120,20 +106,21 @@ class CanEditReportsRequiredMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class ExamObjectMetaContextMixin:
+class ExamObjectMetaContextMixin(ContextMixin):
     """
-    Adiciona ao contexto do template:
+    Injeta no contexto:
     - obj_app_label
     - obj_model_name
 
-    Usado para URLs genéricas de objetos examináveis
-    (imagens, anexos, etc.).
+    Usado para GenericForeignKey e templates genéricos.
     """
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        obj = context.get("obj") or context.get("object")
-        if obj is not None:
+
+        obj = context.get("object")
+        if obj and hasattr(obj, "_meta"):
             context["obj_app_label"] = obj._meta.app_label
             context["obj_model_name"] = obj._meta.model_name
+
         return context

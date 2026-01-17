@@ -1,5 +1,4 @@
 # common/mixins.py
-from __future__ import annotations
 
 from django import forms
 from django.core.exceptions import PermissionDenied
@@ -7,118 +6,126 @@ from django.core.exceptions import PermissionDenied
 
 class BootstrapFormMixin:
     """
-    Padroniza widgets para Bootstrap 5 e marca campos inválidos automaticamente.
+    Aplica classes do Bootstrap 5 automaticamente aos widgets do form.
 
     Regras:
-    - hidden: ignora
-    - Select / SelectMultiple: form-select
-    - CheckboxInput: form-check-input
-    - RadioSelect / CheckboxSelectMultiple: container recebe classes úteis, sem forçar form-control
-    - ClearableFileInput: form-control
-    - demais: form-control
-    - após validação (form bound): campos com erro recebem is-invalid
+    - Input text / textarea / file -> form-control
+    - Select / SelectMultiple -> form-select
+    - CheckboxInput (único) -> form-check-input
+    - RadioSelect / CheckboxSelectMultiple (listas) -> não força classes de input
+    - HiddenInput -> ignorado
     """
 
-    def _classes(self, widget: forms.Widget) -> set[str]:
-        raw = (widget.attrs.get("class") or "").strip()
-        return set(raw.split()) if raw else set()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap()
 
-    def _set_classes(self, widget: forms.Widget, classes: set[str]) -> None:
-        widget.attrs["class"] = " ".join(sorted(c for c in classes if c)).strip() or ""
+    # -------------------------
+    # Helpers de classe CSS
+    # -------------------------
 
-    def _add(self, widget: forms.Widget, *to_add: str) -> None:
-        classes = self._classes(widget)
-        for c in to_add:
-            classes.update(c.split())
-        self._set_classes(widget, classes)
+    def _get_classes(self, widget):
+        return widget.attrs.get("class", "").split()
 
-    def _remove(self, widget: forms.Widget, *to_remove: str) -> None:
-        classes = self._classes(widget)
-        for c in to_remove:
-            classes.discard(c)
-        self._set_classes(widget, classes)
+    def _set_classes(self, widget, classes):
+        widget.attrs["class"] = " ".join(sorted(set(classes)))
 
-    def _is_hidden(self, widget: forms.Widget) -> bool:
-        return getattr(widget, "input_type", None) == "hidden"
+    def _add_class(self, widget, class_name):
+        classes = self._get_classes(widget)
+        if class_name not in classes:
+            classes.append(class_name)
+            self._set_classes(widget, classes)
+
+    def _remove_class(self, widget, class_name):
+        classes = self._get_classes(widget)
+        if class_name in classes:
+            classes.remove(class_name)
+            self._set_classes(widget, classes)
+
+    # -------------------------
+    # Bootstrap core
+    # -------------------------
+
+    def apply_bootstrap(self):
+        for field in self.fields.values():
+            self._apply_bootstrap_to_field(field)
 
     def _apply_bootstrap_to_field(self, field: forms.Field) -> None:
         widget = field.widget
 
-        if self._is_hidden(widget):
+        # hidden: não toca
+        if getattr(widget, "input_type", None) == "hidden":
             return
 
-        # Checkbox single
+        # checkbox único
         if isinstance(widget, forms.CheckboxInput):
-            self._remove(widget, "form-control", "form-select")
-            self._add(widget, "form-check-input")
+            self._add_class(widget, "form-check-input")
+            self._remove_class(widget, "form-control")
+            self._remove_class(widget, "form-select")
             return
 
-        # Radio / Checkbox multiple
+        # widgets que renderizam listas (não force classe de input)
         if isinstance(widget, (forms.RadioSelect, forms.CheckboxSelectMultiple)):
-            # Não tenta enfiar form-control/form-select em widget que renderiza lista.
-            # Mas mantém algo útil caso queira estilizar no template via CSS.
-            self._remove(widget, "form-control", "form-select")
-            self._add(widget, "form-check")  # classe no container
+            self._remove_class(widget, "form-control")
+            self._remove_class(widget, "form-select")
             return
 
-        # Selects
+        # selects
         if isinstance(widget, (forms.Select, forms.SelectMultiple)):
-            self._remove(widget, "form-control")
-            self._add(widget, "form-select")
+            self._add_class(widget, "form-select")
+            self._remove_class(widget, "form-control")
             return
 
-        # File
+        # file
         if isinstance(widget, forms.ClearableFileInput):
-            self._remove(widget, "form-select")
-            self._add(widget, "form-control")
+            self._add_class(widget, "form-control")
+            self._remove_class(widget, "form-select")
             return
 
-        # Default
-        self._remove(widget, "form-select")
-        self._add(widget, "form-control")
+        # default (text, textarea, number, email, etc)
+        self._remove_class(widget, "form-select")
+        self._add_class(widget, "form-control")
 
-    def apply_bootstrap(self) -> None:
-        for field in self.fields.values():
-            self._apply_bootstrap_to_field(field)
+    # -------------------------
+    # Erros
+    # -------------------------
 
     def apply_error_classes(self) -> None:
         for name in self.errors.keys():
-            if name in self.fields:
-                widget = self.fields[name].widget
-                if not self._is_hidden(widget):
-                    self._add(widget, "is-invalid")
+            if name not in self.fields:
+                continue
+
+            widget = self.fields[name].widget
+
+            if getattr(widget, "input_type", None) == "hidden":
+                continue
+
+            self._add_class(widget, "is-invalid")
+
+    def full_clean(self):
+        super().full_clean()
+        if self.is_bound:
+            self.apply_error_classes()
 
 
 class BaseForm(BootstrapFormMixin, forms.Form):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.apply_bootstrap()
-
-    def full_clean(self):
-        super().full_clean()
-        if self.is_bound:
-            self.apply_error_classes()
+    """
+    Base padrão para forms.Form no projeto (Bootstrap aplicado automaticamente).
+    """
+    pass
 
 
 class BaseModelForm(BootstrapFormMixin, forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.apply_bootstrap()
-
-    def full_clean(self):
-        super().full_clean()
-        if self.is_bound:
-            self.apply_error_classes()
+    """
+    Base padrão para forms.ModelForm no projeto (Bootstrap aplicado automaticamente).
+    """
+    pass
 
 
 class CanEditReportsRequiredMixin:
     """
-    Restringe acesso a views de criação/edição de laudos.
-
-    Exige:
-    - usuário autenticado;
-    - habilitação administrativa;
-    - vínculo institucional ativo.
+    Exige que o usuário autenticado tenha a permissão efetiva
+    de edição de laudos (can_edit_reports_effective).
     """
 
     def dispatch(self, request, *args, **kwargs):
@@ -135,15 +142,19 @@ class CanEditReportsRequiredMixin:
 
 class ExamObjectMetaContextMixin:
     """
-    Adiciona ao contexto do template:
+    Injeta no contexto:
     - obj_app_label
     - obj_model_name
+
+    Baseado no _meta do objeto principal da view.
     """
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        obj = context.get("obj") or context.get("object")
-        if obj is not None:
+
+        obj = context.get("object")
+        if obj and hasattr(obj, "_meta"):
             context["obj_app_label"] = obj._meta.app_label
             context["obj_model_name"] = obj._meta.model_name
+
         return context
