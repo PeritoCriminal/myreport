@@ -10,7 +10,7 @@ from django.utils import timezone
 from institutions.models import Institution, Nucleus, Team
 from institutions.models import UserInstitutionAssignment, UserTeamAssignment
 
-from common.mixins import BaseForm, BaseModelForm
+from common.mixins import BaseForm, BaseModelForm, BootstrapFormMixin
 from .models import User
 
 
@@ -252,20 +252,13 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, BaseModelForm):
         return user
 
 
-class UserPasswordChangeForm(PasswordChangeForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for name in ("old_password", "new_password1", "new_password2"):
-            if name in self.fields:
-                self.fields[name].widget.attrs.update({"class": "form-control"})
+class UserPasswordChangeForm(BootstrapFormMixin, PasswordChangeForm):
+    pass
 
 
-class UserSetPasswordForm(SetPasswordForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for name in ("new_password1", "new_password2"):
-            if name in self.fields:
-                self.fields[name].widget.attrs.update({"class": "form-control"})
+class UserSetPasswordForm(BootstrapFormMixin, SetPasswordForm):
+    pass
+
 
 
 class LinkInstitutionForm(_InstitutionNucleusTeamFieldsMixin):

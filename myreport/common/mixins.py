@@ -5,14 +5,15 @@ from django.core.exceptions import PermissionDenied
 from django.views.generic.base import ContextMixin
 
 
-class BaseForm:
+class BootstrapFormMixin:
     """
     Aplica automaticamente classes Bootstrap aos widgets do form.
 
     Regras:
-    - TextInput, EmailInput, NumberInput, Textarea, FileInput, Date/DateTimeInput → form-control
-    - Select / SelectMultiple → form-select
-    - HiddenInput, Checkbox, Radio, widgets de lista → ignorados
+    - TextInput, EmailInput, NumberInput, Textarea, FileInput, Date/DateTimeInput -> form-control
+    - Select / SelectMultiple -> form-select
+    - HiddenInput, Checkbox, RadioSelect, CheckboxSelectMultiple -> ignorados
+    - Campos com erro (form bound) -> is-invalid
     """
 
     CONTROL_WIDGETS = (
@@ -41,6 +42,10 @@ class BaseForm:
         forms.CheckboxSelectMultiple,
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap()
+
     def apply_bootstrap(self) -> None:
         for field in self.fields.values():
             widget = field.widget
@@ -56,6 +61,15 @@ class BaseForm:
             if isinstance(widget, self.CONTROL_WIDGETS):
                 self._remove_class(widget, "form-select")
                 self._add_class(widget, "form-control")
+
+    def apply_error_classes(self) -> None:
+        for name in self.errors.keys():
+            if name not in self.fields:
+                continue
+            widget = self.fields[name].widget
+            if isinstance(widget, forms.HiddenInput):
+                continue
+            self._add_class(widget, "is-invalid")
 
     @staticmethod
     def _add_class(widget: forms.Widget, css_class: str) -> None:
@@ -73,17 +87,20 @@ class BaseForm:
         else:
             widget.attrs.pop("class", None)
 
+    def full_clean(self):
+        super().full_clean()
+        if self.is_bound:
+            self.apply_error_classes()
 
-class BaseModelForm(BaseForm, forms.ModelForm):
-    """
-    Base para todos os ModelForms do projeto.
 
-    - Aplica Bootstrap automaticamente no __init__
-    """
+class BaseForm(BootstrapFormMixin, forms.Form):
+    """Base padrão para forms.Form no projeto."""
+    pass
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.apply_bootstrap()
+
+class BaseModelForm(BootstrapFormMixin, forms.ModelForm):
+    """Base padrão para forms.ModelForm no projeto."""
+    pass
 
 
 class CanEditReportsRequiredMixin:
@@ -111,8 +128,6 @@ class ExamObjectMetaContextMixin(ContextMixin):
     Injeta no contexto:
     - obj_app_label
     - obj_model_name
-
-    Usado para GenericForeignKey e templates genéricos.
     """
 
     def get_context_data(self, **kwargs):
