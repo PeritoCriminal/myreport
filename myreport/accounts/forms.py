@@ -185,15 +185,7 @@ class UserRegistrationForm(_InstitutionNucleusTeamFieldsMixin, UserCreationForm)
         self._load_team_queryset()
 
         # aplica bootstrap também nos campos extras do UserCreationForm
-        # (e garante que o "role" vire form-select)
         self.apply_bootstrap()
-        if "role" in self.fields:
-            self.fields["role"].widget.attrs["class"] = (
-                self.fields["role"].widget.attrs.get("class", "").replace("form-control", "").strip()
-            )
-            self.fields["role"].widget.attrs["class"] = (
-                f'{self.fields["role"].widget.attrs.get("class", "").strip()} form-select'.strip()
-            )
 
     def clean(self):
         cleaned = super().clean()
@@ -243,14 +235,6 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, BaseModelForm):
         # carregamento encadeado
         self._load_nucleus_queryset()
         self._load_team_queryset()
-
-        # role como select (BaseModelForm já aplicou, aqui garantimos)
-        if "role" in self.fields:
-            classes = (self.fields["role"].widget.attrs.get("class") or "").split()
-            classes = [c for c in classes if c != "form-control"]
-            if "form-select" not in classes:
-                classes.append("form-select")
-            self.fields["role"].widget.attrs["class"] = " ".join(classes)
 
     def clean(self):
         cleaned = super().clean()

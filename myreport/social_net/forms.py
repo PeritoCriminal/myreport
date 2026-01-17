@@ -40,14 +40,6 @@ class PostForm(BaseModelForm):
                 id__in=GroupMembership.objects.filter(user_id=user.pk).values("group_id")
             ).order_by("name")
 
-        # garante group como select (form-select)
-        if "group" in self.fields:
-            classes = (self.fields["group"].widget.attrs.get("class") or "").split()
-            classes = [c for c in classes if c != "form-control"]
-            if "form-select" not in classes:
-                classes.append("form-select")
-            self.fields["group"].widget.attrs["class"] = " ".join(classes)
-
     def clean_group(self):
         return self.cleaned_data.get("group")
 
