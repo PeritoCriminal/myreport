@@ -1,11 +1,12 @@
 from django import forms
 
-from common.mixins import BootstrapFormMixin
+from common.mixins import BaseModelForm
 from report_maker.models import ReportCase
 
 DT_LOCAL_FORMAT = "%Y-%m-%dT%H:%M"
 
-class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
+
+class ReportCaseForm(BaseModelForm):
     """
     Formulário de criação e edição do Laudo.
 
@@ -61,18 +62,17 @@ class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
             "conclusion",
         ]
         widgets = {
-            "conclusion": forms.Textarea(
-                attrs={"rows": 6}),
+            "conclusion": forms.Textarea(attrs={"rows": 6}),
             "occurrence_datetime": forms.DateTimeInput(
-                attrs={"type": "datetime-local", "class": "form-control"},
+                attrs={"type": "datetime-local"},
                 format=DT_LOCAL_FORMAT,
             ),
             "assignment_datetime": forms.DateTimeInput(
-                attrs={"type": "datetime-local", "class": "form-control"},
+                attrs={"type": "datetime-local"},
                 format=DT_LOCAL_FORMAT,
             ),
             "examination_datetime": forms.DateTimeInput(
-                attrs={"type": "datetime-local", "class": "form-control"},
+                attrs={"type": "datetime-local"},
                 format=DT_LOCAL_FORMAT,
             ),
         }
@@ -84,7 +84,6 @@ class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
         # Classe JS para ajuste de protocolo
         # ─────────────────────────────────────
         protocol_class = "js-adjust-protocol"
-
         for field_name in ("report_number", "protocol", "police_report", "police_inquiry"):
             if field_name in self.fields:
                 attrs = self.fields[field_name].widget.attrs
@@ -94,18 +93,20 @@ class ReportCaseForm(BootstrapFormMixin, forms.ModelForm):
         # ─────────────────────────────────────
         # Correção de renderização datetime-local (EDIT)
         # ─────────────────────────────────────
-        DT_LOCAL_FORMAT = "%Y-%m-%dT%H:%M"
-
-        for field_name in (
-            "occurrence_datetime",
-            "assignment_datetime",
-            "examination_datetime",
-        ):
+        for field_name in ("occurrence_datetime", "assignment_datetime", "examination_datetime"):
             if field_name in self.fields:
                 value = self.initial.get(field_name) or getattr(self.instance, field_name, None)
                 if value:
                     self.initial[field_name] = value.strftime(DT_LOCAL_FORMAT)
 
+        # garante selects do ModelChoiceField como form-select
+        for field_name in ("objective", "institution", "nucleus", "team"):
+            if field_name in self.fields:
+                classes = (self.fields[field_name].widget.attrs.get("class") or "").split()
+                classes = [c for c in classes if c != "form-control"]
+                if "form-select" not in classes:
+                    classes.append("form-select")
+                self.fields[field_name].widget.attrs["class"] = " ".join(classes)
 
     def clean(self):
         cleaned_data = super().clean()

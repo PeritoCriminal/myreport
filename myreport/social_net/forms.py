@@ -1,12 +1,15 @@
 # social_net/forms.py
 import os
+
 from django import forms
 
-from .models import Post, PostComment
+from common.mixins import BaseModelForm
 from groups.models import Group, GroupMembership
 
+from .models import Post, PostComment
 
-class PostForm(forms.ModelForm):
+
+class PostForm(BaseModelForm):
     ALLOWED_VIDEO_EXTS = {".mp4", ".webm", ".mov", ".m4v"}
     MAX_VIDEO_SIZE_MB = 200  # limite simples (MB)
 
@@ -15,34 +18,38 @@ class PostForm(forms.ModelForm):
         required=False,
         queryset=Group.objects.none(),
         empty_label="Público",
-        widget=forms.Select(attrs={"class": "form-select"}),
     )
 
     class Meta:
         model = Post
         fields = ["group", "title", "text", "media"]
         widgets = {
-            "title": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Título"}
-            ),
-            "text": forms.Textarea(
-                attrs={"class": "form-control", "rows": 3, "placeholder": "Escreva algo..."}
-            ),
+            "title": forms.TextInput(attrs={"placeholder": "Título"}),
+            "text": forms.Textarea(attrs={"rows": 3, "placeholder": "Escreva algo..."}),
             "media": forms.ClearableFileInput(attrs={"accept": "image/*,video/*"}),
         }
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # guarda referência se você quiser usar depois em clean_*
+        self.user = user
+
         if user and getattr(user, "is_authenticated", False):
             self.fields["group"].queryset = Group.objects.filter(
                 id__in=GroupMembership.objects.filter(user_id=user.pk).values("group_id")
             ).order_by("name")
 
+        # garante group como select (form-select)
+        if "group" in self.fields:
+            classes = (self.fields["group"].widget.attrs.get("class") or "").split()
+            classes = [c for c in classes if c != "form-control"]
+            if "form-select" not in classes:
+                classes.append("form-select")
+            self.fields["group"].widget.attrs["class"] = " ".join(classes)
+
     def clean_group(self):
-        group = self.cleaned_data.get("group")
-        user = getattr(self, "user", None)
-        return group
+        return self.cleaned_data.get("group")
 
     def clean_media(self):
         f = self.cleaned_data.get("media")
@@ -71,18 +78,17 @@ class PostForm(forms.ModelForm):
         raise forms.ValidationError(f"Formato de mídia não permitido. Use: {allowed}.")
 
 
-
-
-class PostCommentForm(forms.ModelForm):
+class PostCommentForm(BaseModelForm):
     class Meta:
         model = PostComment
         fields = ["text", "image"]
         widgets = {
-            "text": forms.Textarea(attrs={
-                "class": "form-control",
-                "rows": 2,
-                "placeholder": "Escreva um comentário...",
-            }),
+            "text": forms.Textarea(
+                attrs={
+                    "rows": 2,
+                    "placeholder": "Escreva um comentário...",
+                }
+            ),
         }
 
     def clean(self):

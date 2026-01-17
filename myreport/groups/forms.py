@@ -1,9 +1,12 @@
+# groups/forms.py
+
 from django import forms
 
+from common.mixins import BaseModelForm
 from .models import Group
 
 
-class GroupForm(forms.ModelForm):
+class GroupForm(BaseModelForm):
     class Meta:
         model = Group
         fields = [
@@ -15,26 +18,22 @@ class GroupForm(forms.ModelForm):
         widgets = {
             "name": forms.TextInput(
                 attrs={
-                    "class": "form-control",
                     "placeholder": "Nome do grupo",
                 }
             ),
             "description": forms.Textarea(
                 attrs={
-                    "class": "form-control",
                     "rows": 3,
                     "placeholder": "Descrição do grupo",
                 }
             ),
             "profile_image": forms.ClearableFileInput(
                 attrs={
-                    "class": "form-control",
                     "accept": "image/*",
                 }
             ),
             "background_image": forms.ClearableFileInput(
                 attrs={
-                    "class": "form-control",
                     "accept": "image/*",
                 }
             ),

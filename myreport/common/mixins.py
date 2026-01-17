@@ -1,5 +1,7 @@
+# <seu_app>/mixins.py
+from __future__ import annotations
 
-
+from django import forms
 from django.core.exceptions import PermissionDenied
 
 
@@ -12,11 +14,13 @@ class BootstrapFormMixin:
     - Textarea -> form-control
     - Select -> form-select
     - Campos hidden são ignorados
+
+    Observação:
+    - Não executa nada sozinho no __init__. Use via BaseForm/BaseModelForm
+      (ou chame apply_bootstrap() manualmente).
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+    def apply_bootstrap(self) -> None:
         for field in self.fields.values():
             widget = field.widget
 
@@ -24,7 +28,7 @@ class BootstrapFormMixin:
             if getattr(widget, "input_type", None) == "hidden":
                 continue
 
-            classes = widget.attrs.get("class", "").strip()
+            classes = (widget.attrs.get("class") or "").strip()
 
             # Select
             if widget.__class__.__name__ in ("Select", "SelectMultiple"):
@@ -38,6 +42,26 @@ class BootstrapFormMixin:
 
             # Inputs padrão
             widget.attrs["class"] = f"{classes} form-control".strip()
+
+
+class BaseForm(BootstrapFormMixin, forms.Form):
+    """
+    Base para forms.Form com Bootstrap automático.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap()
+
+
+class BaseModelForm(BootstrapFormMixin, forms.ModelForm):
+    """
+    Base para forms.ModelForm com Bootstrap automático.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_bootstrap()
 
 
 class CanEditReportsRequiredMixin:

@@ -1,10 +1,11 @@
 # report_maker/forms/report_case_close.py
 from django import forms
 
+from common.mixins import BaseModelForm
 from report_maker.models import ReportCase
 
 
-class ReportCaseCloseForm(forms.ModelForm):
+class ReportCaseCloseForm(BaseModelForm):
     """
     Minimal form to close a report by attaching the final PDF.
 

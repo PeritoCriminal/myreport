@@ -10,10 +10,11 @@ from django.utils import timezone
 from institutions.models import Institution, Nucleus, Team
 from institutions.models import UserInstitutionAssignment, UserTeamAssignment
 
+from common.mixins import BaseForm, BaseModelForm
 from .models import User
 
 
-class _InstitutionNucleusTeamFieldsMixin(forms.Form):
+class _InstitutionNucleusTeamFieldsMixin(BaseForm):
     """
     Campos auxiliares para vínculo institucional:
     Institution -> Nucleus -> Team
@@ -23,28 +24,25 @@ class _InstitutionNucleusTeamFieldsMixin(forms.Form):
         queryset=Institution.objects.all().order_by("name"),
         required=False,
         label="Instituição",
-        widget=forms.Select(attrs={"class": "form-select"}),
+        # sem widget.attrs aqui (BaseForm aplica)
     )
 
     nucleus = forms.ModelChoiceField(
         queryset=Nucleus.objects.none(),
         required=False,
         label="Núcleo",
-        widget=forms.Select(attrs={"class": "form-select"}),
     )
 
     team = forms.ModelChoiceField(
         queryset=Team.objects.none(),
         required=False,
         label="Equipe",
-        widget=forms.Select(attrs={"class": "form-select"}),
     )
 
     def _load_nucleus_queryset(self):
         if "nucleus" not in self.fields:
             return
 
-        institution_id = None
         if self.is_bound:
             institution_id = self.data.get("institution") or None
         else:
@@ -61,7 +59,6 @@ class _InstitutionNucleusTeamFieldsMixin(forms.Form):
         if "team" not in self.fields:
             return
 
-        nucleus_id = None
         if self.is_bound:
             nucleus_id = self.data.get("nucleus") or None
         else:
@@ -81,7 +78,11 @@ class _InstitutionNucleusTeamFieldsMixin(forms.Form):
         Preenche initial a partir das atribuições ativas do usuário.
         Observação: hoje seu código pega institution e team; aqui também inferimos nucleus via team.
         """
-        if "institution" not in self.fields or "team" not in self.fields or "nucleus" not in self.fields:
+        if (
+            "institution" not in self.fields
+            or "team" not in self.fields
+            or "nucleus" not in self.fields
+        ):
             return
 
         active_inst = (
@@ -102,10 +103,8 @@ class _InstitutionNucleusTeamFieldsMixin(forms.Form):
         if active_team:
             team_obj = active_team.team
             self.initial.setdefault("team", team_obj.id)
-            # núcleo vem do team
             if getattr(team_obj, "nucleus_id", None):
                 self.initial.setdefault("nucleus", team_obj.nucleus_id)
-            # instituição pode vir do núcleo se não tiver vindo ainda
             if "institution" not in self.initial and getattr(team_obj, "nucleus", None):
                 self.initial.setdefault("institution", team_obj.nucleus.institution_id)
 
@@ -114,7 +113,6 @@ class _InstitutionNucleusTeamFieldsMixin(forms.Form):
         nucleus = self.cleaned_data.get("nucleus")
         team = self.cleaned_data.get("team")
 
-        # Regras de completude (se informou um, exige cadeia coerente)
         if any([institution, nucleus, team]) and not all([institution, nucleus, team]):
             if not institution:
                 self.add_error("institution", "Selecione uma instituição.")
@@ -124,14 +122,12 @@ class _InstitutionNucleusTeamFieldsMixin(forms.Form):
                 self.add_error("team", "Selecione uma equipe.")
             return institution, nucleus, team
 
-        # Coerência hierárquica
         if institution and nucleus and nucleus.institution_id != institution.id:
             self.add_error("nucleus", "O núcleo selecionado não pertence à instituição informada.")
 
         if nucleus and team and team.nucleus_id != nucleus.id:
             self.add_error("team", "A equipe selecionada não pertence ao núcleo informado.")
 
-        # (redundante, mas útil) se quiser checar team -> institution também
         if institution and team:
             inst_id = getattr(getattr(team, "nucleus", None), "institution_id", None)
             if inst_id and inst_id != institution.id:
@@ -179,15 +175,7 @@ class UserRegistrationForm(_InstitutionNucleusTeamFieldsMixin, UserCreationForm)
             "password1",
             "password2",
         )
-        widgets = {
-            "username": forms.TextInput(attrs={"class": "form-control"}),
-            "display_name": forms.TextInput(attrs={"class": "form-control"}),
-            "report_signature_name": forms.TextInput(attrs={"class": "form-control"}),
-            "email": forms.EmailInput(attrs={"class": "form-control"}),
-            "role": forms.Select(attrs={"class": "form-select"}),
-            "profile_image": forms.ClearableFileInput(attrs={"class": "form-control"}),
-            "background_image": forms.ClearableFileInput(attrs={"class": "form-control"}),
-        }
+        # widgets removidos: BaseForm aplica classes
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -195,6 +183,17 @@ class UserRegistrationForm(_InstitutionNucleusTeamFieldsMixin, UserCreationForm)
         # carregamento encadeado
         self._load_nucleus_queryset()
         self._load_team_queryset()
+
+        # aplica bootstrap também nos campos extras do UserCreationForm
+        # (e garante que o "role" vire form-select)
+        self.apply_bootstrap()
+        if "role" in self.fields:
+            self.fields["role"].widget.attrs["class"] = (
+                self.fields["role"].widget.attrs.get("class", "").replace("form-control", "").strip()
+            )
+            self.fields["role"].widget.attrs["class"] = (
+                f'{self.fields["role"].widget.attrs.get("class", "").strip()} form-select'.strip()
+            )
 
     def clean(self):
         cleaned = super().clean()
@@ -213,7 +212,7 @@ class UserRegistrationForm(_InstitutionNucleusTeamFieldsMixin, UserCreationForm)
         return user
 
 
-class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, forms.ModelForm):
+class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, BaseModelForm):
     class Meta:
         model = User
         fields = (
@@ -225,25 +224,18 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, forms.ModelForm):
             "profile_image",
             "background_image",
         )
-        widgets = {
-            "username": forms.TextInput(attrs={"class": "form-control", "readonly": True}),
-            "display_name": forms.TextInput(attrs={"class": "form-control"}),
-            "report_signature_name": forms.TextInput(attrs={"class": "form-control"}),
-            "email": forms.EmailInput(attrs={"class": "form-control"}),
-            "role": forms.Select(attrs={"class": "form-select"}),
-            "profile_image": forms.ClearableFileInput(attrs={"class": "form-control"}),
-            "background_image": forms.ClearableFileInput(attrs={"class": "form-control"}),
-        }
 
     def __init__(self, *args, **kwargs):
         instance = kwargs.get("instance")
         if instance:
             initial = kwargs.get("initial", {})
-            # reaproveita sua lógica (com nucleus inferido)
-            self.initial = initial  # só pra garantir atributo antes
+            self.initial = initial
             kwargs["initial"] = initial
 
         super().__init__(*args, **kwargs)
+
+        if "username" in self.fields:
+            self.fields["username"].widget.attrs["readonly"] = True
 
         if instance:
             self._set_initial_from_active_assignments(instance)
@@ -251,6 +243,14 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, forms.ModelForm):
         # carregamento encadeado
         self._load_nucleus_queryset()
         self._load_team_queryset()
+
+        # role como select (BaseModelForm já aplicou, aqui garantimos)
+        if "role" in self.fields:
+            classes = (self.fields["role"].widget.attrs.get("class") or "").split()
+            classes = [c for c in classes if c != "form-control"]
+            if "form-select" not in classes:
+                classes.append("form-select")
+            self.fields["role"].widget.attrs["class"] = " ".join(classes)
 
     def clean(self):
         cleaned = super().clean()
@@ -271,43 +271,40 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, forms.ModelForm):
 class UserPasswordChangeForm(PasswordChangeForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["old_password"].widget.attrs.update({"class": "form-control"})
-        self.fields["new_password1"].widget.attrs.update({"class": "form-control"})
-        self.fields["new_password2"].widget.attrs.update({"class": "form-control"})
+        for name in ("old_password", "new_password1", "new_password2"):
+            if name in self.fields:
+                self.fields[name].widget.attrs.update({"class": "form-control"})
 
 
 class UserSetPasswordForm(SetPasswordForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["new_password1"].widget.attrs.update({"class": "form-control"})
-        self.fields["new_password2"].widget.attrs.update({"class": "form-control"})
+        for name in ("new_password1", "new_password2"):
+            if name in self.fields:
+                self.fields[name].widget.attrs.update({"class": "form-control"})
 
 
-class LinkInstitutionForm(forms.Form):
+class LinkInstitutionForm(_InstitutionNucleusTeamFieldsMixin):
     institution = forms.ModelChoiceField(
         queryset=Institution.objects.all().order_by("name"),
         label="Instituição",
         required=True,
-        widget=forms.Select(attrs={"class": "form-select"}),
     )
     nucleus = forms.ModelChoiceField(
         queryset=Nucleus.objects.none(),
         label="Núcleo",
         required=True,
-        widget=forms.Select(attrs={"class": "form-select"}),
     )
     team = forms.ModelChoiceField(
         queryset=Team.objects.none(),
         label="Equipe",
         required=True,
-        widget=forms.Select(attrs={"class": "form-select"}),
     )
 
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
 
-        # seta initial (se houver) e prepara querysets
         if not self.is_bound:
             active_inst = (
                 user.institution_assignments.filter(end_at__isnull=True)
@@ -330,7 +327,9 @@ class LinkInstitutionForm(forms.Form):
                 if "institution" not in self.initial:
                     self.initial.setdefault("institution", active_team.team.nucleus.institution_id)
 
-        institution_id = (self.data.get("institution") if self.is_bound else self.initial.get("institution")) or None
+        institution_id = (
+            (self.data.get("institution") if self.is_bound else self.initial.get("institution")) or None
+        )
         nucleus_id = (self.data.get("nucleus") if self.is_bound else self.initial.get("nucleus")) or None
 
         if institution_id:
@@ -342,6 +341,9 @@ class LinkInstitutionForm(forms.Form):
             self.fields["team"].queryset = Team.objects.filter(nucleus_id=nucleus_id).order_by("name")
         else:
             self.fields["team"].queryset = Team.objects.none()
+
+        # aplica bootstrap (inclui selects)
+        self.apply_bootstrap()
 
     def clean(self):
         cleaned = super().clean()

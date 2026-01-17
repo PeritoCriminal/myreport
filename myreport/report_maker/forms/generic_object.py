@@ -1,10 +1,11 @@
+# report_maker/forms/generic_exam_object.py
 from django import forms
 
-from common.mixins import BootstrapFormMixin
+from common.mixins import BaseModelForm
 from report_maker.models import GenericExamObject
 
 
-class GenericExamObjectForm(BootstrapFormMixin, forms.ModelForm):
+class GenericExamObjectForm(BaseModelForm):
     """
     Formulário para criação e edição de objeto de exame genérico.
     """
