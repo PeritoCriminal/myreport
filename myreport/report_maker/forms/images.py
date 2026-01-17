@@ -1,7 +1,7 @@
 from django import forms
 
 from report_maker.models import ObjectImage
-from common.form_mixins import BootstrapFormMixin
+from common.mixins import BootstrapFormMixin
 
 
 class ObjectImageForm(BootstrapFormMixin, forms.ModelForm):

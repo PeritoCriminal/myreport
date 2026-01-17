@@ -13,7 +13,7 @@ from django.views.generic import CreateView, DeleteView, UpdateView
 
 from PIL import Image
 
-from common.form_mixins import CanEditReportsRequiredMixin
+from common.mixins import CanEditReportsRequiredMixin
 from report_maker.forms import ObjectImageForm
 from report_maker.models import ObjectImage
 

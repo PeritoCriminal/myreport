@@ -18,7 +18,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_protect
 
-from common.form_mixins import ExamObjectMetaContextMixin, CanEditReportsRequiredMixin
+from common.mixins import ExamObjectMetaContextMixin, CanEditReportsRequiredMixin
 
 from report_maker.forms import GenericExamObjectForm
 from report_maker.models import GenericExamObject, ReportCase

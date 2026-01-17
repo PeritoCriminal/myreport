@@ -4,7 +4,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, DeleteView
 from django.shortcuts import get_object_or_404
 
-from common.form_mixins import CanEditReportsRequiredMixin
+from common.mixins import CanEditReportsRequiredMixin
 from report_maker.forms import ReportCaseForm
 from report_maker.models import ReportCase
 

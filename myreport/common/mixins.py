@@ -1,5 +1,4 @@
-# common/mixins.py
-# (ou onde esses mixins já vivem hoje)
+
 
 from django.core.exceptions import PermissionDenied
 

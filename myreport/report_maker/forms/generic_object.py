@@ -1,6 +1,6 @@
 from django import forms
 
-from common.form_mixins import BootstrapFormMixin
+from common.mixins import BootstrapFormMixin
 from report_maker.models import GenericExamObject
 
 
