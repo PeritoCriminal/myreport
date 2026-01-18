@@ -18,7 +18,44 @@
     {# Evita overflow horizontal (causa típica da "faixa branca" no header) #}
     <style>
       html, body { overflow-x: hidden; }
+
+      :root{
+        --sidebar-w: 240px;      /* sua largura atual */
+        --content-max: 1280px;   /* padroniza miolo; ajuste ou comente para full width */
+      }
+
+      .app-shell{
+        display: flex;
+        width: 100%;
+        min-height: 100vh;
+      }
+
+      .app-sidebar{
+        flex: 0 0 var(--sidebar-w);
+        width: var(--sidebar-w);
+        min-height: 100vh;
+      }
+
+      .app-content{
+        flex: 1 1 auto;
+        min-width: 0;           /* importante p/ evitar “aperto” e overflow */
+      }
+
+      .app-content-inner{
+        width: 100%;
+        max-width: var(--content-max);
+        margin: 0 auto;
+        padding: 1.5rem 1rem;   /* equivalente ao seu py-4 px-3 */
+      }
+
+      @media (min-width: 768px){
+        .app-content-inner{
+          padding-left: 1.5rem; /* parecido com px-md-4 */
+          padding-right: 1.5rem;
+        }
+      }
     </style>
+
 
     {% block head %}
     
@@ -113,27 +150,25 @@
       {% endblock %}
 
       <main class="flex-grow-1">
-        <div class="d-flex">
+        <div class="app-shell">
           {# Sidebar esquerda (Desktop) - Visível apenas quando necessário #}
           {% if user.is_authenticated and view_name != 'accounts:login' and view_name != 'accounts:register' and view_name != 'accounts:register_success' %}
-            <aside class="border-end bg-light d-none d-md-block" style="width: 240px; min-height: 100vh;">
+            <aside class="app-sidebar border-end bg-light d-none d-md-block">
               <div class="p-3">
-                {# Menu contextual por app (Usa o partial para resolver a repetição) #}
                 {% include 'sidebars/main_nav.html' %}
               </div>
             </aside>
           {% endif %}
 
           {# Conteúdo principal #}
-          <section class="flex-grow-1">
-            <div class="container-fluid py-4 px-3 px-md-4">
-              {% block content %}
-
-              {% endblock %}
+          <section class="app-content">
+            <div class="app-content-inner">
+              {% block content %}{% endblock %}
             </div>
           </section>
         </div>
       </main>
+
 
       <footer class="bg-light text-muted text-center py-3 mt-auto border-top">
         <small class="text-muted">MyReport &copy;{% now 'Y' %}• Todos os direitos reservados • Idealizado por Capristo</small>
