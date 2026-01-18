@@ -3,6 +3,7 @@ from __future__ import annotations
 from django import forms
 from django.core.exceptions import PermissionDenied
 from django.views.generic.base import ContextMixin
+from django.http import Http404
 
 from django.http import HttpResponseRedirect
 
@@ -127,18 +128,43 @@ class CanEditReportsRequiredMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class ExamObjectMetaContextMixin(ContextMixin):
+class ExamObjectMetaContextMixin:
     """
-    Injeta no contexto:
+    Injeta metadados do objeto principal no context:
     - obj_app_label
     - obj_model_name
+
+    Funciona tanto para CBVs que usam self.object (Detail/Update)
+    quanto para views que já colocam 'object' ou outro nome no context.
     """
+
+    obj_context_name = "object"  # pode sobrescrever na view, se usar outro nome
+
+    def _get_context_object(self, context):
+        # 1) padrão de SingleObjectMixin
+        obj = getattr(self, "object", None)
+        if obj is not None:
+            return obj
+
+        # 2) padrão 'object' no context
+        obj = context.get("object")
+        if obj is not None:
+            return obj
+
+        # 3) se a view usa context_object_name customizado
+        name = getattr(self, "context_object_name", None)
+        if name and context.get(name) is not None:
+            return context.get(name)
+
+        # 4) fallback explícito do mixin
+        name = getattr(self, "obj_context_name", "object")
+        return context.get(name)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        obj = context.get("object")
-        if obj and hasattr(obj, "_meta"):
+        obj = self._get_context_object(context)
+        if obj is not None and hasattr(obj, "_meta"):
             context["obj_app_label"] = obj._meta.app_label
             context["obj_model_name"] = obj._meta.model_name
 
@@ -279,4 +305,50 @@ class BlockIfOpenedByThirdPartyMixin:
             raise PermissionDenied("Este registro não pode mais ser alterado.")
 
         return response
+    
 
+
+
+def owner_id(owner):
+    """
+    Suporta owner ser:
+    - um User (owner.id)
+    - um inteiro (snapshot ou FK desnormalizada)
+    """
+    return getattr(owner, "id", owner)
+
+
+class OwnerOr404Mixin:
+    """
+    Garante que apenas o dono do objeto possa acessá-lo.
+    Caso contrário, retorna 404 para não vazar a existência do objeto.
+    """
+
+    owner_field = "user"  # ajuste se o model usar outro nome
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset=queryset)
+        owner = getattr(obj, self.owner_field, None)
+
+        if owner is None or owner_id(owner) != self.request.user.id:
+            raise Http404
+
+        return obj
+
+
+class EditNotOpenedByThirdPartyOr404Mixin:
+    """
+    Bloqueia edição/exclusão quando a regra de negócio impedir
+    (ex.: postagem já aberta por terceiros).
+    Retorna 404 para manter consistência e evitar vazamento.
+    """
+
+    opened_flag_field = "opened_by_third_party"
+
+    def dispatch(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        if getattr(obj, self.opened_flag_field, False):
+            raise Http404
+
+        return super().dispatch(request, *args, **kwargs)

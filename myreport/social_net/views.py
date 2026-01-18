@@ -1,6 +1,9 @@
 # social_net/views.py
 from __future__ import annotations
 
+# ─────────────────────────────────────
+# Django
+# ─────────────────────────────────────
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.staticfiles import finders
@@ -17,7 +20,7 @@ from django.db.models import (
     Value,
     When,
 )
-from django.http import JsonResponse, HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
@@ -25,19 +28,34 @@ from django.utils import timezone
 from django.views import View
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.views.generic.detail import SingleObjectMixin
 
+# ─────────────────────────────────────
+# Apps do projeto
+# ─────────────────────────────────────
 from accounts.models import UserFollow
+from groups.models import GroupMembership
+from social_net.forms import PostForm, PostCommentForm
+from social_net.models import (
+    Post,
+    PostComment,
+    PostHidden,
+    PostLike,
+    PostRating,
+)
+
+# ─────────────────────────────────────
+# Mixins comuns
+# ─────────────────────────────────────
 from common.mixins import (
+    OwnerOr404Mixin,
+    EditNotOpenedByThirdPartyOr404Mixin,
     ActiveObjectRequiredMixin,
     BlockIfOpenedByThirdPartyMixin,
     OwnerRequiredMixin,
     SoftDeleteMixin,
     UserAssignMixin,
 )
-from groups.models import GroupMembership
-
-from .forms import PostCommentForm, PostForm
-from .models import Post, PostComment, PostHidden, PostLike, PostRating
 
 
 class PostListView(LoginRequiredMixin, ListView):
@@ -296,23 +314,23 @@ class PostCreateView(LoginRequiredMixin, UserAssignMixin, CreateView):
         return super().form_invalid(form)
 
 
+
+
 class PostUpdateView(
     LoginRequiredMixin,
-    OwnerRequiredMixin,
-    ActiveObjectRequiredMixin,
-    BlockIfOpenedByThirdPartyMixin,
+    OwnerOr404Mixin,
+    EditNotOpenedByThirdPartyOr404Mixin,
     UpdateView,
 ):
     model = Post
     form_class = PostForm
     template_name = "social_net/post_update.html"
 
-    owner_field = "user"
-    active_field = "is_active"
-    redirect_url_name = "social_net:post_list"
+    owner_field = "user"                 # OwnerOr404Mixin
+    opened_flag_field = "opened_by_third_party"  # EditNotOpenedByThirdPartyOr404Mixin
 
     def get_queryset(self):
-        # dono é garantido pelo OwnerRequiredMixin; aqui fica só o filtro de ativo
+        # mantém só "ativo" aqui; owner é garantido pelo OwnerOr404Mixin
         return Post.objects.filter(is_active=True)
 
     def get_form_kwargs(self):
@@ -353,9 +371,8 @@ class PostUpdateView(
 
 class PostDeleteView(
     LoginRequiredMixin,
-    OwnerRequiredMixin,
-    ActiveObjectRequiredMixin,
-    SoftDeleteMixin,
+    OwnerOr404Mixin,
+    SingleObjectMixin,
     View,
 ):
     """
@@ -365,17 +382,15 @@ class PostDeleteView(
 
     model = Post
     owner_field = "user"
-    active_field = "is_active"
+    pk_url_kwarg = "post_id"
 
-    def get_object(self):
-        return get_object_or_404(Post, id=self.kwargs["post_id"], is_active=True)
+    def get_queryset(self):
+        return Post.objects.filter(is_active=True)
 
     def post(self, request, *args, **kwargs):
-        # valida owner + active via mixins (dispatch)
         self.object = self.get_object()
-        # usa SoftDeleteMixin
-        setattr(self.object, self.active_field, False)
-        self.object.save(update_fields=[self.active_field])
+        self.object.is_active = False
+        self.object.save(update_fields=["is_active"])
         return JsonResponse({"success": True, "post_id": str(self.object.id)})
 
 

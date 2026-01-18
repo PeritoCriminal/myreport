@@ -25,6 +25,7 @@ class SocialNetAccessTests(TestCase):
     python manage.py test social_net.tests.tests_views.SocialNetAccessTests
     """
 
+  
     @classmethod
     def setUpTestData(cls):
         cls.password = "TestPass!12345"
@@ -265,10 +266,10 @@ class SocialNetAccessTests(TestCase):
     # DELETE: permissões e soft delete
     # ---------------------------
 
-    def test_authenticated_non_owner_cannot_delete_post_403(self):
+    def test_authenticated_non_owner_cannot_delete_post_404(self):
         self.login()
         resp = self.client.post(reverse("social_net:post_delete", kwargs={"post_id": self.post.pk}))
-        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.status_code, 404)
 
     def test_authenticated_owner_can_delete_post_soft_delete(self):
         self.login(self.other)
@@ -325,8 +326,8 @@ class SocialNetAccessTests(TestCase):
         url = reverse("social_net:post_update", kwargs={"pk": self.post.pk})
         resp = self.client.get(url)
 
-        self.assertEqual(resp.status_code, 302)
-        self.assertRedirects(resp, reverse("social_net:post_list"))
+        self.assertEqual(resp.status_code, 404)
+
 
     def test_non_owner_cannot_access_edit_even_if_not_opened(self):
         """
@@ -397,3 +398,4 @@ class SocialNetAccessTests(TestCase):
         self.assertIn(followed_post.id, ids)
         self.assertIn(non_followed_post.id, ids)
         self.assertLess(ids.index(followed_post.id), ids.index(non_followed_post.id))
+        
