@@ -22,6 +22,7 @@ from social_net.models import Post, PostLike, PostRating
 
 from .forms import (
     LinkInstitutionForm,
+    UserPreferencesForm,  # <-- ADICIONE no forms.py ou importe do forms_preferences.py
     UserProfileEditForm,
     UserRegistrationForm,
     UserSetPasswordForm,
@@ -29,9 +30,12 @@ from .forms import (
 from .models import User, UserFollow
 
 
+# ─────────────────────────────────────
+# Auth / Perfil
+# ─────────────────────────────────────
 class UserRegisterView(CreateView):
     """
-    Cadastro de usuário
+    Cadastro de usuário.
     """
 
     model = User
@@ -46,21 +50,16 @@ class UserRegisterView(CreateView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
-    model = User
-    form_class = UserProfileEditForm
-    template_name = "accounts/profile_edit.html"
-    success_url = reverse_lazy("home:index")
-
-    def get_object(self, queryset=None):
-        return self.request.user
-
-
 class UserLoginView(LoginView):
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
 
     def get_success_url(self):
+        """
+        Mantém o comportamento atual:
+        - respeita next_url quando válido
+        - fallback para dashboard
+        """
         next_url = super().get_success_url()
 
         try:
@@ -79,15 +78,47 @@ def user_logout(request):
     return redirect("home:index")
 
 
+class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = UserProfileEditForm
+    template_name = "accounts/profile_edit.html"
+    success_url = reverse_lazy("home:index")
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+
 class UserPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     template_name = "accounts/password_change.html"
     form_class = UserSetPasswordForm
-    success_url = reverse_lazy("accounts:profile_edit")  # ou home:index
+    success_url = reverse_lazy("accounts:profile_edit")
 
 
+# ─────────────────────────────────────
+# Preferências
+# ─────────────────────────────────────
+class UserPreferencesUpdateView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = UserPreferencesForm
+    template_name = "accounts/preferences_form.html"
+    success_url = reverse_lazy("accounts:preferences")
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        # Para o headerbar/profile_header.html
+        ctx["profile_user"] = self.request.user
+        return ctx
+
+
+# ─────────────────────────────────────
+# Diretório / Perfil público
+# ─────────────────────────────────────
 class AllUserListView(LoginRequiredMixin, ListView):
     """
-    Diretório de usuários para envio de solicitações de amizade.
+    Diretório de usuários.
     """
 
     model = User
@@ -106,7 +137,7 @@ class AllUserListView(LoginRequiredMixin, ListView):
         if q:
             qs = qs.filter(Q(display_name__icontains=q) | Q(username__icontains=q))
 
-        qs = qs.annotate(
+        return qs.annotate(
             is_following=Exists(
                 UserFollow.objects.filter(
                     follower=self.request.user,
@@ -116,16 +147,12 @@ class AllUserListView(LoginRequiredMixin, ListView):
             )
         )
 
-        return qs
-
 
 class UserProfileView(LoginRequiredMixin, TemplateView):
     template_name = "accounts/user_profile.html"
 
     def dispatch(self, request, *args, **kwargs):
-        self.profile_user = get_object_or_404(
-            User, pk=kwargs["user_id"], is_active=True
-        )
+        self.profile_user = get_object_or_404(User, pk=kwargs["user_id"], is_active=True)
         return super().dispatch(request, *args, **kwargs)
 
     def _get_active_tab(self) -> str:
@@ -194,6 +221,9 @@ class UserProfileView(LoginRequiredMixin, TemplateView):
         return ctx
 
 
+# ─────────────────────────────────────
+# Ações
+# ─────────────────────────────────────
 class FollowToggleView(LoginRequiredMixin, View):
     """
     Alterna seguir/deixar de seguir (soft toggle via is_active).
@@ -246,6 +276,9 @@ class LinkInstitutionView(LoginRequiredMixin, FormView):
         return super().form_valid(form)
 
 
+# ─────────────────────────────────────
+# AJAX
+# ─────────────────────────────────────
 @login_required
 @require_GET
 def ajax_nuclei(request):

@@ -31,6 +31,9 @@ class User(AbstractUser):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
+    # ─────────────────────────────────────
+    # Perfil / Identidade
+    # ─────────────────────────────────────
     display_name = models.CharField(
         max_length=100,
         blank=True,
@@ -62,6 +65,42 @@ class User(AbstractUser):
         help_text="Função do usuário no sistema.",
     )
 
+    # ─────────────────────────────────────
+    # Preferências (UI/UX)
+    # ─────────────────────────────────────
+    THEME_DARK = "dark"
+    THEME_LIGHT = "light"
+    THEME_SYSTEM = "system"
+
+    THEME_CHOICES = (
+        (THEME_DARK, "Escuro"),
+        (THEME_LIGHT, "Claro"),
+        (THEME_SYSTEM, "Sistema"),
+    )
+
+    HOME_DASHBOARD = "dashboard"
+    HOME_POSTS = "posts"
+
+    HOME_CHOICES = (
+        (HOME_DASHBOARD, "Dashboard"),
+        (HOME_POSTS, "Postagens"),
+    )
+
+    theme = models.CharField(
+        max_length=10,
+        choices=THEME_CHOICES,
+        default=THEME_DARK,
+    )
+
+    default_home = models.CharField(
+        max_length=20,
+        choices=HOME_CHOICES,
+        default=HOME_DASHBOARD,
+    )
+
+    # ─────────────────────────────────────
+    # Imagens
+    # ─────────────────────────────────────
     profile_image = models.ImageField(
         upload_to=user_profile_image_path,
         blank=True,
@@ -74,6 +113,9 @@ class User(AbstractUser):
         null=True,
     )
 
+    # ─────────────────────────────────────
+    # Permissões / Flags
+    # ─────────────────────────────────────
     can_edit_reports = models.BooleanField(
         default=False,
         db_index=True,
@@ -89,10 +131,6 @@ class User(AbstractUser):
 
     @property
     def active_institution_assignment(self):
-        """
-        Atribuição institucional ativa (se existir).
-        """
-        # related_name="institution_assignments" no UserInstitutionAssignment
         return (
             self.institution_assignments.filter(end_at__isnull=True)
             .select_related("institution")
@@ -102,10 +140,6 @@ class User(AbstractUser):
 
     @property
     def active_team_assignment(self):
-        """
-        Lotação em equipe ativa (se existir).
-        """
-        # related_name="team_assignments" no UserTeamAssignment
         return (
             self.team_assignments.filter(end_at__isnull=True)
             .select_related("team")
@@ -115,10 +149,8 @@ class User(AbstractUser):
 
     @property
     def can_edit_reports_effective(self) -> bool:
-        """
-        Permissão efetiva para edição de laudos.
-        """
         return bool(self.can_edit_reports and self.active_institution_assignment)
+
 
 
 #--------------------------------------------------

@@ -2,17 +2,37 @@
 
 from __future__ import annotations
 
+# ─────────────────────────────────────
+# Django
+# ─────────────────────────────────────
 from django import forms
-from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm, UserCreationForm
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import (
+    PasswordChangeForm,
+    SetPasswordForm,
+    UserCreationForm,
+)
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from institutions.models import Institution, Nucleus, Team
-from institutions.models import UserInstitutionAssignment, UserTeamAssignment
+# ─────────────────────────────────────
+# Apps do projeto
+# ─────────────────────────────────────
+from institutions.models import (
+    Institution,
+    Nucleus,
+    Team,
+    UserInstitutionAssignment,
+    UserTeamAssignment,
+)
 
+# ─────────────────────────────────────
+# Comum / Mixins
+# ─────────────────────────────────────
 from common.mixins import BaseForm, BaseModelForm, BootstrapFormMixin
-from .models import User
 
+
+User = get_user_model()
 
 class _InstitutionNucleusTeamFieldsMixin(BaseForm):
     """
@@ -73,7 +93,7 @@ class _InstitutionNucleusTeamFieldsMixin(BaseForm):
         else:
             self.fields["team"].queryset = Team.objects.none()
 
-    def _set_initial_from_active_assignments(self, user: User):
+    def _set_initial_from_active_assignments(self, user):
         """
         Preenche initial a partir das atribuições ativas do usuário.
         Observação: hoje seu código pega institution e team; aqui também inferimos nucleus via team.
@@ -135,7 +155,7 @@ class _InstitutionNucleusTeamFieldsMixin(BaseForm):
 
         return institution, nucleus, team
 
-    def _apply_assignments(self, user: User, institution: Institution, team: Team):
+    def _apply_assignments(self, user, institution: Institution, team: Team):
         now = timezone.now()
 
         UserInstitutionAssignment.objects.filter(user=user, end_at__isnull=True).update(end_at=now)
@@ -193,7 +213,7 @@ class UserRegistrationForm(_InstitutionNucleusTeamFieldsMixin, UserCreationForm)
         return cleaned
 
     def save(self, commit=True):
-        user: User = super().save(commit=commit)
+        user = super().save(commit=commit)
 
         institution = self.cleaned_data.get("institution")
         team = self.cleaned_data.get("team")
@@ -360,3 +380,21 @@ class LinkInstitutionForm(_InstitutionNucleusTeamFieldsMixin):
         if not self.user.can_edit_reports:
             self.user.can_edit_reports = True
             self.user.save(update_fields=["can_edit_reports"])
+
+
+
+# accounts/forms_preferences.py
+
+from django import forms
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class UserPreferencesForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ("theme", "default_home")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+

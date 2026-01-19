@@ -2,6 +2,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from .views import (
+    UserPreferencesUpdateView,
     UserRegisterView, 
     UserLoginView, 
     user_logout, 
@@ -18,6 +19,7 @@ from .views import (
 app_name = 'accounts'
 
 urlpatterns = [
+    path("preferences/", UserPreferencesUpdateView.as_view(), name="preferences",),
     path("register/", UserRegisterView.as_view(), name="register"),
     path("profile/edit/", UserProfileUpdateView.as_view(), name="profile_edit"),
     path("password/change/", UserPasswordChangeView.as_view(), name="password_change"),
