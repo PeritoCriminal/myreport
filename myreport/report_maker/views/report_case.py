@@ -4,12 +4,14 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, DeleteView
 from django.shortcuts import get_object_or_404
 
-from common.mixins import CanEditReportsRequiredMixin
+from common.mixins import CanEditReportsRequiredMixin, ProfileImageContextMixin
 from report_maker.forms import ReportCaseForm
 from report_maker.models import ReportCase
 
+
 def _resolve(value):
     return value() if callable(value) else value
+
 
 def _get_user_org(user):
     inst_asg = _resolve(getattr(user, "active_institution_assignment", None))
@@ -31,7 +33,7 @@ def _get_user_org(user):
     return institution, nucleus, team
 
 
-class ReportCaseListView(LoginRequiredMixin, ListView):
+class ReportCaseListView(LoginRequiredMixin, ProfileImageContextMixin, ListView):
     model = ReportCase
     template_name = "report_maker/reportcase_list.html"
     context_object_name = "reports"
@@ -41,7 +43,9 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
         return ReportCase.objects.filter(author=self.request.user)
 
 
-class ReportCaseCreateView(LoginRequiredMixin, CanEditReportsRequiredMixin, CreateView):
+class ReportCaseCreateView(
+    LoginRequiredMixin, ProfileImageContextMixin, CanEditReportsRequiredMixin, CreateView
+):
     model = ReportCase
     form_class = ReportCaseForm
     template_name = "report_maker/reportcase_form.html"
@@ -58,7 +62,9 @@ class ReportCaseCreateView(LoginRequiredMixin, CanEditReportsRequiredMixin, Crea
         return super().form_valid(form)
 
 
-class ReportCaseUpdateView(LoginRequiredMixin, CanEditReportsRequiredMixin, UpdateView):
+class ReportCaseUpdateView(
+    LoginRequiredMixin, ProfileImageContextMixin, CanEditReportsRequiredMixin, UpdateView
+):
     model = ReportCase
     form_class = ReportCaseForm
     template_name = "report_maker/reportcase_form.html"
@@ -73,10 +79,6 @@ class ReportCaseUpdateView(LoginRequiredMixin, CanEditReportsRequiredMixin, Upda
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        """
-        Se o laudo ainda não tiver vínculos preenchidos, preenche automaticamente
-        a partir das assignments do usuário.
-        """
         obj = form.save(commit=False)
 
         if obj.institution_id is None and obj.nucleus_id is None and obj.team_id is None:
@@ -93,7 +95,7 @@ class ReportCaseUpdateView(LoginRequiredMixin, CanEditReportsRequiredMixin, Upda
         return reverse("report_maker:report_detail", kwargs={"pk": self.object.pk})
 
 
-class ReportCaseDetailView(LoginRequiredMixin, DetailView):
+class ReportCaseDetailView(LoginRequiredMixin, ProfileImageContextMixin, DetailView):
     model = ReportCase
     template_name = "report_maker/reportcase_detail.html"
     context_object_name = "report"
@@ -116,7 +118,9 @@ class ReportCaseDetailView(LoginRequiredMixin, DetailView):
         )
 
 
-class ReportCaseDeleteView(LoginRequiredMixin, CanEditReportsRequiredMixin, DeleteView):
+class ReportCaseDeleteView(
+    LoginRequiredMixin, ProfileImageContextMixin, CanEditReportsRequiredMixin, DeleteView
+):
     model = ReportCase
     template_name = "report_maker/reportcase_confirm_delete.html"
     context_object_name = "report"

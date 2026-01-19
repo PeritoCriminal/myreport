@@ -1,0 +1,59 @@
+{# myreport/templates/headerbars/technical_repository_header.html #}
+{% load static %}
+
+<div class="position-relative mb-5">
+  <div
+    class="w-100 position-relative"
+    style="
+      height: 160px;
+      background-image: url({% static 'technical_repository/img/technicalarchive.png' %});
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    "
+  >
+    <div class="position-absolute start-0 end-0" style="bottom: 0;">
+      <div class="px-3 py-2" style="background: rgba(0,0,0,.35);">
+        <div class="d-flex justify-content-end gap-2 flex-wrap">
+          <a
+            href="{% url 'groups:group_list' %}"
+            class="btn btn-sm btn-light d-flex align-items-center gap-2 shadow-sm"
+            title="Voltar"
+          >
+            <i class="bi bi-arrow-left"></i>
+            <span class="d-none d-md-inline">Voltar</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Avatar / Nome #}
+  <div class="position-absolute start-0 ms-3" style="bottom: -56px;">
+    <div class="d-flex align-items-center gap-3">
+
+      {% if profile_image %}
+        <img
+          src="{{ profile_image.url }}"
+          alt="Foto de perfil"
+          class="rounded-circle border border-4 border-white bg-white shadow-sm"
+          style="width:112px; height:112px; object-fit:cover;"
+        />
+      {% else %}
+        <div
+          class="rounded-circle border border-4 border-white bg-white shadow-sm d-flex align-items-center justify-content-center"
+          style="width:112px; height:112px;"
+        >
+          <i class="bi bi-person fs-1 text-muted"></i>
+        </div>
+      {% endif %}
+
+      {% if group %}
+        <div class="pt-5 mt-5 d-none d-md-block">
+          <h4 class="fw-bold m-0 text-truncate">{{ group.name }}</h4>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>

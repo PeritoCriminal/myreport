@@ -352,3 +352,19 @@ class EditNotOpenedByThirdPartyOr404Mixin:
             raise Http404
 
         return super().dispatch(request, *args, **kwargs)
+
+
+
+class ProfileImageContextMixin:
+    """
+    Injeta `profile_image` no contexto, seguro para uso de `.url` no template.
+    """
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        user = getattr(self.request, "user", None)
+        img = getattr(user, "profile_image", None) if user and user.is_authenticated else None
+
+        # img pode existir como FieldFile, mas sem arquivo associado
+        context["profile_image"] = img if getattr(img, "name", "") else None
+        return context
