@@ -221,5 +221,5 @@ class TechnicalRepositoryViewsTests(TestCase):
         url = reverse("technical_repository:document_delete", kwargs={"pk": self.doc_inactive_u1.pk})
         resp = self.client.post(url)
 
-        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.status_code, 404) 
         self.assertTemplateUsed(resp, "404.html")

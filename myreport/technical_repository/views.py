@@ -56,36 +56,49 @@ class TechnicalDocumentDetailView(
     template_name = "technical_repository/document_detail.html"
     context_object_name = "document"
 
+    def get_queryset(self):
+        # inativo -> 404 (e usa seu template 404.html)
+        return TechnicalDocument.objects.filter(is_active=True)
+
 
 class TechnicalDocumentUpdateView(
+    UserPassesTestMixin,          # <- vem ANTES do LoginRequiredMixin
     LoginRequiredMixin,
     ProfileImageContextMixin,
-    UserPassesTestMixin,
     UpdateView,
 ):
+    raise_exception = True         # <- anônimo -> 403 (não redirect)
     model = TechnicalDocument
     form_class = TechnicalDocumentForm
     template_name = "technical_repository/document_form.html"
+
+    def get_queryset(self):
+        # inativo -> 404
+        return TechnicalDocument.objects.filter(is_active=True)
 
     def test_func(self):
         return self.get_object().created_by == self.request.user
 
     def get_success_url(self):
-        return reverse("technical_repository:document_detail", kwargs={"pk": self.object.pk})
+        return reverse(
+            "technical_repository:document_detail",
+            kwargs={"pk": self.object.pk},
+        )
 
 
-class TechnicalDocumentDeleteView(
-    LoginRequiredMixin,
-    ProfileImageContextMixin,
-    UserPassesTestMixin,
-    View,
-):
+class TechnicalDocumentDeleteView(UserPassesTestMixin, LoginRequiredMixin, ProfileImageContextMixin, View):
+    raise_exception = True
+
+    def get_queryset(self):
+        return TechnicalDocument.objects.filter(is_active=True)
+
     def test_func(self):
+        # pega o objeto "cru" (ativo ou inativo) só para checar dono
         obj = get_object_or_404(TechnicalDocument, pk=self.kwargs["pk"])
-        return obj.created_by == self.request.user
+        return obj.created_by_id == self.request.user.id
 
     def post(self, request, pk):
-        obj = get_object_or_404(TechnicalDocument, pk=pk)
+        obj = get_object_or_404(self.get_queryset(), pk=pk)  # aqui inativo vira 404
         obj.is_active = False
         obj.save(update_fields=["is_active"])
         return redirect("technical_repository:document_list")
