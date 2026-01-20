@@ -6,6 +6,7 @@ from __future__ import annotations
 # ─────────────────────────────────────
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import get_user_model
 from django.contrib.staticfiles import finders
 from django.core.files import File
 from django.db.models import (
@@ -57,6 +58,7 @@ from common.mixins import (
     UserAssignMixin,
 )
 
+User = get_user_model()
 
 class PostListView(LoginRequiredMixin, ListView):
     """
@@ -287,7 +289,7 @@ class PostCreateView(LoginRequiredMixin, UserAssignMixin, CreateView):
         post.save()
         self.object = post
 
-        if (self.request.headers.get("x-requested-with") or "") == "XMLHttpRequest":
+        if (self.request.headers.get("X-Requested-With") or "") == "XMLHttpRequest":
             post.has_liked = False
             post.has_rated = False
             post.last_comments = []
@@ -595,3 +597,21 @@ class HiddenPostListView(LoginRequiredMixin, ListView):
             .select_related("user", "group")
             .order_by("-updated_at")
         )
+
+
+@login_required
+@require_POST
+def friendship(request, user_id: int):
+    """
+    Placeholder para ação de amizade/seguir.
+
+    Objetivo imediato: evitar NoReverseMatch no template.
+    Futuro: implementar criar/remover relação (friend request / follow etc.)
+    """
+    if request.user.id == user_id:
+        raise Http404()
+
+    get_object_or_404(User, pk=user_id, is_active=True)
+
+    # TODO: implementar lógica real
+    return redirect(request.META.get("HTTP_REFERER") or reverse("accounts:user_list"))

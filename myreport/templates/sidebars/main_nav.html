@@ -1,68 +1,67 @@
 <nav class="sidebar-nav">
   <ul class="list-unstyled m-0 p-0">
-
-    {% if request.resolver_match.url_name != 'dashboard' %}
-      <li class="mb-4">
-        <a href="{% url 'home:dashboard' %}" class="nav-item home-link">
-          <i class="bi bi-house-door"></i> Dashboard
-        </a>
-      </li>
-    {% endif %}
-
-    {# barra horizontal de separação #}
-    <li class="mb-4"><hr class="my-2"></li>
-
-    {# Feed #}
     <li class="mb-4">
-      <a href="{% url 'social_net:post_list' %}" class="nav-item">
-        <i class="bi bi-newspaper"></i> Feed
+      <a href="{% url 'home:dashboard' %}" class="nav-link d-flex align-items-center gap-2 text-body">
+        <i class="bi bi-house-door"></i>
+        <span>Dashboard</span>
       </a>
     </li>
 
-    {# Grupos #}
     <li class="mb-4">
-      <a href="{% url 'groups:group_list' %}" class="nav-item">
-        <i class="bi bi-people"></i> Grupos
+      <hr class="my-2" />
+    </li>
+
+    <li class="mb-4">
+      <a href="{% url 'social_net:post_list' %}" class="nav-link d-flex align-items-center gap-2 text-body">
+        <i class="bi bi-newspaper"></i>
+        <span>Feed</span>
       </a>
     </li>
 
-    {# Arquivo Técnico #}
     <li class="mb-4">
-      <a href="{% url 'technical_repository:document_list' %}" class="nav-item">
-        <i class="bi bi-archive"></i> Arquivo técnico
+      <a href="{% url 'groups:group_list' %}" class="nav-link d-flex align-items-center gap-2 text-body">
+        <i class="bi bi-people"></i>
+        <span>Grupos</span>
       </a>
     </li>
 
-    {# Laudos #}
     <li class="mb-4">
-      <a href="{% url 'report_maker:report_list' %}" class="nav-item">
-        <i class="bi bi-file-earmark-text"></i> Laudos
+      <a href="{% url 'technical_repository:document_list' %}" class="nav-link d-flex align-items-center gap-2 text-body">
+        <i class="bi bi-archive"></i>
+        <span>Arquivo técnico</span>
       </a>
     </li>
 
-    {# Pessoas #}
     <li class="mb-4">
-      <a href="{% url 'accounts:user_list' %}" class="nav-item">
-        <i class="bi bi-person-lines-fill"></i> Pessoas
+      <a href="{% url 'report_maker:report_list' %}" class="nav-link d-flex align-items-center gap-2 text-body">
+        <i class="bi bi-file-earmark-text"></i>
+        <span>Laudos</span>
       </a>
     </li>
 
-    {# barra horizontal de separação #}
-    <li class="mb-4"><hr class="my-2"></li>
-
-    {# Meu perfil #}
     <li class="mb-4">
-      <a href="{% url 'accounts:user_profile' request.user.id %}" class="nav-item">
-        <i class="bi bi-person-circle"></i> Meu perfil
+      <a href="{% url 'accounts:user_list' %}" class="nav-link d-flex align-items-center gap-2 text-body">
+        <i class="bi bi-person-lines-fill"></i>
+        <span>Pessoas</span>
       </a>
     </li>
 
-    {# Sair #}
     <li class="mb-4">
-      <a href="{% url 'accounts:logout' %}" class="nav-item text-danger">
-        <i class="bi bi-box-arrow-right"></i> Sair
+      <hr class="my-2" />
+    </li>
+
+    <li class="mb-4">
+      <a href="{% url 'accounts:user_profile' request.user.id %}" class="nav-link d-flex align-items-center gap-2 text-body">
+        <i class="bi bi-person-circle"></i>
+        <span>Meu perfil</span>
       </a>
     </li>
 
+    <li class="mb-4">
+      <a href="{% url 'accounts:logout' %}" class="nav-link d-flex align-items-center gap-2 text-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Sair</span>
+      </a>
+    </li>
   </ul>
 </nav>

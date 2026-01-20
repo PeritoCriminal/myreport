@@ -17,6 +17,7 @@ from .views import (
     post_like,
     comment_delete,
     toggle_hide_post,
+    friendship,
 )
 
 app_name = "social_net"
@@ -36,4 +37,6 @@ urlpatterns = [
     path("posts/excluidas/", ExcludedPostListView.as_view(), name="excluded_post_list"),
     path("post/excluida/<uuid:pk>/restaurar/", RestorePostView.as_view(), name="post_restore"),
     path("posts/ocultadas/", HiddenPostListView.as_view(), name="hidden_post_list"),
+
+    path("friendship/<int:user_id>/", friendship, name="friendship"),
 ]

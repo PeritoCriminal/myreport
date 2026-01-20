@@ -1,7 +1,8 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br"
+  data-bs-theme="{% if request.user.is_authenticated %}{{ request.user.theme }}{% else %}dark{% endif %}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -103,11 +104,21 @@
 
                       <ul class="dropdown-menu dropdown-menu-end shadow">
                         <li>
-                          <a class="dropdown-item" href="{% url 'accounts:profile_edit' %}">Editar perfil</a>
+                          <a class="dropdown-item" href="{% url 'accounts:profile_edit' %}">
+                            Editar perfil
+                          </a>
                         </li>
 
                         <li>
-                          <a class="dropdown-item" href="{% url 'accounts:password_change' %}">Alterar senha</a>
+                          <a class="dropdown-item" href="{% url 'accounts:password_change' %}">
+                            Alterar senha
+                          </a>
+                        </li>
+
+                        <li>
+                          <a class="dropdown-item" href="{% url 'accounts:preferences' %}">
+                            Preferências
+                          </a>
                         </li>
 
                         <li>
@@ -115,9 +126,12 @@
                         </li>
 
                         <li>
-                          <a class="dropdown-item" href="{% url 'accounts:logout' %}">Sair</a>
+                          <a class="dropdown-item" href="{% url 'accounts:logout' %}">
+                            Sair
+                          </a>
                         </li>
                       </ul>
+
                     </div>
                   {% else %}
                     <a href="{% url 'accounts:login' %}" class="btn btn-outline-light btn-sm">Entrar</a>
@@ -132,14 +146,13 @@
 
       {# Sidebar Offcanvas (Mobile) - Visível apenas quando necessário #}
       {% if user.is_authenticated and view_name != 'accounts:login' and view_name != 'accounts:register' and view_name != 'accounts:register_success' %}
-        <div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
+        <div class="offcanvas offcanvas-start d-md-none bg-body" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
           <div class="offcanvas-header border-bottom">
-            <h5 class="offcanvas-title" id="mobileSidebarLabel">MyReport</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+            <h5 class="offcanvas-title mb-0" id="mobileSidebarLabel">MyReport</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
           </div>
 
           <div class="offcanvas-body">
-            {# Menu contextual por app (Usa o partial para resolver a repetição) #}
             {% include 'sidebars/main_nav.html' %}
           </div>
         </div>
@@ -153,11 +166,12 @@
         <div class="app-shell">
           {# Sidebar esquerda (Desktop) - Visível apenas quando necessário #}
           {% if user.is_authenticated and view_name != 'accounts:login' and view_name != 'accounts:register' and view_name != 'accounts:register_success' %}
-            <aside class="app-sidebar border-end bg-light d-none d-md-block">
+            <aside class="app-sidebar border-end bg-body-tertiary d-none d-md-block">
               <div class="p-3">
                 {% include 'sidebars/main_nav.html' %}
               </div>
             </aside>
+
           {% endif %}
 
           {# Conteúdo principal #}
@@ -170,7 +184,7 @@
       </main>
 
 
-      <footer class="bg-light text-muted text-center py-3 mt-auto border-top">
+      <footer class="bg-body-tertiary text-muted text-center py-3 mt-auto border-top">
         <small class="text-muted">MyReport &copy;{% now 'Y' %}• Todos os direitos reservados • Idealizado por Capristo</small>
       </footer>
 

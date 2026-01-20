@@ -390,11 +390,8 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-class UserPreferencesForm(forms.ModelForm):
+class UserPreferencesForm(BaseModelForm):
     class Meta:
         model = User
         fields = ("theme", "default_home")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 

@@ -24,7 +24,8 @@
       <small class="text-muted flex-shrink-0">{{ post.created_at }}</small>
     </div>
 
-    <a href="{% url 'social_net:post_detail' post.pk %}" class="text-decoration-none text-dark">
+    {# RESPEITA O TEMA: remove text-dark fixo #}
+    <a href="{% url 'social_net:post_detail' post.pk %}" class="text-decoration-none text-body">
       {% if post.title %}
         <h5 class="mb-1 text-break">{{ post.title }}</h5>
       {% elif post.text %}
@@ -68,32 +69,42 @@
     {% endif %}
   </div>
 
-  {# Barra de ações + comentários #}
-  <div class="card-footer bg-white border-top">
+  {# Barra de ações + comentários (RESPEITA O TEMA) #}
+  <div class="card-footer bg-body-tertiary border-top">
     <div class="d-flex justify-content-between align-items-center">
       <div class="d-flex gap-3 align-items-center flex-wrap">
-        <button type="button" class="btn btn-sm btn-light d-flex align-items-center gap-1 js-like-btn" data-like-url="{% url 'social_net:post_like' post.id %}" title="Curtir">
+        {# btn-light -> btn-outline-secondary #}
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 js-like-btn"
+          data-like-url="{% url 'social_net:post_like' post.id %}"
+          title="Curtir"
+        >
           <i class="bi
-          {% if post.has_liked %}
-            bi-heart-fill text-danger
-            {% else %}       
-            bi-heart
+            {% if post.has_liked %}
+              bi-heart-fill text-danger
+            {% else %}
+              bi-heart
             {% endif %}
-          ">
-          </i>
+          "></i>
           <span class="likes-count">{{ post.likes.count }}</span>
         </button>
 
         <div class="dropdown js-rating-container">
-          <button class="btn btn-sm btn-light d-flex align-items-center gap-1 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Avaliar">
+          <button
+            class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            title="Avaliar"
+          >
             <i class="bi
-              {% if post.has_rated %}     
+              {% if post.has_rated %}
                 bi-star-fill text-warning
               {% else %}
                 bi-star
               {% endif %}
-              js-rating-icon">
-            </i>
+              js-rating-icon"></i>
 
             {% if post.user_rating_value %}
               <span class="text-muted">Avaliar ({{ post.user_rating_value }})</span>
@@ -105,16 +116,16 @@
           <ul class="dropdown-menu dropdown-menu-end p-2">
             {% for i in rating_range %}
               <li>
-                <button type="button" class="dropdown-item d-flex align-items-center gap-2 js-rate-btn" data-rate-url="{% url 'social_net:post_rate' post.id %}" data-value="{{ i }}">
+                <button
+                  type="button"
+                  class="dropdown-item d-flex align-items-center gap-2 js-rate-btn"
+                  data-rate-url="{% url 'social_net:post_rate' post.id %}"
+                  data-value="{{ i }}"
+                >
                   <span class="text-nowrap">{{ i }}</span>
                   <span class="d-flex align-items-center gap-1">
                     {% for _ in stars_5 %}
-                      <i class="bi {% if forloop.counter <= i %}                          
-                          bi-star-fill
-                        {% else %}                          
-                          bi-star
-                        {% endif %}">
-                      </i>
+                      <i class="bi {% if forloop.counter <= i %}bi-star-fill{% else %}bi-star{% endif %}"></i>
                     {% endfor %}
                   </span>
                 </button>
@@ -123,26 +134,60 @@
           </ul>
         </div>
 
-        <button class="btn btn-sm btn-light js-comments-toggle" data-bs-toggle="collapse" data-bs-target="#commentFormBox-{{ post.id }}" aria-controls="commentFormBox-{{ post.id }}" aria-expanded="false" data-post-id="{{ post.id }}" title="Comentar"><i class="bi bi-chat"></i></button>
+        {# btn-light -> btn-outline-secondary #}
+        <button
+          class="btn btn-sm btn-outline-secondary js-comments-toggle"
+          data-bs-toggle="collapse"
+          data-bs-target="#commentFormBox-{{ post.id }}"
+          aria-controls="commentFormBox-{{ post.id }}"
+          aria-expanded="false"
+          data-post-id="{{ post.id }}"
+          title="Comentar"
+        >
+          <i class="bi bi-chat"></i>
+        </button>
 
         {% if request.user.id == post.user_id %}
           {# EDITAR: só aparece se ainda não foi aberta por terceiros #}
           {% if post.is_active and not post.opened_by_third_party %}
-            <a href="{% url 'social_net:post_update' post.id %}" class="btn btn-sm text-primary" title="Editar postagem"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'social_net:post_update' post.id %}" class="btn btn-sm text-primary" title="Editar postagem">
+              <i class="bi bi-pencil"></i>
+            </a>
           {% else %}
-            <span class="btn btn-sm text-muted" title="Esta postagem não pode mais ser editada porque já foi visualizada por outros usuários." style="cursor: not-allowed;"><i class="bi bi-pencil"></i></span>
+            <span class="btn btn-sm text-muted" title="Esta postagem não pode mais ser editada porque já foi visualizada por outros usuários." style="cursor: not-allowed;">
+              <i class="bi bi-pencil"></i>
+            </span>
           {% endif %}
 
           {% if post.is_active %}
-            <button type="button" class="btn btn-sm text-danger js-post-delete" data-delete-url="{% url 'social_net:post_delete' post.id %}" data-post-id="{{ post.id }}" title="Excluir postagem"><i class="bi bi-trash"></i></button>
+            <button
+              type="button"
+              class="btn btn-sm text-danger js-post-delete"
+              data-delete-url="{% url 'social_net:post_delete' post.id %}"
+              data-post-id="{{ post.id }}"
+              title="Excluir postagem"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
           {% else %}
             <form method="post" action="{% url 'social_net:post_restore' post.id %}" class="d-inline">
               {% csrf_token %}
-              <button type="submit" class="btn btn-sm text-success" title="Restaurar postagem"><i class="bi bi-arrow-counterclockwise"></i></button>
+              <button type="submit" class="btn btn-sm text-success" title="Restaurar postagem">
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
             </form>
           {% endif %}
         {% else %}
-          <button type="button" class="btn btn-sm btn-light js-post-hide" data-hide-url="{% url 'social_net:post_hide_toggle' post.id %}" data-post-id="{{ post.id }}" title="Ocultar esta postagem do seu feed"><i class="bi bi-eye-slash"></i></button>
+          {# btn-light -> btn-outline-secondary #}
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary js-post-hide"
+            data-hide-url="{% url 'social_net:post_hide_toggle' post.id %}"
+            data-post-id="{{ post.id }}"
+            title="Ocultar esta postagem do seu feed"
+          >
+            <i class="bi bi-eye-slash"></i>
+          </button>
         {% endif %}
       </div>
     </div>
@@ -171,7 +216,15 @@
 
               {% if request.user.id == c.user_id %}
                 <div class="mt-1 text-end">
-                  <button type="button" class="btn btn-sm btn-link text-danger p-0 js-comment-delete" data-comment-id="{{ c.id }}" data-delete-url="{% url 'social_net:comment_delete' c.id %}" title="Excluir comentário"><i class="bi bi-trash"></i></button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link text-danger p-0 js-comment-delete"
+                    data-comment-id="{{ c.id }}"
+                    data-delete-url="{% url 'social_net:comment_delete' c.id %}"
+                    title="Excluir comentário"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
                 </div>
               {% endif %}
             </div>
