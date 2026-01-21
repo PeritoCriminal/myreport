@@ -192,7 +192,7 @@ class ReportCase(models.Model):
     photography_by = models.CharField("Fotografia", max_length=120, blank=True)
     sketch_by = models.CharField("Croqui", max_length=120, blank=True)
 
-    conclusion = models.TextField("Conclusão", blank=True)
+    # conclusion = models.TextField("Conclusão", blank=True)
 
     status = models.CharField(
         "Status",

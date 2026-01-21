@@ -59,10 +59,8 @@ class ReportCaseForm(BaseModelForm):
             "examination_datetime",
             "photography_by",
             "sketch_by",
-            "conclusion",
         ]
         widgets = {
-            "conclusion": forms.Textarea(attrs={"rows": 6}),
             "occurrence_datetime": forms.DateTimeInput(
                 attrs={"type": "datetime-local"},
                 format=DT_LOCAL_FORMAT,
