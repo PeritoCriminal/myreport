@@ -15,8 +15,6 @@ _ALLOWED_TAGS = [
 ]
 
 _ALLOWED_ATTRS = {
-    # se futuramente você quiser links:
-    # "a": ["href", "title", "rel", "target"],
     "code": ["class"],
     "pre": ["class"],
 }
@@ -28,6 +26,7 @@ _ALLOWED_PROTOCOLS = ["http", "https", "mailto"]
 def render_markdown(value: str) -> str:
     """
     Converte Markdown para HTML e sanitiza (XSS-safe).
+    Ajustado para aceitar quebras de linha simples via nl2br.
     """
     text = (value or "").strip()
     if not text:
@@ -38,6 +37,7 @@ def render_markdown(value: str) -> str:
         extensions=[
             "fenced_code",
             "sane_lists",
+            "nl2br",  # Força a conversão de \n em <br> sem precisar de duas quebras
         ],
         output_format="html5",
     )

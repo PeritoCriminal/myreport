@@ -1,3 +1,5 @@
+# myreport/common/mixins.py
+
 from __future__ import annotations
 
 from django import forms
@@ -104,8 +106,40 @@ class BaseForm(BootstrapFormMixin, forms.Form):
 
 
 class BaseModelForm(BootstrapFormMixin, forms.ModelForm):
-    """Base padrão para forms.ModelForm no projeto."""
-    pass
+    """
+    Base padrão para forms.ModelForm no projeto.
+
+    Padrão para campos renderizados via partial `text_block_editor.html`:
+    - garante widget Textarea (aceita quebra de linha)
+    - permite definir rows por campo (opcional)
+    """
+
+    TEXT_BLOCK_FIELDS: tuple[str, ...] = ()
+    TEXT_BLOCK_ROWS: dict[str, int] = {}
+    TEXT_BLOCK_DEFAULT_ROWS: int = 8
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_text_block_widgets()
+
+        # como o BootstrapFormMixin já aplicou classes no __init__,
+        # reaplica para garantir que o widget final (Textarea) esteja com classes corretas
+        self.apply_bootstrap()
+
+    def apply_text_block_widgets(self) -> None:
+        for name in getattr(self, "TEXT_BLOCK_FIELDS", ()):
+            if name not in self.fields:
+                continue
+
+            field = self.fields[name]
+
+            # garante multiline (quebra de linha)
+            if not isinstance(field.widget, forms.Textarea):
+                field.widget = forms.Textarea()
+
+            # rows (opcional; o partial também pode controlar visualmente)
+            rows = (getattr(self, "TEXT_BLOCK_ROWS", {}) or {}).get(name, self.TEXT_BLOCK_DEFAULT_ROWS)
+            field.widget.attrs.setdefault("rows", rows)
 
 
 class CanEditReportsRequiredMixin:

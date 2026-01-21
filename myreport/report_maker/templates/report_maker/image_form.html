@@ -144,11 +144,9 @@
             </div>
 
             <div class="mt-3 w-100" data-caption-wrap>
-              <label class="form-label mb-1 text-muted small">
-                Legenda
-              </label>
-
-              {{ form.caption }}
+              {% with field=form.caption %}
+                {% include "report_maker/partials/text_block_editor.html" with field_name=field.name label=field.label value=field.value help_text=field.help_text rows=8 %}
+              {% endwith %}
 
               {% if form.caption.errors %}
                 <div class="invalid-feedback d-block">
@@ -156,6 +154,7 @@
                 </div>
               {% endif %}
             </div>
+
 
           </div>
 
