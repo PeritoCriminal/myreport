@@ -236,3 +236,58 @@ class AccountsSecurityHardeningTests(TestCase):
         resp = self.client.get(reverse("accounts:user_list"))
         self.assertEqual(resp.status_code, 200)
         self.assertNotContains(resp, self.inactive.username)
+
+
+class AccountsDefaultHomeRedirectTests(TestCase):
+    """
+    Testa o redirect pós-login conforme default_home do usuário.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.password = "TestPass!12345"
+
+        cls.user = User.objects.create_user(
+            username="pref_user",
+            email="pref_user@example.com",
+            password=cls.password,
+            is_active=True,
+        )
+
+    def test_login_redirects_to_selected_home(self):
+        self.user.default_home = "technical"
+        self.user.save(update_fields=["default_home"])
+
+        resp = self.client.post(
+            reverse("accounts:login"),
+            {
+                "username": self.user.username,
+                "password": self.password,
+            },
+            follow=False,
+        )
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            resp["Location"],
+            reverse("technical_repository:document_list"),
+        )
+
+    def test_login_falls_back_to_dashboard_when_home_invalid(self):
+        self.user.default_home = "pagina_inexistente"
+        self.user.save(update_fields=["default_home"])
+
+        resp = self.client.post(
+            reverse("accounts:login"),
+            {
+                "username": self.user.username,
+                "password": self.password,
+            },
+            follow=False,
+        )
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            resp["Location"],
+            reverse("home:dashboard"),
+        )
