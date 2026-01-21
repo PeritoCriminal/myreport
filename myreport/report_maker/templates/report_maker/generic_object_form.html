@@ -16,27 +16,33 @@
 
   <form method="post" novalidate>
     {% csrf_token %}
-
     {{ form.non_field_errors }}
 
     {% for field in form %}
-      <div class="mb-3">
-        <label for="{{ field.id_for_label }}" class="form-label">
-          {{ field.label }}
-        </label>
 
-        {{ field }}
+      {% if field.name == "description" or field.name == "methodology" or field.name == "examination" or field.name == "results" %}
+        {% include "report_maker/partials/text_block_editor.html" with field_name=field.name label=field.label value=field.value help_text=field.help_text rows=8 %}
 
-        {% if field.help_text %}
-          <div class="form-text">{{ field.help_text }}</div>
-        {% endif %}
+      {% else %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label">
+            {{ field.label }}
+          </label>
 
-        {% for error in field.errors %}
-          <div class="invalid-feedback d-block">
-            {{ error }}
-          </div>
-        {% endfor %}
-      </div>
+          {{ field }}
+
+          {% if field.help_text %}
+            <div class="form-text">{{ field.help_text }}</div>
+          {% endif %}
+
+          {% for error in field.errors %}
+            <div class="invalid-feedback d-block">
+              {{ error }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
     {% endfor %}
 
     <div class="d-flex justify-content-end gap-2 mt-4">
@@ -51,4 +57,9 @@
   </form>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'report_maker/js/markdown_editor.js' %}"></script>
 {% endblock %}

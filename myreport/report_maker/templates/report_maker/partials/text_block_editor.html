@@ -1,0 +1,39 @@
+{% comment %} 
+  Partial genérico para edição de blocos de texto em Markdown.
+
+  Espera no contexto:
+  - field_name   (obrigatório) → name/id do textarea
+  - label        (opcional)    → rótulo exibido
+  - value        (opcional)    → conteúdo inicial
+  - help_text    (opcional)    → texto de ajuda
+  - rows         (opcional)    → default 6
+  - placeholder  (opcional)
+  - required     (opcional)    → True/False
+{% endcomment %}
+
+<div class="mb-3 text-block-editor">
+  {% include "report_maker/partials/markdown_toolbar.html" %}
+
+  {% if label %}
+    <label for="{{ field_name }}" class="form-label fw-semibold">
+      {{ label }}
+    </label>
+  {% endif %}
+
+  <textarea
+    name="{{ field_name }}"
+    id="{{ field_name }}"
+    class="form-control font-monospace"
+    rows="{{ rows|default:6 }}"
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if required %}required{% endif %}
+  >{{ value|default_if_none:"" }}</textarea>
+
+  {% if help_text %}
+    <div class="form-text">{{ help_text }}</div>
+  {% else %}
+    <div class="form-text">
+      Suporta <strong>Markdown</strong> (parágrafos, listas, negrito, itálico).
+    </div>
+  {% endif %}
+</div>
