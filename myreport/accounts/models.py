@@ -5,6 +5,7 @@ import uuid
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -18,9 +19,9 @@ def user_background_image_path(instance: "User", filename: str) -> str:
     return f"{instance.id}/background/{filename}"
 
 
-#--------------------------------------------------
+# --------------------------------------------------
 # Usuário
-#--------------------------------------------------
+# --------------------------------------------------
 class User(AbstractUser):
     """
     Usuário do sistema EPCL, estendido a partir de AbstractUser.
@@ -80,10 +81,18 @@ class User(AbstractUser):
 
     HOME_DASHBOARD = "dashboard"
     HOME_POSTS = "posts"
+    HOME_GROUPS = "groups"
+    HOME_TECHNICAL = "technical"
+    HOME_REPORTS = "reports"
+    HOME_ZEN = "zen"
 
     HOME_CHOICES = (
         (HOME_DASHBOARD, "Dashboard"),
         (HOME_POSTS, "Postagens"),
+        (HOME_GROUPS, "Grupos"),
+        (HOME_TECHNICAL, "Arquivo técnico"),
+        (HOME_REPORTS, "Laudos"),
+        (HOME_ZEN, "Zen do Laudo"),
     )
 
     theme = models.CharField(
@@ -129,6 +138,16 @@ class User(AbstractUser):
     def __str__(self) -> str:
         return self.display_name or self.username
 
+    def clean(self):
+        """
+        Garante que `default_home` armazene somente as CHAVES suportadas (HOME_*).
+        Isso evita salvar valores como 'document_list' via admin/shell/código.
+        """
+        super().clean()
+        allowed_keys = {k for k, _ in self.HOME_CHOICES}
+        if self.default_home and self.default_home not in allowed_keys:
+            raise ValidationError({"default_home": "Página inicial inválida."})
+
     @property
     def active_institution_assignment(self):
         return (
@@ -152,10 +171,9 @@ class User(AbstractUser):
         return bool(self.can_edit_reports and self.active_institution_assignment)
 
 
-
-#--------------------------------------------------
+# --------------------------------------------------
 # Seguidores
-#--------------------------------------------------
+# --------------------------------------------------
 class UserFollow(models.Model):
     """
     Relação N:N auto-referenciada:

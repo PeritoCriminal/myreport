@@ -1,5 +1,4 @@
 {# myreport/accounts/templates/accounts/preferences_form.html #}
-
 {% extends "base.html" %}
 
 {% block title %}Preferências{% endblock %}
@@ -12,8 +11,22 @@
 <div class="container mt-4" style="max-width: 640px;">
   <h2 class="mb-4">Preferências</h2>
 
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} mb-3" role="alert">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
   <form method="post">
     {% csrf_token %}
+
+    {# garante retorno à página de origem após salvar #}
+    {% if next %}
+      <input type="hidden" name="next" value="{{ next }}">
+    {% endif %}
+
     {{ form.non_field_errors }}
 
     <div class="mb-3">
@@ -28,7 +41,16 @@
       {{ form.default_home.errors }}
     </div>
 
-    <button class="btn btn-primary" type="submit">Salvar</button>
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Salvar</button>
+
+      {# botão voltar respeitando a origem, com fallback #}
+      {% if next %}
+        <a class="btn btn-outline-secondary" href="{{ next }}">Voltar</a>
+      {% else %}
+        <a class="btn btn-outline-secondary" href="{% url 'home:dashboard' %}">Voltar</a>
+      {% endif %}
+    </div>
   </form>
 </div>
 {% endblock %}

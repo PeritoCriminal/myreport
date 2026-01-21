@@ -18,6 +18,7 @@ from django.utils import timezone
 # ─────────────────────────────────────
 # Apps do projeto
 # ─────────────────────────────────────
+from .home_registry import get_allowed_home_choices
 from institutions.models import (
     Institution,
     Nucleus,
@@ -383,15 +384,21 @@ class LinkInstitutionForm(_InstitutionNucleusTeamFieldsMixin):
 
 
 
-# accounts/forms_preferences.py
+from .home_registry import get_allowed_home_choices, get_home_keys
 
-from django import forms
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
 
 class UserPreferencesForm(BaseModelForm):
     class Meta:
         model = User
         fields = ("theme", "default_home")
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        pref_user = user or self.instance
+        self.fields["default_home"].choices = get_allowed_home_choices(pref_user)
+
+    def clean_default_home(self):
+        value = self.cleaned_data["default_home"]
+        if value not in get_home_keys():
+            raise ValidationError("Página inicial inválida para este usuário.")
+        return value

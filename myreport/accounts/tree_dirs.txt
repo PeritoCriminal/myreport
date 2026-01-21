@@ -1,8 +1,0 @@
-accounts
-├── __pycache__
-├── migrations
-│   └── __pycache__
-└── templates
-    └── accounts
-        └── partials
-            └── profile

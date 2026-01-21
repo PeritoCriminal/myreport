@@ -20,6 +20,8 @@ from django.views.generic import CreateView, FormView, ListView, TemplateView, U
 from institutions.models import Nucleus, Team
 from social_net.models import Post, PostLike, PostRating
 
+from .home_registry import get_fallback_home_url, get_home_url_for_user
+
 from .forms import (
     LinkInstitutionForm,
     UserPreferencesForm,  # <-- ADICIONE no forms.py ou importe do forms_preferences.py
@@ -54,19 +56,19 @@ class UserLoginView(LoginView):
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
 
-    def get_success_url(self):
-        """
-        Mantém o comportamento atual:
-        - respeita next_url quando válido
-        - fallback para dashboard
-        """
-        next_url = super().get_success_url()
-
-        try:
-            reverse(next_url)
+    def get_success_url(self) -> str:
+        # 1) respeita next (URL), se for seguro
+        next_url = (self.request.POST.get("next") or self.request.GET.get("next") or "").strip()
+        if next_url and url_has_allowed_host_and_scheme(
+            url=next_url,
+            allowed_hosts={self.request.get_host()},
+            require_https=self.request.is_secure(),
+        ):
             return next_url
-        except NoReverseMatch:
-            return reverse("home:dashboard")
+
+        # 2) senão, manda para a home preferida do usuário (key -> url_name)
+        user = self.request.user
+        return get_home_url_for_user(user, getattr(user, "default_home", "")) or get_fallback_home_url(user)
 
 
 def user_logout(request):
@@ -106,11 +108,33 @@ class UserPreferencesUpdateView(LoginRequiredMixin, UpdateView):
     def get_object(self, queryset=None):
         return self.request.user
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        # Para o headerbar/profile_header.html
         ctx["profile_user"] = self.request.user
+
+        # captura origem (GET)
+        ctx["next"] = self.request.GET.get("next") or self.request.META.get("HTTP_REFERER")
         return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        next_url = self.request.POST.get("next")
+        if next_url and url_has_allowed_host_and_scheme(
+            url=next_url,
+            allowed_hosts={self.request.get_host()},
+            require_https=self.request.is_secure(),
+        ):
+            return redirect(next_url)
+
+        return response
+
+
 
 
 # ─────────────────────────────────────
