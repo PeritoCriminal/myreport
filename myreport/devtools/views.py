@@ -3,6 +3,11 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponseServerError
 from django.shortcuts import render
 
+
+def devtool(request):
+    return render(request, "devtools/devtool.html")
+
+
 def error_403(request):
     raise PermissionDenied
 

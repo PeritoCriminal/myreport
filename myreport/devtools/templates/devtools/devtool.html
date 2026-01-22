@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Devtools
+{% endblock %}
+
+{% block page_header %}
+  {% include 'headerbars/profile_header.html' %}
+{% endblock %}
+
+{% block content %}
+  <div class="container py-4">
+    <div class="mb-4">
+      <h2 class="mb-3">Painel de Ferramentas de Desenvolvimento</h2>
+
+      <p class="text-muted">
+        Este painel destina-se à execução de testes controlados do sistema,
+        com foco na verificação do comportamento das páginas de erro e dos
+        mecanismos de tratamento de exceções do Django. Seu uso permite
+        validar respostas HTTP, templates personalizados e configurações
+        associadas ao ambiente de desenvolvimento.
+      </p>
+
+      <p class="text-muted">
+        Futuramente, este espaço será expandido para concentrar outras
+        ferramentas auxiliares de diagnóstico, validação e testes internos
+        do projeto.
+      </p>
+    </div>
+
+    <div>
+      <h5 class="mb-2">Testes disponíveis</h5>
+      <ul>
+        <li>
+        <a href="{% url 'devtools:error_403' %}">
+            Teste de erro 403 (Acesso negado)
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'devtools:error_404' %}">
+            Teste de erro 404 (Página não encontrada)
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'devtools:error_500' %}">
+            Teste de erro 500 (Erro interno do servidor)
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+{% endblock %}
