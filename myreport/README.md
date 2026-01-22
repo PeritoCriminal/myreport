@@ -66,3 +66,53 @@ O projeto é estruturado de forma modular, por meio de apps Django:
 
 ## 📂 Estrutura geral do projeto
 
+myreport/
+├── accounts/
+├── common/
+├── devtools/
+├── groups/
+├── home/
+├── institutions/
+├── media/
+├── myreport/
+├── report_maker/
+├── social_net/
+├── technical_repository/
+├── templates/
+├── users/
+├── manage.py
+├── db.sqlite3
+├── README.md
+└── requirements.txt
+
+A estrutura segue o padrão de projetos Django modulares, com separação
+clara de responsabilidades por app.
+
+---
+
+## 🚀 Execução em ambiente de desenvolvimento
+
+1. Clonar o repositório:
+   ```bash
+   git clone https://github.com/seu-usuario/myreport.git
+
+python -m venv .venv
+.venv\Scripts\activate
+
+pip install -r requirements.txt
+
+python manage.py migrate
+
+python manage.py runserver
+
+---
+
+## 📄 Licença
+
+Este projeto é de autoria de Marcos Capristo.
+
+O código-fonte e a estrutura do sistema destinam-se a uso experimental
+e interno. A utilização, reprodução, modificação ou redistribuição,
+total ou parcial, depende de autorização expressa do autor.
+
+Todos os direitos reservados.
