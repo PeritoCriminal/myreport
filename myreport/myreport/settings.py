@@ -10,6 +10,9 @@ SECRET_KEY = 'django-insecure-6f7-s-0=2hwe%pyd+al81e3f13a)ub2c2my%tr$*o7)o)p$byq
 
 DEBUG = True
 
+# A linha abaixo é somente para testes e deve ser deletada quando em produção.
+ENABLE_DEVTOOLS = True
+
 ALLOWED_HOSTS = ['*']
 
 # ---------------------------------------------------------------------
@@ -46,6 +49,8 @@ INSTALLED_APPS = [
     'report_maker',
     'common',
     'institutions',
+
+    'devtools',
 ]
 
 # ---------------------------------------------------------------------

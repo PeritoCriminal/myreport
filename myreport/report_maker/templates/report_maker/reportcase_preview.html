@@ -1,350 +1,80 @@
+{# templates/report_maker/reportcase_preview.html #}
 {% load static %}
 
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
+    {% comment %}
+    ─────────────────────────────────────────────────────────────
+    Metadados do documento
+    ─────────────────────────────────────────────────────────────
+    {% endcomment %}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Laudo nº {{ report.report_number }}</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-
-    <style>
-      body {
-        background: #111;
-      }
-      
-      .report-stage {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-      }
-      
-      /* ─────────────────────────────────────────────
-                    “Folha” A4 (proporção) + margens ABNT simuladas
-                    ───────────────────────────────────────────── */
-      .report-page {
-        width: 100%;
-        max-width: 980px;
-        background: #fff;
-        color: #000;
-        border-radius: 16px;
-      
-        /* Margens internas – ABNT (simulação visual) */
-        padding-top: 96px; /* 3 cm */
-        padding-left: 96px; /* 3 cm */
-        padding-right: 64px; /* 2 cm */
-        padding-bottom: 64px; /* 2 cm */
-      
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 12pt;
-        line-height: 1.5;
-      }
-      
-      .report-number {
-        margin-top: 50px;
-        font-weight: 700;
-        font-size: 1.1rem;
-      }
-      
-      .close-btn {
-        position: fixed;
-        top: 16px;
-        right: 16px;
-        z-index: 10;
-      }
-      
-      .report-section {
-        margin-top: 32px;
-      }
-      
-      /* ─────────────────────────────────────────────
-                    Texto corrido (sem recuo, com espaçamento)
-                    ───────────────────────────────────────────── */
-      .report-section p {
-        text-align: justify;
-        margin: 0 0 1.4em 0;
-        text-indent: 0;
-      }
-      
-      .report-figure figcaption {
-        margin-top: 6px;
-        font-size: 10.5pt;
-        line-height: 1.35;
-        text-align: justify;
-        white-space: pre-line; /* Adicionado aqui */
-      }
-      
-      .object-block {
-        margin-top: 28px;
-        white-space: pre-line; /* Adicionado aqui */
-      }
-      
-      .section-heading {
-        font-size: 13pt;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin-top: 28px;
-        margin-bottom: 12px;
-        text-align: left;
-      }
-      
-      .data-list {
-        margin: 0;
-      }
-      
-      .data-list dt {
-        float: left;
-        clear: left;
-        width: 260px;
-        font-weight: bold;
-      }
-      
-      .data-list dd {
-        margin-left: 270px;
-        margin-bottom: 6px;
-      }
-      
-      .data-list::after {
-        content: '';
-        display: block;
-        clear: both;
-      }
-      
-      /* ─────────────────────────────────────────────
-                    Modo impressão (A4 real)
-                    ───────────────────────────────────────────── */
-      @media print {
-        body {
-          background: #fff;
-        }
-      
-        .close-btn {
-          display: none !important;
-        }
-      
-        .report-stage {
-          padding: 0;
-          min-height: auto;
-        }
-      
-        .report-page {
-          box-shadow: none;
-          border-radius: 0;
-          max-width: none;
-      
-          /* Margens ABNT reais */
-          padding: 3cm 2cm 2cm 3cm;
-        }
-      }
-      
-      /* ─────────────────────────────────────────────
-                    Header institucional (emblema | texto | emblema)
-                    ───────────────────────────────────────────── */
-      .report-header {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 12px;
-      }
-      
-      .report-header td {
-        vertical-align: middle;
-      }
-      
-      .rh-img {
-        width: 92px;
-        text-align: center;
-      }
-      
-      .rh-emblem {
-        width: 72px;
-        height: 72px;
-        object-fit: contain;
-        display: inline-block;
-      }
-      
-      .rh-center {
-        text-align: center;
-        padding: 0 10px;
-      }
-      
-      .rh-line {
-        line-height: 1.15;
-        margin: 2px 0;
-      }
-      
-      .rh-1 {
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.3px;
-      }
-      
-      .rh-2 {
-        font-size: 12px;
-        font-weight: 600;
-      }
-      
-      .rh-3 {
-        font-size: 12px;
-        font-weight: 800;
-      }
-      
-      .rh-4 {
-        font-size: 11px;
-        font-weight: 700;
-      }
-      
-      .rh-5 {
-        font-size: 11px;
-        font-weight: 600;
-      }
-      
-      @media (max-width: 576px) {
-        .rh-img {
-          width: 72px;
-        }
-      
-        .rh-emblem {
-          width: 56px;
-          height: 56px;
-        }
-      
-        .rh-1,
-        .rh-2,
-        .rh-3 {
-          font-size: 11px;
-        }
-      
-        .rh-4,
-        .rh-5 {
-          font-size: 10px;
-        }
-      }
-      
-      /* ... mantenha suas regras de layout (report-page, report-stage, etc) ... */
-      
-      /* ESTRUTURA DE TEXTO E MARKDOWN
-           Ajustado para suportar quebras de linha manuais sem quebrar listas.
-        */
-      
-      /* Container dos objetos */
-      .object-block {
-        margin-top: 28px;
-      }
-      
-      /* Subtítulos (Exame, Resultados, etc) */
-      .object-subtitle {
-        font-weight: bold;
-        text-transform: uppercase;
-        font-size: 11pt;
-        margin-top: 1rem;
-        margin-bottom: 0.5rem;
-        color: #333;
-        border-bottom: 1px solid #eee;
-      }
-      
-      /* Parágrafos e legendas: aqui permitimos a quebra de linha manual (\n) */
-      .object-block p,
-      .report-figure figcaption {
-        text-align: justify;
-        margin-bottom: 1.2em;
-        white-space: pre-line; /* Permite o "Enter" simples do editor */
-        line-height: 1.5;
-      }
-      
-      /* Listas: resetamos para 'normal' para o marcador (bullet) não desalinhado */
-      .object-block ul,
-      .object-block ol {
-        margin-bottom: 1.2em;
-        padding-left: 2.5rem;
-        white-space: normal;
-      }
-      
-      .object-block li {
-        margin-bottom: 0.5rem;
-        white-space: normal; /* Garante que o texto fique ao lado do número/bullet */
-      }
-
-      .object-block li p {
-        margin-bottom: 0; /* Remove o espaço extra de parágrafos dentro de listas */
-        white-space: normal;
-      }
-      
-      /* Tabelas (caso use a extensão 'extra' do markdown) */
-      .object-block table {
-        width: 100%;
-        margin-bottom: 1.5rem;
-        border-collapse: collapse;
-        white-space: normal;
-      }
-      
-      .object-block table th,
-      .object-block table td {
-        border: 1px solid #ccc;
-        padding: 8px;
-      }
-      
-      /* Grid de Imagens */
-      .figure-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        margin-top: 15px;
-      }
-      
-      .report-figure {
-        margin: 0;
-        page-break-inside: avoid;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .report-figure img {
-        max-width: 100%;
-        height: auto;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-      }
-      
-      /* Ajuste específico para a legenda após o reset das listas */
-      .report-figure figcaption {
-        margin-top: 8px;
-        font-size: 10.5pt;
-        color: #444;
-        /* white-space: pre-line já herdado acima */
-      }
-      
-      /* ... mantenha suas regras de impressão (@media print) ... */
-      
-      @media print {
-        .report-figure img {
-          border: 0;
-          border-radius: 0;
-        }
-      }
-    </style>
+    {% comment %}
+    ─────────────────────────────────────────────────────────────
+    CSS (vendor + feature)
+    ─────────────────────────────────────────────────────────────
+    {% endcomment %}
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'report_maker/css/report_preview.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'report_maker/css/report_print.css' %}"
+    />
   </head>
 
   <body>
-    <button type="button" class="btn btn-light close-btn" onclick="window.close()">Fechar</button>
+    {% comment %}
+    ─────────────────────────────────────────────────────────────
+    Controles do preview
+    ─────────────────────────────────────────────────────────────
+    {% endcomment %}
+    <button
+      type="button"
+      class="btn btn-light close-btn"
+      data-action="close-preview"
+    >
+      Fechar
+    </button>
 
+    {% comment %}
+    ─────────────────────────────────────────────────────────────
+    Stage do preview e página do laudo
+    ─────────────────────────────────────────────────────────────
+    {% endcomment %}
     <main class="report-stage">
       <section class="report-page">
+        {% comment %}
+        ─────────────────────────────────────────────────────────
+        Cabeçalho institucional
+        ─────────────────────────────────────────────────────────
+        {% endcomment %}
         <header class="text-center">
           <table class="report-header" role="presentation">
             <tr>
               <td class="rh-img rh-left">
                 {% if header.emblem_primary %}
-                  {# Como é um dicionário, acessamos direto o atributo .url do ImageField contido nele #}
-                  <img src="{{ header.emblem_primary.url }}" alt="Emblema" class="rh-emblem" />
+                  <img
+                    src="{{ header.emblem_primary.url }}"
+                    alt="Emblema"
+                    class="rh-emblem"
+                  />
                 {% endif %}
               </td>
 
               <td class="rh-center">
-                <div class="rh-line rh-1">SECRETARIA DA SEGURANÇA PÚBLICA</div>
+                <div class="rh-line rh-1">
+                  SECRETARIA DA SEGURANÇA PÚBLICA
+                </div>
 
                 {% if header.name or header.acronym %}
                   <div class="rh-line rh-2">
@@ -356,33 +86,57 @@
                 {% endif %}
 
                 {% if header.kind_display %}
-                  <div class="rh-line rh-3">{{ header.kind_display }}</div>
+                  <div class="rh-line rh-3">
+                    {{ header.kind_display }}
+                  </div>
                 {% endif %}
 
                 {% if header.honoree_line %}
-                  <div class="rh-line rh-4">"{{ header.honoree_line|upper }}"</div>
+                  <div class="rh-line rh-4">
+                    "{{ header.honoree_line|upper }}"
+                  </div>
                 {% endif %}
 
                 {% if header.unit_line %}
-                  <div class="rh-line rh-5">{{ header.unit_line }}</div>
+                  <div class="rh-line rh-5">
+                    {{ header.unit_line }}
+                  </div>
                 {% endif %}
               </td>
 
               <td class="rh-img rh-right">
                 {% if header.emblem_secondary %}
-                  <img src="{{ header.emblem_secondary.url }}" alt="Emblema" class="rh-emblem" />
+                  <img
+                    src="{{ header.emblem_secondary.url }}"
+                    alt="Emblema"
+                    class="rh-emblem"
+                  />
                 {% endif %}
               </td>
             </tr>
           </table>
 
-          <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
+          <div class="report-number">
+            LAUDO Nº {{ report.report_number }}
+          </div>
         </header>
 
+        {% comment %}
+        ─────────────────────────────────────────────────────────
+        Preâmbulo
+        ─────────────────────────────────────────────────────────
+        {% endcomment %}
         {% if report.preamble %}
-          <section class="report-section preamble">{{ report.preamble|linebreaks }}</section>
+          <section class="report-section preamble">
+            {{ report.preamble|linebreaks }}
+          </section>
         {% endif %}
 
+        {% comment %}
+        ─────────────────────────────────────────────────────────
+        Dados da Requisição
+        ─────────────────────────────────────────────────────────
+        {% endcomment %}
         <section class="report-section">
           <h2 class="section-heading">Dados da Requisição</h2>
 
@@ -410,6 +164,11 @@
           </dl>
         </section>
 
+        {% comment %}
+        ─────────────────────────────────────────────────────────
+        Dados do Atendimento
+        ─────────────────────────────────────────────────────────
+        {% endcomment %}
         <section class="report-section">
           <h2 class="section-heading">Dados do Atendimento</h2>
 
@@ -427,17 +186,26 @@
             </dd>
 
             <dt>Perito</dt>
-            <dd>{{ report.author.report_signature_name|default:'—' }}</dd>
+            <dd>
+              {{ report.author.report_signature_name|default:'—' }}
+            </dd>
           </dl>
         </section>
 
+        {% comment %}
+        ─────────────────────────────────────────────────────────
+        Objetos Examinados
+        ─────────────────────────────────────────────────────────
+        {% endcomment %}
         {% if report.exam_objects.exists %}
           <section class="report-section">
             <h2 class="section-heading">Objetos Examinados</h2>
 
             {% for obj in report.exam_objects.all %}
               <div class="object-block">
-                <div class="object-title">{{ obj.title|default:'Objeto' }}</div>
+                <div class="object-title">
+                  {{ obj.title|default:'Objeto' }}
+                </div>
 
                 {% if obj.description_html %}
                   <div class="object-subtitle">Descrição</div>
@@ -465,7 +233,10 @@
                   <div class="figure-grid">
                     {% for img in obj.preview_images %}
                       <figure class="report-figure">
-                        <img src="{{ img.image.url }}" alt="{{ img.caption|default:'Figura' }}" />
+                        <img
+                          src="{{ img.image.url }}"
+                          alt="{{ img.caption|default:'Figura' }}"
+                        />
                         <figcaption>
                           {% if img.caption_html %}
                             {{ img.caption_html|safe }}

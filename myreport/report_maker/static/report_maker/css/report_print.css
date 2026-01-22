@@ -1,0 +1,34 @@
+/* ==========================================================================
+   Report Maker — Preview do Laudo (Impressão)
+   Arquivo: static/report_maker/css/report_print.css
+   Escopo: regras exclusivas de impressão (@media print)
+   ========================================================================== */
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .close-btn {
+    display: none !important;
+  }
+
+  .report-stage {
+    padding: 0;
+    min-height: auto;
+  }
+
+  .report-page {
+    box-shadow: none;
+    border-radius: 0;
+    max-width: none;
+
+    /* Margens ABNT reais */
+    padding: 3cm 2cm 2cm 3cm;
+  }
+
+  .report-figure img {
+    border: 0;
+    border-radius: 0;
+  }
+}

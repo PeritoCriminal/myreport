@@ -1,0 +1,290 @@
+/* ==========================================================================
+   Report Maker — Preview do Laudo (Tela)
+   Arquivo: static/report_maker/css/report_preview.css
+   Escopo: visualização em tela (não inclui regras de impressão)
+   ========================================================================== */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Base
+   ────────────────────────────────────────────────────────────────────────── */
+
+body {
+  background: #111;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Stage (centralização do preview)
+   ────────────────────────────────────────────────────────────────────────── */
+
+.report-stage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Página (simulação de folha A4 + margens)
+   ────────────────────────────────────────────────────────────────────────── */
+
+.report-page {
+  width: 100%;
+  max-width: 980px;
+  background: #fff;
+  color: #000;
+  border-radius: 16px;
+
+  /* Margens internas – ABNT (simulação visual) */
+  padding-top: 96px;   /* 3 cm */
+  padding-left: 96px;  /* 3 cm */
+  padding-right: 64px; /* 2 cm */
+  padding-bottom: 64px;/* 2 cm */
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12pt;
+  line-height: 1.5;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Ações do preview
+   ────────────────────────────────────────────────────────────────────────── */
+
+.close-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.report-number {
+  margin-top: 50px;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Seções e tipografia
+   ────────────────────────────────────────────────────────────────────────── */
+
+.report-section {
+  margin-top: 32px;
+}
+
+.section-heading {
+  font-size: 13pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-top: 28px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+/* Texto corrido (sem recuo, com espaçamento) */
+.report-section p {
+  text-align: justify;
+  margin: 0 0 1.4em 0;
+  text-indent: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Lista de dados (DL)
+   ────────────────────────────────────────────────────────────────────────── */
+
+.data-list {
+  margin: 0;
+}
+
+.data-list dt {
+  float: left;
+  clear: left;
+  width: 260px;
+  font-weight: bold;
+}
+
+.data-list dd {
+  margin-left: 270px;
+  margin-bottom: 6px;
+}
+
+.data-list::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Header institucional (emblema | texto | emblema)
+   ────────────────────────────────────────────────────────────────────────── */
+
+.report-header {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+
+.report-header td {
+  vertical-align: middle;
+}
+
+.rh-img {
+  width: 92px;
+  text-align: center;
+}
+
+.rh-emblem {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  display: inline-block;
+}
+
+.rh-center {
+  text-align: center;
+  padding: 0 10px;
+}
+
+.rh-line {
+  line-height: 1.15;
+  margin: 2px 0;
+}
+
+.rh-1 {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.rh-2 {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rh-3 {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.rh-4 {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rh-5 {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Header — responsividade */
+@media (max-width: 576px) {
+  .rh-img {
+    width: 72px;
+  }
+
+  .rh-emblem {
+    width: 56px;
+    height: 56px;
+  }
+
+  .rh-1,
+  .rh-2,
+  .rh-3 {
+    font-size: 11px;
+  }
+
+  .rh-4,
+  .rh-5 {
+    font-size: 10px;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Blocos de objeto e conteúdo markdown
+   ────────────────────────────────────────────────────────────────────────── */
+
+.object-block {
+  margin-top: 28px;
+}
+
+.object-subtitle {
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 11pt;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+  border-bottom: 1px solid #eee;
+}
+
+/* Parágrafos e legendas: preserva quebra de linha manual do editor */
+.object-block p,
+.report-figure figcaption {
+  text-align: justify;
+  margin-bottom: 1.2em;
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+/* Listas: mantêm alinhamento correto de bullets/números */
+.object-block ul,
+.object-block ol {
+  margin-bottom: 1.2em;
+  padding-left: 2.5rem;
+  white-space: normal;
+}
+
+.object-block li {
+  margin-bottom: 0.5rem;
+  white-space: normal;
+}
+
+.object-block li p {
+  margin-bottom: 0;
+  white-space: normal;
+}
+
+/* Tabelas geradas por markdown (extensões) */
+.object-block table {
+  width: 100%;
+  margin-bottom: 1.5rem;
+  border-collapse: collapse;
+  white-space: normal;
+}
+
+.object-block table th,
+.object-block table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Figuras e grid de imagens
+   ────────────────────────────────────────────────────────────────────────── */
+
+.figure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.report-figure {
+  margin: 0;
+  page-break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-figure img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.report-figure figcaption {
+  margin-top: 8px;
+  font-size: 10.5pt;
+  color: #444;
+}
