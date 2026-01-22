@@ -189,15 +189,21 @@ class AccountsSecurityHardeningTests(TestCase):
         ok = self.client.login(username=self.user.username, password=self.password)
         self.assertTrue(ok)
 
-    def test_anonymous_cannot_access_ajax_nuclei(self):
-        resp = self.client.get(reverse("accounts:ajax_nuclei"), data={"institution": "1"})
-        self.assertEqual(resp.status_code, 302)
-        self.assertIn(reverse("accounts:login"), resp["Location"])
+    def test_anonymous_can_access_ajax_nuclei(self):
+        url = reverse("accounts:ajax_nuclei")
 
-    def test_anonymous_cannot_access_ajax_teams(self):
-        resp = self.client.get(reverse("accounts:ajax_teams"), data={"nucleus": "1"})
-        self.assertEqual(resp.status_code, 302)
-        self.assertIn(reverse("accounts:login"), resp["Location"])
+        resp = self.client.get(url, {"institution": ""})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "application/json")
+        self.assertEqual(resp.json(), {"results": []})
+
+    def test_anonymous_can_access_ajax_teams(self):
+        url = reverse("accounts:ajax_teams")
+
+        resp = self.client.get(url, {"nucleus": ""})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "application/json")
+        self.assertEqual(resp.json(), {"results": []})
 
     def test_follow_toggle_rejects_external_next_url(self):
         self.login()

@@ -303,7 +303,7 @@ class LinkInstitutionView(LoginRequiredMixin, FormView):
 # ─────────────────────────────────────
 # AJAX
 # ─────────────────────────────────────
-@login_required
+# @login_required
 @require_GET
 def ajax_nuclei(request):
     institution_id = (request.GET.get("institution") or "").strip()
@@ -315,7 +315,7 @@ def ajax_nuclei(request):
     return JsonResponse({"results": data})
 
 
-@login_required
+# @login_required
 @require_GET
 def ajax_teams(request):
     nucleus_id = (request.GET.get("nucleus") or "").strip()

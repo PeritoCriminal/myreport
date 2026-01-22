@@ -7,10 +7,14 @@
       <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
         <h4 class="m-0">Informações do Perfil</h4>
 
+        {% comment %}
+          
+        
         {# Botão seguir / deixar de seguir (somente quando não for o próprio usuário) #}
         {% if not is_me %}
           <form method="post" action="{% url 'accounts:follow_toggle' profile_user.id %}">
             {% csrf_token %}
+            {# Esse btn deveria estar oculto? Não está #}
             <input type="hidden" name="next" value="{{ request.get_full_path }}" />
             {% if is_following %}
               <button class="btn btn-sm btn-outline-secondary" type="submit">
@@ -25,6 +29,7 @@
             {% endif %}
           </form>
         {% endif %}
+        {% endcomment %}
       </div>
 
       <dl class="row">

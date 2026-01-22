@@ -5,8 +5,21 @@
    ========================================================================== */
 
 @media print {
+
+  /* Define A4 e margens (mais consistente na impressão) */
+  @page {
+    size: A4;
+    margin: 3cm 2cm 2cm 3cm; /* sup dir inf esq */
+  }
+
   body {
     background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12pt;
+    line-height: 1.5;
   }
 
   .close-btn {
@@ -14,21 +27,109 @@
   }
 
   .report-stage {
-    padding: 0;
-    min-height: auto;
+    padding: 0 !important;
+    min-height: auto !important;
   }
 
   .report-page {
-    box-shadow: none;
-    border-radius: 0;
-    max-width: none;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    max-width: none !important;
 
-    /* Margens ABNT reais */
-    padding: 3cm 2cm 2cm 3cm;
+    /* As margens ficam no @page */
+    padding: 0 !important;
+    color: #000;
   }
 
+  /* Parágrafos: justificado + espaçamento entre parágrafos maior que a linha */
+  .report-page p,
+  .object-block p {
+    text-align: justify;
+    margin: 0 0 12pt 0;
+    white-space: pre-line;
+  }
+
+  /* Títulos (impressão) — use h1/h2/h3 do markdown OU aplique classes .title-1/2/3 */
+  .object-block h1,
+  .title-1 {
+    font-size: 14pt;
+    font-weight: 700;
+    font-style: normal;
+    margin: 18pt 0 10pt 0;
+  }
+
+  .object-block h2,
+  .title-2 {
+    font-size: 12pt;
+    font-weight: 700;
+    font-style: normal;
+    margin: 14pt 0 8pt 0;
+  }
+
+  .object-block h3,
+  .title-3 {
+    font-size: 11pt;
+    font-weight: 700;
+    font-style: normal;
+    margin: 12pt 0 6pt 0;
+  }
+
+  /* Evita quebra ruim de figuras */
+  .report-figure {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Se houver grid de imagens, imprime em bloco para evitar “sobra”/quebra */
+  .figure-grid {
+    display: block !important;
+  }
+
+  /* Imagens: limite de 14cm na folha A4 */
   .report-figure img {
-    border: 0;
-    border-radius: 0;
+    max-width: 14cm !important;
+    width: auto !important;
+    height: auto !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* Legendas: Arial 11, itálico, centralizado */
+  .report-figure figcaption {
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 11pt !important;
+    font-style: italic !important;
+    text-align: center !important;
+    margin-top: 8pt !important;
+    line-height: 1.2 !important;
+    white-space: pre-line;
+  }
+}
+
+@media print {
+
+  .figure-grid {
+    display: block !important;
+  }
+
+  .report-figure {
+    display: block !important;
+    text-align: center !important;
+    margin: 0 0 14pt 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* 14cm e centralizada */
+  .report-figure img {
+    display: inline-block !important;
+    max-width: 14cm !important;
+    width: auto !important;
+    height: auto !important;
+  }
+
+  .report-figure figcaption {
+    text-align: center !important;
   }
 }

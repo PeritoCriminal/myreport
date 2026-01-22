@@ -7,7 +7,7 @@ from django.db.models import Max
 from .report_case import ReportCase
 
 
-class ReportTextBlock(models.Model):
+class ReportTextBlock(models.Model): 
     class Placement(models.TextChoices):
         # Permite substituir/ignorar o preâmbulo gerado pelo sistema
         PREAMBLE = "PREAMBLE", "Preâmbulo (substituto do sistema)"

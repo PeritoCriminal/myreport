@@ -201,7 +201,8 @@ class UserRegistrationForm(_InstitutionNucleusTeamFieldsMixin, UserCreationForm)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # carregamento encadeado
+        # ✅ IMPORTANTE: em POST, o Django só valida se o valor estiver no queryset.
+        # Então ajustamos os querysets com base em self.data (form submit) ou self.initial.
         self._load_nucleus_queryset()
         self._load_team_queryset()
 
@@ -240,20 +241,18 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, BaseModelForm):
 
     def __init__(self, *args, **kwargs):
         instance = kwargs.get("instance")
-        if instance:
-            initial = kwargs.get("initial", {})
-            self.initial = initial
-            kwargs["initial"] = initial
 
         super().__init__(*args, **kwargs)
 
         if "username" in self.fields:
             self.fields["username"].widget.attrs["readonly"] = True
 
+        # ✅ Edit: preenche institution/nucleus/team a partir da atribuição ativa
         if instance:
             self._set_initial_from_active_assignments(instance)
 
-        # carregamento encadeado
+        # ✅ IMPORTANTE: depois de definir initial (no edit),
+        # carregamos os querysets encadeados para exibir e validar corretamente.
         self._load_nucleus_queryset()
         self._load_team_queryset()
 
@@ -264,6 +263,7 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, BaseModelForm):
 
     def save(self, commit=True):
         user = super().save(commit=commit)
+
         institution = self.cleaned_data.get("institution")
         team = self.cleaned_data.get("team")
 
@@ -271,6 +271,7 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, BaseModelForm):
             self._apply_assignments(user, institution, team)
 
         return user
+
 
 
 class UserPasswordChangeForm(BootstrapFormMixin, PasswordChangeForm):

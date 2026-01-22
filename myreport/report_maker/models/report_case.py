@@ -25,7 +25,7 @@ def report_header_emblem_upload_path(instance, filename: str) -> str:
     return f"reports/{instance.id}/header/{filename}"
 
 
-class ReportCase(models.Model):
+class ReportCase(models.Model): 
     """
     Representa o Laudo Pericial, entidade central do exame,
     agregando objetos periciais, imagens e documento final.

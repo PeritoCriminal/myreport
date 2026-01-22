@@ -15,25 +15,16 @@ class GenericExamObjectForm(BaseModelForm):
         fields = (
             "title",
             "description",
-            "methodology",
-            "examination",
-            "results",
         )
 
         labels = {
             "title": "Título",
             "description": "Descrição",
-            "methodology": "Metodologia",
-            "examination": "Exame",
-            "results": "Resultados",
         }
 
         help_texts = {
             "title": "Identificação breve do objeto de exame.",
             "description": "Descrição geral do objeto examinado.",
-            "methodology": "Procedimentos e técnicas empregados no exame.",
-            "examination": "Descrição objetiva do exame realizado.",
-            "results": "Resultados obtidos a partir do exame.",
         }
 
         widgets = {
@@ -44,7 +35,4 @@ class GenericExamObjectForm(BaseModelForm):
                 }
             ),
             "description": forms.Textarea(attrs={"rows": 4}),
-            "methodology": forms.Textarea(attrs={"rows": 4}),
-            "examination": forms.Textarea(attrs={"rows": 4}),
-            "results": forms.Textarea(attrs={"rows": 4}),
         }

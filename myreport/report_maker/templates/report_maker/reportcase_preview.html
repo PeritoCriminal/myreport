@@ -197,61 +197,47 @@
         Objetos Examinados
         ─────────────────────────────────────────────────────────
         {% endcomment %}
-        {% if report.exam_objects.exists %}
-          <section class="report-section">
-            <h2 class="section-heading">Objetos Examinados</h2>
-
-            {% for obj in report.exam_objects.all %}
-              <div class="object-block">
-                <div class="object-title">
-                  {{ obj.title|default:'Objeto' }}
-                </div>
-
-                {% if obj.description_html %}
-                  <div class="object-subtitle">Descrição</div>
-                  {{ obj.description_html|safe }}
-                {% endif %}
-
-                {% if obj.methodology_html %}
-                  <div class="object-subtitle">Metodologia</div>
-                  {{ obj.methodology_html|safe }}
-                {% endif %}
-
-                {% if obj.examination_html %}
-                  <div class="object-subtitle">Exame</div>
-                  {{ obj.examination_html|safe }}
-                {% endif %}
-
-                {% if obj.results_html %}
-                  <div class="object-subtitle">Resultados</div>
-                  {{ obj.results_html|safe }}
-                {% endif %}
-
-                {% if obj.preview_images %}
-                  <div class="object-subtitle">Imagens</div>
-
-                  <div class="figure-grid">
-                    {% for img in obj.preview_images %}
-                      <figure class="report-figure">
-                        <img
-                          src="{{ img.image.url }}"
-                          alt="{{ img.caption|default:'Figura' }}"
-                        />
-                        <figcaption>
-                          {% if img.caption_html %}
-                            {{ img.caption_html|safe }}
-                          {% else %}
-                            {{ img.figure_label }}
-                          {% endif %}
-                        </figcaption>
-                      </figure>
-                    {% endfor %}
-                  </div>
-                {% endif %}
+        {% for item in enriched_objects %}
+          {% with obj=item.obj %}
+            <div class="object-block">
+              <div class="object-title">
+                {{ item.obj_no }} {{ obj.title|default:'Objeto' }}
               </div>
-            {% endfor %}
-          </section>
-        {% endif %}
+
+              {% if obj.description_html %}
+                <div class="object-subtitle">{{ item.subnums.descricao }} Descrição</div>
+                {{ obj.description_html|safe }}
+              {% endif %}
+
+              {% if obj.description_html %}
+                <div class="object-subtitle">{{ item.subnums.methodology }} Descrição</div>
+                {{ obj.description_html|safe }}
+              {% endif %}
+
+              ...
+
+              {% if item.images %}
+                <div class="object-subtitle">Imagens</div>
+
+                <div class="figure-grid">
+                  {% for img in item.images %}
+                    <figure class="report-figure">
+                      <img src="{{ img.image.url }}" alt="{{ img.caption|default:'Figura' }}" />
+                      <figcaption>
+                        {% if img.caption_html %}
+                          {{ img.figure_label }} — {{ img.caption_html|safe }}
+                        {% else %}
+                          {{ img.figure_label }}
+                        {% endif %}
+                      </figcaption>
+                    </figure>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          {% endwith %}
+        {% endfor %}
+
       </section>
     </main>
   </body>
