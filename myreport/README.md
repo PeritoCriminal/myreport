@@ -66,6 +66,7 @@ O projeto é estruturado de forma modular, por meio de apps Django:
 
 ## 📂 Estrutura geral do projeto
 
+```text
 myreport/
 ├── accounts/
 ├── common/
@@ -84,6 +85,7 @@ myreport/
 ├── db.sqlite3
 ├── README.md
 └── requirements.txt
+```
 
 A estrutura segue o padrão de projetos Django modulares, com separação
 clara de responsabilidades por app.
