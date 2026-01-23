@@ -1,3 +1,4 @@
+# report_maker/urls.py
 from django.urls import path
 
 from report_maker.views.report_case import (
@@ -9,23 +10,19 @@ from report_maker.views.report_case import (
 )
 
 from report_maker.views.report_case_close import ReportCaseCloseView
+from report_maker.views.report_case_preview import ReportCasePreviewView
 
 from report_maker.views.exam_object_dashboard import ExamObjectDashboardView
-
 from report_maker.views.exam_objects_reorder import exam_objects_reorder
 
 from report_maker.views.generic_object import (
     GenericExamObjectCreateView,
     GenericExamObjectUpdateView,
     GenericExamObjectDeleteView,
-    GenericExamObjectDetailView,
-    generic_object_reorder,
 )
 
 from report_maker.views.exam_public_road import (
-    PublicRoadExamObjectListView,
     PublicRoadExamObjectCreateView,
-    PublicRoadExamObjectDetailView,
     PublicRoadExamObjectUpdateView,
     PublicRoadExamObjectDeleteView,
 )
@@ -37,41 +34,36 @@ from report_maker.views.images import (
     images_reorder,
 )
 
-from report_maker.views.report_case_preview import (
-    ReportCasePreviewView,
-)
-
 app_name = "report_maker"
 
 urlpatterns = [
     # ─────────────────────────────────────
     # Laudos
     # ─────────────────────────────────────
-    path("reports/", ReportCaseListView.as_view(), name="report_list"),
-    path("reports/create/", ReportCaseCreateView.as_view(), name="report_create"),
-    path("reports/<uuid:pk>/", ReportCaseDetailView.as_view(), name="report_detail"),
-    path("reports/<uuid:pk>/preview/", ReportCasePreviewView.as_view(), name="report_preview"),
-    path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="report_update"),
-    path("reports/<uuid:pk>/delete/", ReportCaseDeleteView.as_view(), name="report_delete"),
-    path("reports/<uuid:pk>/close/", ReportCaseCloseView.as_view(), name="report_close"),
+    path("reports/", ReportCaseListView.as_view(), name="reportcase_list"),
+    path("reports/create/", ReportCaseCreateView.as_view(), name="reportcase_create"),
+    path("reports/<uuid:pk>/", ReportCaseDetailView.as_view(), name="reportcase_detail"),
+    path("reports/<uuid:pk>/preview/", ReportCasePreviewView.as_view(), name="reportcase_preview"),
+    path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="reportcase_update"),
+    path("reports/<uuid:pk>/delete/", ReportCaseDeleteView.as_view(), name="reportcase_delete"),
+    path("reports/<uuid:pk>/close/", ReportCaseCloseView.as_view(), name="reportcase_close"),
+
+    # ─────────────────────────────────────
+    # Dashboard para adicionar objetos de exame
+    # ─────────────────────────────────────
+    path(
+        "reports/<uuid:pk>/objects/add/",
+        ExamObjectDashboardView.as_view(),
+        name="exam_object_dashboard",
+    ),
 
     # ─────────────────────────────────────
     # Objetos de exame (genérico)
     # ─────────────────────────────────────
     path(
-        "reports/<uuid:pk>/objects/generic/create/",
+        "reports/<uuid:report_pk>/objects/generic/create/",
         GenericExamObjectCreateView.as_view(),
         name="generic_object_create",
-    ),
-    path(
-        "reports/<uuid:pk>/objects/reorder/",
-        generic_object_reorder,
-        name="generic_object_reorder",
-    ),
-    path(
-        "objects/generic/<uuid:pk>/",
-        GenericExamObjectDetailView.as_view(),
-        name="generic_object_detail",
     ),
     path(
         "objects/generic/<uuid:pk>/edit/",
@@ -85,31 +77,12 @@ urlpatterns = [
     ),
 
     # ─────────────────────────────────────
-    # Dashboard para objetos de Exame
-    # ─────────────────────────────────────
-    path(
-        "reports/<uuid:pk>/objects/add/",
-        ExamObjectDashboardView.as_view(),
-        name="exam_object_dashboard",
-    ),
-
-    # ─────────────────────────────────────
     # Objetos de exame (Via Pública)
     # ─────────────────────────────────────
-    path(
-        "reports/<uuid:report_pk>/objects/public-road/",
-        PublicRoadExamObjectListView.as_view(),
-        name="public_road_object_list",
-    ),
     path(
         "reports/<uuid:report_pk>/objects/public-road/create/",
         PublicRoadExamObjectCreateView.as_view(),
         name="public_road_object_create",
-    ),
-    path(
-        "objects/public-road/<uuid:pk>/",
-        PublicRoadExamObjectDetailView.as_view(),
-        name="public_road_object_detail",
     ),
     path(
         "objects/public-road/<uuid:pk>/edit/",
@@ -120,6 +93,15 @@ urlpatterns = [
         "objects/public-road/<uuid:pk>/delete/",
         PublicRoadExamObjectDeleteView.as_view(),
         name="public_road_object_delete",
+    ),
+
+    # ─────────────────────────────────────
+    # Reorder GLOBAL de objetos (ExamObject)
+    # ─────────────────────────────────────
+    path(
+        "reports/<uuid:pk>/exam-objects/reorder/",
+        exam_objects_reorder,
+        name="exam_objects_reorder",
     ),
 
     # ─────────────────────────────────────
@@ -141,6 +123,4 @@ urlpatterns = [
         ObjectImageDeleteView.as_view(),
         name="image_delete",
     ),
-    path("images/reorder/", images_reorder, name="images_reorder"),
-    path("reports/exam-objects/reorder/", exam_objects_reorder, name="exam_objects_reorder"),
 ]

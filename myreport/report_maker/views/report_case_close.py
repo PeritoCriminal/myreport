@@ -1,6 +1,9 @@
 # report_maker/views/report_case_close.py
+from __future__ import annotations
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import UpdateView
@@ -15,66 +18,41 @@ class ReportCaseCloseView(LoginRequiredMixin, UpdateView):
 
     Responsabilidades:
     - permitir o upload do PDF final;
-    - acionar o método de domínio `ReportCase.close()`;
-    - congelar a organização (Institution / Nucleus / Team);
-    - impedir reabertura ou conclusão duplicada.
-
-    Importante:
-    Esta view NÃO altera campos isoladamente.
-    Toda a regra de negócio está centralizada no model.
+    - acionar o método de domínio `ReportCase.close()` (via form.save());
+    - congelar organização (snapshot);
+    - impedir conclusão duplicada.
     """
 
     model = ReportCase
     form_class = ReportCaseCloseForm
     template_name = "report_maker/reportcase_close.html"
+    pk_url_kwarg = "pk"
 
-    # ------------------------------------------------------------------
-    # Request gatekeeper
-    # ------------------------------------------------------------------
+    def get_object(self, queryset=None):
+        report = get_object_or_404(ReportCase, pk=self.kwargs[self.pk_url_kwarg])
+
+        # acesso restrito ao autor
+        if report.author_id != self.request.user.id:
+            raise Http404("Laudo não encontrado.")
+
+        return report
+
     def dispatch(self, request, *args, **kwargs):
-        """
-        Ponto de entrada da view (GET ou POST).
-
-        Atua como "porteiro":
-        - se o laudo já estiver concluído ou bloqueado,
-          o acesso à tela de conclusão é negado;
-        - evita dupla finalização e erros tardios.
-        """
         report = self.get_object()
 
+        # se já estiver fechado/bloqueado, não entra na tela
         if not report.can_edit:
             messages.warning(
                 request,
                 "Este laudo já foi concluído e não pode ser alterado."
             )
             return redirect(
-                reverse("report_maker:report_detail", kwargs={"pk": report.pk})
+                reverse("report_maker:reportcase_detail", kwargs={"pk": report.pk})
             )
 
         return super().dispatch(request, *args, **kwargs)
 
-    # ------------------------------------------------------------------
-    # Object retrieval
-    # ------------------------------------------------------------------
-    def get_object(self, queryset=None):
-        """
-        Recupera o laudo a ser concluído a partir do UUID informado na URL.
-        """
-        return get_object_or_404(ReportCase, pk=self.kwargs["pk"])
-
-    # ------------------------------------------------------------------
-    # Successful form handling
-    # ------------------------------------------------------------------
     def form_valid(self, form):
-        """
-        Finaliza o laudo com base no PDF enviado.
-
-        Efeitos colaterais controlados:
-        - status → CLOSED
-        - bloqueio de edição
-        - congelamento do snapshot organizacional
-        - registro do horário de conclusão
-        """
         report = form.save()
 
         messages.success(
@@ -83,5 +61,5 @@ class ReportCaseCloseView(LoginRequiredMixin, UpdateView):
         )
 
         return redirect(
-            reverse("report_maker:report_detail", kwargs={"pk": report.pk})
+            reverse("report_maker:reportcase_detail", kwargs={"pk": report.pk})
         )

@@ -30,7 +30,7 @@ class ExamObjectDashboardView(LoginRequiredMixin, TemplateView):
                 "title": "Objeto genérico",
                 "description": "Use para itens diversos do exame.",
                 "icon": "bi-box",
-                "url": reverse("report_maker:generic_object_create", kwargs={"pk": report.pk}),
+                "url": reverse("report_maker:generic_object_create", kwargs={"report_pk": report.pk}),
                 "enabled": report.can_edit,
             },
             {

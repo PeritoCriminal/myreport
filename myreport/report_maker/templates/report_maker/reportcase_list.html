@@ -17,7 +17,7 @@
     <h4 class="mb-0">Laudos</h4>
 
     <a
-      href="{% url 'report_maker:report_create' %}"
+      href="{% url 'report_maker:reportcase_create' %}"
       class="btn btn-primary"
     >
       <i class="bi bi-plus-lg"></i>
@@ -30,7 +30,7 @@
 
       {% for report in reports %}
         <a
-          href="{% url 'report_maker:report_detail' report.pk %}"
+          href="{% url 'report_maker:reportcase_detail' report.pk %}"
           class="list-group-item list-group-item-action py-3"
         >
           <div class="d-flex justify-content-between align-items-start">

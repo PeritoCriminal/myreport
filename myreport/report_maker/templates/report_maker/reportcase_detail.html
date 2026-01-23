@@ -101,54 +101,87 @@
         {% endif %}
       </div>
 
-      {# Essa iteração funciona porque exibe objetos genericos e vias públicas #}
-      {# No reportcase_preview não está iterando. Poderiamos nos basear aqui para iterar lá, só que lá tem a umeração para os títulos. #}
-      {# A lista de objetos está sem funcionalidade de clicar e arrastar para alterar o order #}
-      {% if exam_objects_ui %}
-        <div class="list-group" id="examObjectsList" data-report-id="{{ report.pk }}" data-reorder-url="{% url 'report_maker:exam_objects_reorder' %}">
-          {% for item in exam_objects_ui %}
-            {% with obj=item.obj %}
-              <div class="list-group-item d-flex align-items-start gap-2" data-id="{{ obj.pk }}" data-type="{{ item.type }}">
-                {% if report.can_edit %}
-                  <span class="text-muted small js-drag-handle flex-shrink-0" title="Arrastar para reordenar" style="cursor: grab; user-select: none; padding-top: 2px;"><i class="bi bi-grip-vertical"></i></span>
-                {% endif %}
+      {% if report.exam_objects.all %}
+        <div
+          class="list-group"
+          id="examObjectsList"
+          data-report-id="{{ report.pk }}"
+          data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}"
+        >
+          {% for obj in report.exam_objects.all %}
+            {% with c=obj.concrete %}
+              {% with model_name=c._meta.model_name %}
+                <div class="list-group-item d-flex align-items-start gap-2" data-id="{{ obj.pk }}" data-type="{{ model_name }}">
+                  {% if report.can_edit %}
+                    <span class="text-muted small js-drag-handle flex-shrink-0" title="Arrastar para reordenar" style="cursor: grab; user-select: none; padding-top: 2px;">
+                      <i class="bi bi-grip-vertical"></i>
+                    </span>
+                  {% endif %}
 
-                <div class="flex-grow-1">
-                  <a href="{{ item.detail_url }}" class="text-decoration-none text-dark d-block">
-                    <div class="fw-semibold">{{ obj.title|default:'Objeto sem título' }}</div>
+                  <div class="flex-grow-1">
 
-                    {% if obj.description %}
-                      <div class="text-muted small">{{ obj.order |truncatechars:120 }}</div>
+                    {# Link do objeto: editar quando can_edit; sem link quando concluído #}
+                    {% if report.can_edit %}
+                      {% if model_name == "genericexamobject" %}
+                        {% url 'report_maker:generic_object_update' c.pk as obj_url %}
+                      {% elif model_name == "publicroadexamobject" %}
+                        {% url 'report_maker:public_road_object_update' c.pk as obj_url %}
+                      {% else %}
+                        {% with "" as obj_url %}{% endwith %}
+                      {% endif %}
+
+                      <a href="{{ obj_url }}" class="text-decoration-none text-dark d-block">
+                        <div class="fw-semibold">{{ obj.title|default:'Objeto sem título' }}</div>
+                        {% if obj.description %}
+                          <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
+                        {% endif %}
+                      </a>
+                    {% else %}
+                      <div class="fw-semibold">{{ obj.title|default:'Objeto sem título' }}</div>
+                      {% if obj.description %}
+                        <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
+                      {% endif %}
                     {% endif %}
-                  </a>
 
-                  {% if obj.images.exists %}
-                    <div id="images-grid-{{ obj.pk }}" class="row g-2 mt-2" data-sortable="images" data-object-id="{{ obj.pk }}" data-reorder-url="{% url 'report_maker:images_reorder' %}">
-                      {% for img in obj.images.all %}
-                        <div class="col-6 col-sm-4 col-md-3 col-lg-2" data-image-id="{{ img.pk }}" data-index="{{ img.index }}">
-                          <div class="card h-100 shadow-sm">
-                            <a href="{{ img.image.url }}" target="_blank" rel="noopener" class="text-decoration-none"><img src="{{ img.image.url }}" class="card-img-top" alt="{{ img.caption|default:'Imagem' }}" style="height: 90px; object-fit: cover;" /></a>
+                    {# Imagens do objeto (GenericRelation) #}
+                    {% if obj.images.exists %}
+                      <div
+                        id="images-grid-{{ obj.pk }}"
+                        class="row g-2 mt-2"
+                        data-sortable="images"
+                        data-object-id="{{ obj.pk }}"
+                        data-reorder-url="{% url 'report_maker:images_reorder' %}"
+                      >
+                        {% for img in obj.images.all %}
+                          <div class="col-6 col-sm-4 col-md-3 col-lg-2" data-image-id="{{ img.pk }}" data-index="{{ img.index }}">
+                            <div class="card h-100 shadow-sm">
+                              <a href="{{ img.image.url }}" target="_blank" rel="noopener" class="text-decoration-none">
+                                <img src="{{ img.image.url }}" class="card-img-top" alt="{{ img.caption|default:'Imagem' }}" style="height: 90px; object-fit: cover;" />
+                              </a>
 
-                            <div class="card-body p-2">
-                              {% if img.caption %}
-                                <div class="small text-truncate" title="{{ img.caption }}">{{ img.index }} – {{ img.caption }}</div>
-                              {% else %}
-                                <div class="small text-muted">Sem legenda</div>
-                              {% endif %}
+                              <div class="card-body p-2">
+                                {% if img.caption %}
+                                  <div class="small text-truncate" title="{{ img.caption }}">{{ img.index }} – {{ img.caption }}</div>
+                                {% else %}
+                                  <div class="small text-muted">Sem legenda</div>
+                                {% endif %}
 
-                              {% if report.can_edit %}
-                                <div class="d-flex justify-content-end mt-1">
-                                  <span class="text-muted small js-drag-handle" title="Arrastar para reordenar" style="cursor: grab; user-select: none;"><i class="bi bi-grip-vertical"></i></span>
-                                </div>
-                              {% endif %}
+                                {% if report.can_edit %}
+                                  <div class="d-flex justify-content-end mt-1">
+                                    <span class="text-muted small js-drag-handle" title="Arrastar para reordenar" style="cursor: grab; user-select: none;">
+                                      <i class="bi bi-grip-vertical"></i>
+                                    </span>
+                                  </div>
+                                {% endif %}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      {% endfor %}
-                    </div>
-                  {% endif %}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
                 </div>
-              </div>
+              {% endwith %}
             {% endwith %}
           {% endfor %}
         </div>
@@ -167,15 +200,17 @@
 
     {# Rodapé (ações do laudo) #}
     <div class="mt-5 d-flex justify-content-between align-items-center">
-      <a href="{% url 'report_maker:report_list' %}" class="btn btn-outline-secondary">Voltar à lista</a>
+      <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-outline-secondary">Voltar à lista</a>
 
-      <a href="{% url 'report_maker:report_preview' report.pk %}" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">Visualizar laudo</a>
+      <a href="{% url 'report_maker:reportcase_preview' report.pk %}" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">
+        Visualizar laudo
+      </a>
 
       {% if report.can_edit %}
         <div class="btn-group">
-          <a href="{% url 'report_maker:report_update' report.pk %}" class="btn btn-outline-primary btn-sm">Editar laudo</a>
-          <a href="{% url 'report_maker:report_delete' report.pk %}" class="btn btn-outline-danger btn-sm">Excluir laudo</a>
-          <a class="btn btn-success btn-sm" href="{% url 'report_maker:report_close' report.pk %}">Concluir laudo</a>
+          <a href="{% url 'report_maker:reportcase_update' report.pk %}" class="btn btn-outline-primary btn-sm">Editar laudo</a>
+          <a href="{% url 'report_maker:reportcase_delete' report.pk %}" class="btn btn-outline-danger btn-sm">Excluir laudo</a>
+          <a class="btn btn-success btn-sm" href="{% url 'report_maker:reportcase_close' report.pk %}">Concluir laudo</a>
         </div>
       {% endif %}
     </div>
@@ -194,25 +229,21 @@
   <script src="{% static 'report_maker/js/image_sortable.js' %}"></script>
 
   <script>
-    // Reordenação de imagens (usada pelo image_sortable.js)
     window.REPORT_MAKER_IMAGES_REORDER_URL = "{% url 'report_maker:images_reorder' %}"
-    
-    // Reordenação de objetos (lista)
+
     ;(function () {
       const list = document.getElementById('examObjectsList')
       if (!list) return
-    
-      // só ativa se houver handle (permite arrastar apenas quando can_edit)
       if (!list.querySelector('.js-drag-handle')) return
-    
+
       const reorderUrl = list.dataset.reorderUrl
       const reportId = list.dataset.reportId
-    
+
       function getCSRFToken() {
         const el = document.querySelector('input[name=csrfmiddlewaretoken]')
         return el ? el.value : ''
       }
-    
+
       Sortable.create(list, {
         animation: 150,
         handle: '.js-drag-handle',
@@ -220,13 +251,9 @@
         ghostClass: 'sortable-ghost',
         chosenClass: 'sortable-chosen',
         onEnd: async function () {
-          const rows = Array.from(list.querySelectorAll('[data-id][data-type]'))
-          const items = rows.map((row, idx) => ({
-            id: row.dataset.id,
-            type: row.dataset.type,
-            order: idx + 1
-          }))
-    
+          const rows = Array.from(list.querySelectorAll('[data-id]'))
+          const ids = rows.map((row) => row.dataset.id)
+
           const resp = await fetch(reorderUrl, {
             method: 'POST',
             headers: {
@@ -234,9 +261,9 @@
               'X-CSRFToken': getCSRFToken(),
               'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ report_id: reportId, items })
+            body: JSON.stringify({ report_id: reportId, ids })
           })
-    
+
           if (!resp.ok) {
             console.error('Falha ao reordenar objetos')
           }

@@ -1,170 +1,151 @@
-"""
-Views de CRUD para objetos de exame genéricos (GenericExamObject).
+# myreport/report_maker/views/generic_object.py
 
-Garantias:
-- acesso restrito ao autor do laudo;
-- bloqueio de edição/exclusão quando o laudo não puder ser editado;
-- ordenação automática delegada ao model (ExamObject.save).
-"""
-import json
-
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db import transaction
+from django.core.exceptions import PermissionDenied
 from django.http import Http404, JsonResponse
-from django.urls import reverse
-from django.views.generic import CreateView, UpdateView, DetailView, DeleteView
-from django.contrib.auth.decorators import login_required
+from django.urls import reverse, reverse_lazy
+from django.views import View
+from django.views.generic import CreateView, UpdateView, DeleteView
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_protect
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-from common.mixins import ExamObjectMetaContextMixin, CanEditReportsRequiredMixin
-from report_maker.forms import GenericExamObjectForm
-from report_maker.models import GenericExamObject, ReportCase
+from report_maker.models import ReportCase, GenericExamObject
 
+
+
+
+# ─────────────────────────────────────────────────────────────
+# Helpers / Mixins
+# ─────────────────────────────────────────────────────────────
+
+class ReportCaseOwnedMixin:
+    """
+    Carrega o ReportCase e garante que pertence ao usuário autenticado.
+    """
+    report_pk_url_kwarg = "report_pk"
+
+    def get_report_case(self) -> ReportCase:
+        pk = self.kwargs.get(self.report_pk_url_kwarg)
+        if not pk:
+            raise Http404("ReportCase não informado.")
+        try:
+            report = ReportCase.objects.select_related("author").get(pk=pk)
+        except ReportCase.DoesNotExist:
+            raise Http404("ReportCase não encontrado.")
+        if report.author_id != self.request.user.id:
+            raise PermissionDenied("Acesso negado.")
+        return report
+
+
+class CanEditReportRequiredMixin(ReportCaseOwnedMixin):
+    """
+    Bloqueia ações de escrita quando o ReportCase não puder ser editado.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        self.report_case = self.get_report_case()
+        if not self.report_case.can_edit:
+            raise PermissionDenied("Este laudo está bloqueado para edição.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class GenericExamObjectOwnedQuerySetMixin:
+    """
+    Garante que o objeto (GenericExamObject) pertence ao usuário via report_case.author.
+    """
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.select_related("report_case").filter(report_case__author=self.request.user)
+
+
+# ─────────────────────────────────────────────────────────────
+# CRUD
+# ─────────────────────────────────────────────────────────────
 
 class GenericExamObjectCreateView(
-    LoginRequiredMixin,
-    CanEditReportsRequiredMixin,
+    CanEditReportRequiredMixin,
     CreateView,
 ):
     model = GenericExamObject
-    form_class = GenericExamObjectForm
     template_name = "report_maker/generic_object_form.html"
+    fields = ("title", "description")
 
-    def get_report_case(self) -> ReportCase:
-        report_pk = self.kwargs.get("report_pk") or self.kwargs.get("pk")
-        report = ReportCase.objects.filter(
-            author=self.request.user,
-            pk=report_pk,
-        ).first()
-        if not report or not report.can_edit:
-            raise Http404
-        return report
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["report"] = self.report_case
+        ctx["mode"] = "create"
+        return ctx
 
     def form_valid(self, form):
-        form.instance.report_case = self.get_report_case()
+        form.instance.report_case = self.report_case
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse(
-            "report_maker:report_detail",
-            kwargs={"pk": self.object.report_case_id},
-        )
+        return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
 
 
 class GenericExamObjectUpdateView(
-    LoginRequiredMixin,
-    CanEditReportsRequiredMixin,
+    CanEditReportRequiredMixin,
+    GenericExamObjectOwnedQuerySetMixin,
     UpdateView,
 ):
     model = GenericExamObject
-    form_class = GenericExamObjectForm
     template_name = "report_maker/generic_object_form.html"
     context_object_name = "obj"
-
-    def get_queryset(self):
-        return GenericExamObject.objects.filter(
-            report_case__author=self.request.user
-        )
+    pk_url_kwarg = "pk"
+    fields = ("title", "description")
 
     def dispatch(self, request, *args, **kwargs):
-        obj = self.get_object()
-        if not obj.report_case.can_edit:
-            raise Http404
+        # report_case é usado no context + success_url
+        self.report_case = self.get_report_case()
         return super().dispatch(request, *args, **kwargs)
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset=queryset)
+        if obj.report_case_id != self.report_case.id:
+            raise PermissionDenied("Objeto não pertence a este laudo.")
+        return obj
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["report"] = self.report_case
+        ctx["mode"] = "update"
+        return ctx
+
     def get_success_url(self):
-        return reverse(
-            "report_maker:report_detail",
-            kwargs={"pk": self.object.report_case_id},
-        )
+        return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
 
 
 class GenericExamObjectDeleteView(
-    LoginRequiredMixin,
-    CanEditReportsRequiredMixin,
+    CanEditReportRequiredMixin,
+    GenericExamObjectOwnedQuerySetMixin,
     DeleteView,
 ):
     model = GenericExamObject
     template_name = "report_maker/generic_object_confirm_delete.html"
     context_object_name = "obj"
-
-    def get_queryset(self):
-        return GenericExamObject.objects.filter(
-            report_case__author=self.request.user
-        )
+    pk_url_kwarg = "pk"
 
     def dispatch(self, request, *args, **kwargs):
-        obj = self.get_object()
-        if not obj.report_case.can_edit:
-            raise Http404
+        self.report_case = self.get_report_case()
         return super().dispatch(request, *args, **kwargs)
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset=queryset)
+        if obj.report_case_id != self.report_case.id:
+            raise PermissionDenied("Objeto não pertence a este laudo.")
+        return obj
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["report"] = self.report_case
+        return ctx
+
     def get_success_url(self):
-        return reverse(
-            "report_maker:report_detail",
-            kwargs={"pk": self.object.report_case_id},
-        )
+        return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
 
 
-class GenericExamObjectDetailView(
-    ExamObjectMetaContextMixin,
-    LoginRequiredMixin,
-    DetailView,
-):
-    model = GenericExamObject
-    template_name = "report_maker/generic_object_detail.html"
-    context_object_name = "obj"
+# ─────────────────────────────────────────────────────────────
+# AJAX: reordenar objetos do laudo (opcional, mas útil)
+# ─────────────────────────────────────────────────────────────
 
-    def get_queryset(self):
-        return super().get_queryset().filter(
-            report_case__author=self.request.user
-        )
-
-
-@login_required
-@require_POST
-@csrf_protect
-def generic_object_reorder(request, pk):
-    """
-    Reordena objetos de exame de um laudo com base em uma lista ordenada de UUIDs.
-    """
-    report = ReportCase.objects.filter(
-        pk=pk,
-        author=request.user,
-    ).first()
-    if not report or not report.can_edit:
-        raise Http404
-
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-        ordered_ids = data.get("ordered_ids", [])
-        if not isinstance(ordered_ids, list) or not ordered_ids:
-            return JsonResponse(
-                {"ok": False, "error": "ordered_ids inválido"},
-                status=400,
-            )
-    except (ValueError, UnicodeDecodeError):
-        return JsonResponse(
-            {"ok": False, "error": "JSON inválido"},
-            status=400,
-        )
-
-    qs = GenericExamObject.objects.filter(
-        report_case=report,
-        pk__in=ordered_ids,
-    )
-    if qs.count() != len(ordered_ids):
-        return JsonResponse(
-            {"ok": False, "error": "IDs não pertencem ao laudo"},
-            status=400,
-        )
-
-    with transaction.atomic():
-        for idx, obj_id in enumerate(ordered_ids, start=1):
-            GenericExamObject.objects.filter(
-                report_case=report,
-                pk=obj_id,
-            ).update(order=idx)
-
-    return JsonResponse({"ok": True})

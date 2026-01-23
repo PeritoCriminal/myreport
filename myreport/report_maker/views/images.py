@@ -1,9 +1,12 @@
 # report_maker/views/images.py
+from __future__ import annotations
+
 import json
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Max
 from django.http import Http404, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
@@ -15,7 +18,7 @@ from PIL import Image
 
 from common.mixins import CanEditReportsRequiredMixin
 from report_maker.forms import ObjectImageForm
-from report_maker.models import ObjectImage
+from report_maker.models import ObjectImage, ReportCase
 
 
 class _ImageAccessMixin(LoginRequiredMixin):
@@ -50,6 +53,8 @@ class _ImageAccessMixin(LoginRequiredMixin):
         report = getattr(obj, "report_case", None)
         if not report:
             raise Http404
+
+        # reforça owner + editabilidade
         if report.author_id != self.request.user.id:
             raise Http404
         if not getattr(report, "can_edit", False):
@@ -69,7 +74,7 @@ class ObjectImageCreateView(_ImageAccessMixin, CanEditReportsRequiredMixin, Crea
         ctx["initial_image_url"] = ""
 
         _ct, _obj, report = self._get_target_object()
-        ctx["cancel_url"] = reverse("report_maker:report_detail", kwargs={"pk": report.pk})
+        ctx["cancel_url"] = reverse("report_maker:reportcase_detail", kwargs={"pk": report.pk})
         return ctx
 
     def form_valid(self, form):
@@ -97,7 +102,7 @@ class ObjectImageCreateView(_ImageAccessMixin, CanEditReportsRequiredMixin, Crea
 
     def get_success_url(self):
         _ct, _obj, report = self._get_target_object()
-        return reverse("report_maker:report_detail", kwargs={"pk": report.pk})
+        return reverse("report_maker:reportcase_detail", kwargs={"pk": report.pk})
 
 
 class ObjectImageUpdateView(_ImageAccessMixin, CanEditReportsRequiredMixin, UpdateView):
@@ -131,7 +136,7 @@ class ObjectImageUpdateView(_ImageAccessMixin, CanEditReportsRequiredMixin, Upda
 
         obj = img.content_object
         report = obj.report_case
-        ctx["cancel_url"] = reverse("report_maker:report_detail", kwargs={"pk": report.pk})
+        ctx["cancel_url"] = reverse("report_maker:reportcase_detail", kwargs={"pk": report.pk})
         return ctx
 
     def form_valid(self, form):
@@ -141,7 +146,7 @@ class ObjectImageUpdateView(_ImageAccessMixin, CanEditReportsRequiredMixin, Upda
 
     def get_success_url(self):
         obj = self.object.content_object
-        return reverse("report_maker:report_detail", kwargs={"pk": obj.report_case.pk})
+        return reverse("report_maker:reportcase_detail", kwargs={"pk": obj.report_case.pk})
 
 
 class ObjectImageDeleteView(_ImageAccessMixin, CanEditReportsRequiredMixin, DeleteView):
@@ -167,14 +172,14 @@ class ObjectImageDeleteView(_ImageAccessMixin, CanEditReportsRequiredMixin, Dele
 
     def get_success_url(self):
         obj = self.object.content_object
-        return reverse("report_maker:report_detail", kwargs={"pk": obj.report_case.pk})
+        return reverse("report_maker:reportcase_detail", kwargs={"pk": obj.report_case.pk})
 
 
 @login_required
 @require_POST
 def images_reorder(request):
     try:
-        data = json.loads(request.body.decode("utf-8"))
+        data = json.loads(request.body.decode("utf-8") or "{}")
         ordered_ids = data.get("ordered_ids", [])
         if not ordered_ids:
             return HttpResponseBadRequest("ordered_ids vazio")
@@ -182,6 +187,9 @@ def images_reorder(request):
         return HttpResponseBadRequest("JSON inválido")
 
     qs = ObjectImage.objects.filter(pk__in=ordered_ids)
+    if qs.count() != len(ordered_ids):
+        return HttpResponseBadRequest("Há IDs inexistentes em ordered_ids")
+
     first = qs.first()
     if not first:
         return HttpResponseBadRequest("Imagens não encontradas")
@@ -196,11 +204,7 @@ def images_reorder(request):
 
     obj = first.content_object
     report = getattr(obj, "report_case", None)
-    if (
-        not report
-        or report.author_id != request.user.id
-        or not getattr(report, "can_edit", False)
-    ):
+    if not report or report.author_id != request.user.id or not getattr(report, "can_edit", False):
         return HttpResponseForbidden("Sem permissão")
 
     ordered_ids_str = [str(x) for x in ordered_ids]
