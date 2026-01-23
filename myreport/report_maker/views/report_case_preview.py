@@ -1,18 +1,12 @@
 # report_maker/views/report_case_preview.py
 from __future__ import annotations
 
-from itertools import chain
-
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Prefetch
+from django.urls import reverse
 from django.views.generic import DetailView
 
-from report_maker.models import (
-    ReportCase,
-    GenericExamObject,
-    PublicRoadExamObject,
-    ObjectImage,
-)
+from report_maker.models import ReportCase, GenericExamObject  # + seu outro model aqui
+from report_maker.utils.enumerator import TitleEnumerator
 
 
 class ReportCasePreviewView(LoginRequiredMixin, DetailView):
@@ -21,33 +15,52 @@ class ReportCasePreviewView(LoginRequiredMixin, DetailView):
     context_object_name = "report"
     pk_url_kwarg = "pk"
 
-    def get_queryset(self):
-        # apenas o autor pode ver o preview
-        return ReportCase.objects.filter(author=self.request.user)
-
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        report: ReportCase = context["report"]
+        ctx = super().get_context_data(**kwargs)
+        report: ReportCase = ctx["report"]
 
-        images_qs = ObjectImage.objects.order_by("index", "created_at")
-
+        # ⚠️ Ajuste/adicione os outros models que também são “objetos de exame”
         generic_qs = (
             GenericExamObject.objects
             .filter(report_case=report)
-            .order_by("order", "created_at")
-            .prefetch_related(Prefetch("images", queryset=images_qs))
+            .prefetch_related("images")
+            .order_by("order", "pk")  # ajuste se seu campo for outro
         )
 
-        public_road_qs = (
-            PublicRoadExamObject.objects
-            .filter(report_case=report)
-            .order_by("order", "created_at")
-            .prefetch_related(Prefetch("images", queryset=images_qs))
-        )
+        # Exemplo: se você tem um model “Via Pública” separado, carregue aqui:
+        # public_road_qs = (
+        #     PublicRoadExamObject.objects
+        #     .filter(report_case=report)
+        #     .prefetch_related("images")
+        #     .order_by("order", "pk")
+        # )
 
-        merged = list(chain(generic_qs, public_road_qs))
-        merged.sort(key=lambda o: (o.order, o.created_at, str(o.pk)))
+        items = []
 
-        # o template do preview pode iterar por "exam_objects"
-        context["exam_objects"] = merged
-        return context
+        for obj in generic_qs:
+            items.append({
+                "type": "GENERIC",
+                "obj": obj,
+                "detail_url": reverse("report_maker:generic_object_detail", args=[obj.pk]),
+                "order": getattr(obj, "order", 0),
+            })
+
+        # for obj in public_road_qs:
+        #     items.append({
+        #         "type": "PUBLIC_ROAD",
+        #         "obj": obj,
+        #         "detail_url": reverse("report_maker:public_road_detail", args=[obj.pk]),
+        #         "order": getattr(obj, "order", 0),
+        #     })
+
+        # Unifica e ordena (se ambos coexistem)
+        items.sort(key=lambda x: (x.get("order", 0), x["obj"].pk))
+
+        # Numeração pronta para o template
+        enum = TitleEnumerator()
+        for it in items:
+            base = getattr(it["obj"], "title", "") or "Objeto sem título"
+            it["display_title"] = enum.format(base)  # <-- ajuste se seu enumerator usar outro método
+
+        ctx["exam_objects_ui"] = items
+        return ctx

@@ -4,77 +4,36 @@
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
-    {% comment %}
-    ─────────────────────────────────────────────────────────────
-    Metadados do documento
-    ─────────────────────────────────────────────────────────────
-    {% endcomment %}
+    {% comment %}───────────────────────────────────────────────────────────── Metadados do documento ─────────────────────────────────────────────────────────────{% endcomment %}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Laudo nº {{ report.report_number }}</title>
 
-    {% comment %}
-    ─────────────────────────────────────────────────────────────
-    CSS (vendor + feature)
-    ─────────────────────────────────────────────────────────────
-    {% endcomment %}
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'report_maker/css/report_preview.css' %}"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'report_maker/css/report_print.css' %}"
-    />
+    {% comment %}───────────────────────────────────────────────────────────── CSS (vendor + feature) ─────────────────────────────────────────────────────────────{% endcomment %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'report_maker/css/report_preview.css' %}" />
+    <link rel="stylesheet" href="{% static 'report_maker/css/report_print.css' %}" />
   </head>
 
   <body>
-    {% comment %}
-    ─────────────────────────────────────────────────────────────
-    Controles do preview
-    ─────────────────────────────────────────────────────────────
-    {% endcomment %}
-    <button
-      type="button"
-      class="btn btn-light close-btn"
-      data-action="close-preview"
-    >
-      Fechar
-    </button>
+    {% comment %}───────────────────────────────────────────────────────────── Controles do preview ─────────────────────────────────────────────────────────────{% endcomment %}
+    <button type="button" class="btn btn-light close-btn" data-action="close-preview">Fechar</button>
 
-    {% comment %}
-    ─────────────────────────────────────────────────────────────
-    Stage do preview e página do laudo
-    ─────────────────────────────────────────────────────────────
-    {% endcomment %}
+    {% comment %}───────────────────────────────────────────────────────────── Stage do preview e página do laudo ─────────────────────────────────────────────────────────────{% endcomment %}
     <main class="report-stage">
       <section class="report-page">
-        {% comment %}
-        ─────────────────────────────────────────────────────────
-        Cabeçalho institucional
-        ─────────────────────────────────────────────────────────
-        {% endcomment %}
+        {% comment %}───────────────────────────────────────────────────────── Cabeçalho institucional ─────────────────────────────────────────────────────────{% endcomment %}
         <header class="text-center">
           <table class="report-header" role="presentation">
             <tr>
               <td class="rh-img rh-left">
                 {% if header.emblem_primary %}
-                  <img
-                    src="{{ header.emblem_primary.url }}"
-                    alt="Emblema"
-                    class="rh-emblem"
-                  />
+                  <img src="{{ header.emblem_primary.url }}" alt="Emblema" class="rh-emblem" />
                 {% endif %}
               </td>
 
               <td class="rh-center">
-                <div class="rh-line rh-1">
-                  SECRETARIA DA SEGURANÇA PÚBLICA
-                </div>
+                <div class="rh-line rh-1">SECRETARIA DA SEGURANÇA PÚBLICA</div>
 
                 {% if header.name or header.acronym %}
                   <div class="rh-line rh-2">
@@ -86,57 +45,35 @@
                 {% endif %}
 
                 {% if header.kind_display %}
-                  <div class="rh-line rh-3">
-                    {{ header.kind_display }}
-                  </div>
+                  <div class="rh-line rh-3">{{ header.kind_display }}</div>
                 {% endif %}
 
                 {% if header.honoree_line %}
-                  <div class="rh-line rh-4">
-                    "{{ header.honoree_line|upper }}"
-                  </div>
+                  <div class="rh-line rh-4">"{{ header.honoree_line|upper }}"</div>
                 {% endif %}
 
                 {% if header.unit_line %}
-                  <div class="rh-line rh-5">
-                    {{ header.unit_line }}
-                  </div>
+                  <div class="rh-line rh-5">{{ header.unit_line }}</div>
                 {% endif %}
               </td>
 
               <td class="rh-img rh-right">
                 {% if header.emblem_secondary %}
-                  <img
-                    src="{{ header.emblem_secondary.url }}"
-                    alt="Emblema"
-                    class="rh-emblem"
-                  />
+                  <img src="{{ header.emblem_secondary.url }}" alt="Emblema" class="rh-emblem" />
                 {% endif %}
               </td>
             </tr>
           </table>
 
-          <div class="report-number">
-            LAUDO Nº {{ report.report_number }}
-          </div>
+          <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
         </header>
 
-        {% comment %}
-        ─────────────────────────────────────────────────────────
-        Preâmbulo
-        ─────────────────────────────────────────────────────────
-        {% endcomment %}
+        {% comment %}───────────────────────────────────────────────────────── Preâmbulo ─────────────────────────────────────────────────────────{% endcomment %}
         {% if report.preamble %}
-          <section class="report-section preamble">
-            {{ report.preamble|linebreaks }}
-          </section>
+          <section class="report-section preamble">{{ report.preamble|linebreaks }}</section>
         {% endif %}
 
-        {% comment %}
-        ─────────────────────────────────────────────────────────
-        Dados da Requisição
-        ─────────────────────────────────────────────────────────
-        {% endcomment %}
+        {% comment %}───────────────────────────────────────────────────────── Dados da Requisição ─────────────────────────────────────────────────────────{% endcomment %}
         <section class="report-section">
           <h2 class="section-heading">Dados da Requisição</h2>
 
@@ -164,11 +101,7 @@
           </dl>
         </section>
 
-        {% comment %}
-        ─────────────────────────────────────────────────────────
-        Dados do Atendimento
-        ─────────────────────────────────────────────────────────
-        {% endcomment %}
+        {% comment %}───────────────────────────────────────────────────────── Dados do Atendimento ─────────────────────────────────────────────────────────{% endcomment %}
         <section class="report-section">
           <h2 class="section-heading">Dados do Atendimento</h2>
 
@@ -190,143 +123,44 @@
           </dl>
         </section>
 
-        {% comment %}
-        ─────────────────────────────────────────────────────────
-        Objetos Examinados
-        ─────────────────────────────────────────────────────────
-        Contexto esperado (enriched_objects):
-        item.obj_no        -> "1.", "2."...
-        item.subnums       -> dict/obj com chaves (conforme o tipo):
-           descricao
-           methodology
-           elements
-           images
-           weather_conditions
-           road_conditions
-           traffic_signage
-           observed_elements
-        item.obj           -> ExamObject concreto
-        item.images        -> lista de ObjectImage já ordenada (index)
-        cada img:
-          img.image.url
-          img.caption_html (opcional)
-          img.figure_label  -> "Figura 1", "Figura 2"...
-        ─────────────────────────────────────────────────────────
-        {% endcomment %}
-        {% for item in enriched_objects %}
-          {% with obj=item.obj %}
-            <section class="object-block">
-              <h2 class="object-title">
-                {{ item.obj_no }} {{ obj.title|default:"Objeto" }}
-              </h2>
+        {% comment %}───────────────────────────────────────────────────────── Objetos Examinados ───────────────────────────────────────────────────────── Contexto esperado (enriched_objects): item.obj_no -> "1.", "2."... item.subnums -> dict/obj com chaves (conforme o tipo): descricao methodology elements images weather_conditions road_conditions traffic_signage observed_elements item.obj -> ExamObject concreto item.images -> lista de ObjectImage já ordenada (index) cada img: img.image.url img.caption_html (opcional) img.figure_label -> "Figura 1", "Figura 2"... ─────────────────────────────────────────────────────────{% endcomment %}
+        {% if exam_objects_ui %}
+          <div class="list-group" id="examObjectsList" data-report-id="{{ report.pk }}" data-reorder-url="{% url 'report_maker:exam_objects_reorder' %}">
+            {% for item in exam_objects_ui %}
+              {% with obj=item.obj %}
+                <div class="list-group-item d-flex align-items-start gap-2" data-id="{{ obj.pk }}" data-type="{{ item.type }}">
+                  <div class="flex-grow-1">
+                    <a href="{{ item.detail_url }}" class="text-decoration-none text-dark d-block">
+                      <div class="fw-semibold">{{ item.display_title }}</div>
 
-              {% comment %}
-              ─────────────────────────────
-              Campos comuns (genérico)
-              ─────────────────────────────
-              {% endcomment %}
-              {% if obj.description_html %}
-                <div class="object-subtitle">
-                  {{ item.subnums.descricao|default:"" }}{% if item.subnums.descricao %} {% endif %}Descrição
-                </div>
-                {{ obj.description_html|safe }}
-              {% elif obj.description %}
-                <div class="object-subtitle">
-                  {{ item.subnums.descricao|default:"" }}{% if item.subnums.descricao %} {% endif %}Descrição
-                </div>
-                {{ obj.description|linebreaks }}
-              {% endif %}
+                      {% if obj.description %}
+                        <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
+                      {% endif %}
+                    </a>
 
-              {% if obj.methodology_html %}
-                <div class="object-subtitle">
-                  {{ item.subnums.methodology|default:"" }}{% if item.subnums.methodology %} {% endif %}Metodologia
-                </div>
-                {{ obj.methodology_html|safe }}
-              {% elif obj.methodology %}
-                <div class="object-subtitle">
-                  {{ item.subnums.methodology|default:"" }}{% if item.subnums.methodology %} {% endif %}Metodologia
-                </div>
-                {{ obj.methodology|linebreaks }}
-              {% endif %}
+                    {% if obj.images.exists %}
+                      <div class="row g-2 mt-2">
+                        {% for img in obj.images.all %}
+                          <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="card h-100 shadow-sm">
+                              <a href="{{ img.image.url }}" target="_blank" rel="noopener" class="text-decoration-none"><img src="{{ img.image.url }}" class="card-img-top" alt="{{ img.caption|default:'Imagem' }}" style="height: 90px; object-fit: cover;" /></a>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
 
-              {% if obj.elements_html %}
-                <div class="object-subtitle">
-                  {{ item.subnums.elements|default:"" }}{% if item.subnums.elements %} {% endif %}Elementos observados
+                  {% if report.can_edit %}
+                    <span class="text-muted small js-drag-handle" title="Arrastar para reordenar" style="cursor: grab; user-select:none;"><i class="bi bi-grip-vertical"></i></span>
+                  {% endif %}
                 </div>
-                {{ obj.elements_html|safe }}
-              {% elif obj.elements %}
-                <div class="object-subtitle">
-                  {{ item.subnums.elements|default:"" }}{% if item.subnums.elements %} {% endif %}Elementos observados
-                </div>
-                {{ obj.elements|linebreaks }}
-              {% endif %}
-
-              {% comment %}
-              ─────────────────────────────
-              Via pública (campos específicos)
-              ─────────────────────────────
-              {% endcomment %}
-              {% if obj.weather_conditions %}
-                <div class="object-subtitle">
-                  {{ item.subnums.weather_conditions|default:"" }}{% if item.subnums.weather_conditions %} {% endif %}Condições climáticas
-                </div>
-                {{ obj.weather_conditions|linebreaks }}
-              {% endif %}
-
-              {% if obj.road_conditions %}
-                <div class="object-subtitle">
-                  {{ item.subnums.road_conditions|default:"" }}{% if item.subnums.road_conditions %} {% endif %}Condições da via
-                </div>
-                {{ obj.road_conditions|linebreaks }}
-              {% endif %}
-
-              {% if obj.traffic_signage %}
-                <div class="object-subtitle">
-                  {{ item.subnums.traffic_signage|default:"" }}{% if item.subnums.traffic_signage %} {% endif %}Sinalização viária
-                </div>
-                {{ obj.traffic_signage|linebreaks }}
-              {% endif %}
-
-              {% if obj.observed_elements %}
-                <div class="object-subtitle">
-                  {{ item.subnums.observed_elements|default:"" }}{% if item.subnums.observed_elements %} {% endif %}Elementos observados
-                </div>
-                {{ obj.observed_elements|linebreaks }}
-              {% endif %}
-
-              {% if item.images %}
-                <div class="object-subtitle">
-                  {{ item.subnums.images|default:"" }}{% if item.subnums.images %} {% endif %}Imagens
-                </div>
-
-                <div class="figure-grid">
-                  {% for img in item.images %}
-                    <figure class="report-figure">
-                      <img
-                        src="{{ img.image.url }}"
-                        alt="{{ img.caption|default:'Figura' }}"
-                      />
-                      <figcaption>
-                        {% if img.caption_html %}
-                          {{ img.figure_label }} — {{ img.caption_html|safe }}
-                        {% elif img.caption %}
-                          {{ img.figure_label }} — {{ img.caption|linebreaksbr }}
-                        {% else %}
-                          {{ img.figure_label }}
-                        {% endif %}
-                      </figcaption>
-                    </figure>
-                  {% endfor %}
-                </div>
-              {% endif %}
-            </section>
-          {% endwith %}
-        {% empty %}
-          <section class="report-section">
-            <p class="text-muted mb-0">Não havia objetos examinados cadastrados.</p>
-          </section>
-        {% endfor %}
-
+              {% endwith %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0">Nenhum objeto de exame cadastrado.</p>
+        {% endif %}
       </section>
     </main>
   </body>

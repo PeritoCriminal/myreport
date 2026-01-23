@@ -7,20 +7,12 @@ import uuid
 from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
 
-from .report_case import ReportCase
 from .images import ObjectImage
 
 
 class ExamObject(models.Model):
     """
     Base comum para todos os objetos examinados em um laudo.
-
-    Define apenas os campos conceituais mínimos compartilhados por todos os
-    tipos de objeto pericial, independentemente de sua natureza específica
-    (local, veículo, arma, cadáver, etc.).
-
-    Campos narrativos adicionais devem ser introduzidos por mixins ou
-    modelos concretos, conforme a necessidade de cada tipo.
     """
 
     id = models.UUIDField(
@@ -32,13 +24,14 @@ class ExamObject(models.Model):
     report_case = models.ForeignKey(
         "report_maker.ReportCase",
         on_delete=models.CASCADE,
-        related_name="%(class)s_objects",
-        related_query_name="%(class)s_object",
+        related_name="exam_objects",
+        related_query_name="exam_object",
     )
 
     order = models.PositiveIntegerField(
         "Ordem",
         editable=False,
+        blank=True,  # <- importante (form/admin)
         help_text="Ordem de exibição do objeto dentro do laudo.",
     )
 
@@ -60,28 +53,27 @@ class ExamObject(models.Model):
         related_query_name="exam_object",
     )
 
-    created_at = models.DateTimeField(
-        "Criado em",
-        auto_now_add=True,
-    )
-
-    updated_at = models.DateTimeField(
-        "Atualizado em",
-        auto_now=True,
-    )
+    created_at = models.DateTimeField("Criado em", auto_now_add=True)
+    updated_at = models.DateTimeField("Atualizado em", auto_now=True)
 
     class Meta:
-        abstract = True
+        abstract = False
         ordering = ("order",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("report_case", "order"),
+                name="uq_examobject_reportcase_order",
+            )
+        ]
 
     def save(self, *args, **kwargs):
         """
-        Define automaticamente a ordem do objeto dentro do laudo,
-        caso ainda não tenha sido atribuída.
+        Define automaticamente a ordem do objeto dentro do laudo.
+        Ordem GLOBAL dentro do report_case.
         """
         if self.order is None:
             last = (
-                self.__class__.objects
+                ExamObject.objects
                 .filter(report_case=self.report_case)
                 .aggregate(models.Max("order"))
                 .get("order__max")
@@ -89,6 +81,18 @@ class ExamObject(models.Model):
             self.order = (last or 0) + 1
 
         super().save(*args, **kwargs)
+
+    @property
+    def concrete(self):
+        """
+        Retorna a instância concreta (filha) quando existir.
+        Útil para preview/templates (downcast manual).
+        """
+        # nomes padrão do Django: <modelname em minúsculo>
+        for rel in ("publicroadexamobject", "genericexamobject"):
+            if hasattr(self, rel):
+                return getattr(self, rel)
+        return self
 
     def __str__(self) -> str:
         return self.title or f"Objeto ({self.pk})"

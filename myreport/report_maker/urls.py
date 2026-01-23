@@ -12,6 +12,8 @@ from report_maker.views.report_case_close import ReportCaseCloseView
 
 from report_maker.views.exam_object_dashboard import ExamObjectDashboardView
 
+from report_maker.views.exam_objects_reorder import exam_objects_reorder
+
 from report_maker.views.generic_object import (
     GenericExamObjectCreateView,
     GenericExamObjectUpdateView,
@@ -140,4 +142,5 @@ urlpatterns = [
         name="image_delete",
     ),
     path("images/reorder/", images_reorder, name="images_reorder"),
+    path("reports/exam-objects/reorder/", exam_objects_reorder, name="exam_objects_reorder"),
 ]

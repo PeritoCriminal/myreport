@@ -1,0 +1,40 @@
+erDiagram
+  REPORT_CASE ||--o{ EXAM_OBJECT : "tem (lista única)"
+  EXAM_OBJECT ||--o{ OBJECT_IMAGE : "tem (imagens)"
+  EXAM_OBJECT ||--o| GENERIC_EXAM_OBJECT : "especializa"
+  EXAM_OBJECT ||--o| PUBLIC_ROAD_EXAM_OBJECT : "especializa"
+
+  REPORT_CASE {
+    uuid id PK
+    ... campos do laudo ...
+  }
+
+  EXAM_OBJECT {
+    uuid id PK
+    uuid report_case_id FK
+    int order "ordem GLOBAL no laudo"
+    string title
+    text description
+    string object_type "opcional (GENERIC/PUBLIC_ROAD/...)"
+    datetime created_at
+    datetime updated_at
+  }
+
+  OBJECT_IMAGE {
+    uuid id PK
+    uuid exam_object_id FK
+    int index "ordem dentro do objeto"
+    image image
+    string caption
+    ... metadados do editor ...
+  }
+
+  GENERIC_EXAM_OBJECT {
+    uuid exam_object_ptr_id PK, FK
+    ... campos específicos do genérico (se existirem) ...
+  }
+
+  PUBLIC_ROAD_EXAM_OBJECT {
+    uuid exam_object_ptr_id PK, FK
+    ... campos específicos de via pública ...
+  }
