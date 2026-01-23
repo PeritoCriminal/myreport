@@ -186,9 +186,7 @@
             </dd>
 
             <dt>Perito</dt>
-            <dd>
-              {{ report.author.report_signature_name|default:'—' }}
-            </dd>
+            <dd>{{ report.author.report_signature_name|default:'—' }}</dd>
           </dl>
         </section>
 
@@ -196,36 +194,123 @@
         ─────────────────────────────────────────────────────────
         Objetos Examinados
         ─────────────────────────────────────────────────────────
+        Contexto esperado (enriched_objects):
+        item.obj_no        -> "1.", "2."...
+        item.subnums       -> dict/obj com chaves (conforme o tipo):
+           descricao
+           methodology
+           elements
+           images
+           weather_conditions
+           road_conditions
+           traffic_signage
+           observed_elements
+        item.obj           -> ExamObject concreto
+        item.images        -> lista de ObjectImage já ordenada (index)
+        cada img:
+          img.image.url
+          img.caption_html (opcional)
+          img.figure_label  -> "Figura 1", "Figura 2"...
+        ─────────────────────────────────────────────────────────
         {% endcomment %}
         {% for item in enriched_objects %}
           {% with obj=item.obj %}
-            <div class="object-block">
-              <div class="object-title">
-                {{ item.obj_no }} {{ obj.title|default:'Objeto' }}
-              </div>
+            <section class="object-block">
+              <h2 class="object-title">
+                {{ item.obj_no }} {{ obj.title|default:"Objeto" }}
+              </h2>
 
+              {% comment %}
+              ─────────────────────────────
+              Campos comuns (genérico)
+              ─────────────────────────────
+              {% endcomment %}
               {% if obj.description_html %}
-                <div class="object-subtitle">{{ item.subnums.descricao }} Descrição</div>
+                <div class="object-subtitle">
+                  {{ item.subnums.descricao|default:"" }}{% if item.subnums.descricao %} {% endif %}Descrição
+                </div>
                 {{ obj.description_html|safe }}
+              {% elif obj.description %}
+                <div class="object-subtitle">
+                  {{ item.subnums.descricao|default:"" }}{% if item.subnums.descricao %} {% endif %}Descrição
+                </div>
+                {{ obj.description|linebreaks }}
               {% endif %}
 
-              {% if obj.description_html %}
-                <div class="object-subtitle">{{ item.subnums.methodology }} Descrição</div>
-                {{ obj.description_html|safe }}
+              {% if obj.methodology_html %}
+                <div class="object-subtitle">
+                  {{ item.subnums.methodology|default:"" }}{% if item.subnums.methodology %} {% endif %}Metodologia
+                </div>
+                {{ obj.methodology_html|safe }}
+              {% elif obj.methodology %}
+                <div class="object-subtitle">
+                  {{ item.subnums.methodology|default:"" }}{% if item.subnums.methodology %} {% endif %}Metodologia
+                </div>
+                {{ obj.methodology|linebreaks }}
               {% endif %}
 
-              ...
+              {% if obj.elements_html %}
+                <div class="object-subtitle">
+                  {{ item.subnums.elements|default:"" }}{% if item.subnums.elements %} {% endif %}Elementos observados
+                </div>
+                {{ obj.elements_html|safe }}
+              {% elif obj.elements %}
+                <div class="object-subtitle">
+                  {{ item.subnums.elements|default:"" }}{% if item.subnums.elements %} {% endif %}Elementos observados
+                </div>
+                {{ obj.elements|linebreaks }}
+              {% endif %}
+
+              {% comment %}
+              ─────────────────────────────
+              Via pública (campos específicos)
+              ─────────────────────────────
+              {% endcomment %}
+              {% if obj.weather_conditions %}
+                <div class="object-subtitle">
+                  {{ item.subnums.weather_conditions|default:"" }}{% if item.subnums.weather_conditions %} {% endif %}Condições climáticas
+                </div>
+                {{ obj.weather_conditions|linebreaks }}
+              {% endif %}
+
+              {% if obj.road_conditions %}
+                <div class="object-subtitle">
+                  {{ item.subnums.road_conditions|default:"" }}{% if item.subnums.road_conditions %} {% endif %}Condições da via
+                </div>
+                {{ obj.road_conditions|linebreaks }}
+              {% endif %}
+
+              {% if obj.traffic_signage %}
+                <div class="object-subtitle">
+                  {{ item.subnums.traffic_signage|default:"" }}{% if item.subnums.traffic_signage %} {% endif %}Sinalização viária
+                </div>
+                {{ obj.traffic_signage|linebreaks }}
+              {% endif %}
+
+              {% if obj.observed_elements %}
+                <div class="object-subtitle">
+                  {{ item.subnums.observed_elements|default:"" }}{% if item.subnums.observed_elements %} {% endif %}Elementos observados
+                </div>
+                {{ obj.observed_elements|linebreaks }}
+              {% endif %}
 
               {% if item.images %}
-                <div class="object-subtitle">Imagens</div>
+                <div class="object-subtitle">
+                  {{ item.subnums.images|default:"" }}{% if item.subnums.images %} {% endif %}Imagens
+                </div>
 
                 <div class="figure-grid">
                   {% for img in item.images %}
                     <figure class="report-figure">
-                      <img src="{{ img.image.url }}" alt="{{ img.caption|default:'Figura' }}" />
+                      <img
+                        src="{{ img.image.url }}"
+                        alt="{{ img.caption|default:'Figura' }}"
+                      />
                       <figcaption>
                         {% if img.caption_html %}
                           {{ img.figure_label }} — {{ img.caption_html|safe }}
+                        {% elif img.caption %}
+                          {{ img.figure_label }} — {{ img.caption|linebreaksbr }}
                         {% else %}
                           {{ img.figure_label }}
                         {% endif %}
@@ -234,8 +319,12 @@
                   {% endfor %}
                 </div>
               {% endif %}
-            </div>
+            </section>
           {% endwith %}
+        {% empty %}
+          <section class="report-section">
+            <p class="text-muted mb-0">Não havia objetos examinados cadastrados.</p>
+          </section>
         {% endfor %}
 
       </section>

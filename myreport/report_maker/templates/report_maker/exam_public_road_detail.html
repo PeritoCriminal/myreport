@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  Exame de via pública
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 980px;">
+
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <h4 class="mb-1">{{ object.title|default:"Exame de via pública" }}</h4>
+      {% if object.description %}
+        <div class="text-muted small">{{ object.description|truncatechars:160 }}</div>
+      {% endif %}
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <a href="{% url 'report_maker:report_detail' report.pk %}" class="btn btn-sm btn-outline-secondary">
+        Voltar ao laudo
+      </a>
+
+      {% if report.can_edit %}
+        <a href="{% url 'report_maker:public_road_object_update' object.pk %}" class="btn btn-sm btn-outline-primary">
+          Editar
+        </a>
+        <a href="{% url 'report_maker:public_road_object_delete' object.pk %}" class="btn btn-sm btn-outline-danger">
+          Excluir
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% comment %}
+  ─────────────────────────────────────
+  Blocos do exame (Markdown)
+  ─────────────────────────────────────
+  {% endcomment %}
+
+  {% if object.description %}
+    <div class="card mb-3 shadow-sm">
+      <div class="card-header fw-semibold">Descrição</div>
+      <div class="card-body">
+        <div class="text-block">
+          {{ object.description|linebreaks }}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if object.weather_conditions %}
+    <div class="card mb-3 shadow-sm">
+      <div class="card-header fw-semibold">Condições climáticas</div>
+      <div class="card-body">
+        <div class="text-block">
+          {{ object.weather_conditions|linebreaks }}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if object.road_conditions %}
+    <div class="card mb-3 shadow-sm">
+      <div class="card-header fw-semibold">Condições da via</div>
+      <div class="card-body">
+        <div class="text-block">
+          {{ object.road_conditions|linebreaks }}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if object.traffic_signage %}
+    <div class="card mb-3 shadow-sm">
+      <div class="card-header fw-semibold">Sinalização viária</div>
+      <div class="card-body">
+        <div class="text-block">
+          {{ object.traffic_signage|linebreaks }}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if object.observed_elements %}
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header fw-semibold">Elementos observados</div>
+      <div class="card-body">
+        <div class="text-block">
+          {{ object.observed_elements|linebreaks }}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% comment %}
+  ─────────────────────────────────────
+  Imagens vinculadas ao objeto
+  ─────────────────────────────────────
+  {% endcomment %}
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Imagens</h5>
+
+    {% if report.can_edit %}
+      <a
+        class="btn btn-sm btn-outline-primary"
+        href="{% url 'report_maker:image_add' 'report_maker' 'publicroadexamobject' object.pk %}"
+      >
+        <i class="bi bi-plus-lg"></i>
+        Adicionar imagem
+      </a>
+    {% endif %}
+  </div>
+
+  {% if object.images.exists %}
+    <div
+      id="images-grid-{{ object.pk }}"
+      class="row g-2"
+      data-sortable="images"
+      data-object-id="{{ object.pk }}"
+      data-reorder-url="{% url 'report_maker:images_reorder' %}"
+    >
+      {% for img in object.images.all %}
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2" data-image-id="{{ img.pk }}" data-index="{{ img.index }}">
+          <div class="card h-100 shadow-sm">
+            <a href="{{ img.image.url }}" target="_blank" rel="noopener" class="text-decoration-none">
+              <img
+                src="{{ img.image.url }}"
+                class="card-img-top"
+                alt="{{ img.caption|default:'Imagem' }}"
+                style="height: 90px; object-fit: cover;"
+              />
+            </a>
+
+            <div class="card-body p-2">
+              {% if img.caption %}
+                <div class="small text-truncate" title="{{ img.caption }}">
+                  {{ img.index }} – {{ img.caption }}
+                </div>
+              {% else %}
+                <div class="small text-muted">Sem legenda</div>
+              {% endif %}
+
+              {% if report.can_edit %}
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                  <a href="{% url 'report_maker:image_update' img.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-1">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+
+                  <span
+                    class="text-muted small js-drag-handle"
+                    title="Arrastar para reordenar"
+                    style="cursor: grab; user-select: none;"
+                  >
+                    <i class="bi bi-grip-vertical"></i>
+                  </span>
+
+                  <a href="{% url 'report_maker:image_delete' img.pk %}" class="btn btn-sm btn-outline-danger py-0 px-1">
+                    <i class="bi bi-trash"></i>
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted small">Nenhuma imagem vinculada.</p>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+
+  <script src="{% static 'report_maker/js/sortable.min.js' %}"></script>
+  <script src="{% static 'report_maker/js/image_sortable.js' %}"></script>
+{% endblock %}

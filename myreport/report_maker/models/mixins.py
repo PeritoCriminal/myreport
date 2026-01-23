@@ -34,3 +34,20 @@ class HasResultsMixin(models.Model):
 
     class Meta:
         abstract = True
+
+
+class HasObservedElementsMixin(models.Model):
+    """
+    Placeholder para 'Elementos Observados'.
+
+    A ideia é este mixin virar o “container padrão” dos vestígios/achados
+    do exame (marcas, danos, manchas, etc.), possivelmente de forma estruturada
+    (ex.: tabela relacionada, json, ou blocos ordenáveis).
+    """
+    observed_elements = models.TextField(
+        "Resultados",
+        blank=True,
+    )
+
+    class Meta:
+        abstract = True

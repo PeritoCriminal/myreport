@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  {% if object %}
+    Editar exame de via pública
+  {% else %}
+    Novo exame de via pública
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      {% if object %}
+        Editar exame de via pública
+      {% else %}
+        Novo exame de via pública
+      {% endif %}
+    </h4>
+
+    <a
+      href="{% url 'report_maker:report_detail' report.pk %}"
+      class="btn btn-sm btn-outline-secondary"
+    >
+      Voltar ao laudo
+    </a>
+  </div>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    {% comment %}
+    ─────────────────────────────────────
+    Identificação
+    ─────────────────────────────────────
+    {% endcomment %}
+    <div class="mb-4">
+      <label for="{{ form.title.id_for_label }}" class="form-label fw-semibold">
+        {{ form.title.label }}
+      </label>
+
+      {{ form.title }}
+
+      {% if form.title.help_text %}
+        <div class="form-text">{{ form.title.help_text }}</div>
+      {% endif %}
+
+      {% for error in form.title.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    {% comment %}
+    ─────────────────────────────────────
+    Descrição (Markdown)
+    ─────────────────────────────────────
+    {% endcomment %}
+    {% with field_name=form.description.name label=form.description.label value=form.description.value help_text=form.description.help_text rows=6 %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
+
+    {% comment %}
+    ─────────────────────────────────────
+    Condições climáticas (Markdown)
+    ─────────────────────────────────────
+    {% endcomment %}
+    {% with field_name=form.weather_conditions.name label=form.weather_conditions.label value=form.weather_conditions.value help_text=form.weather_conditions.help_text rows=6 %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
+
+    {% comment %}
+    ─────────────────────────────────────
+    Condições da via (Markdown)
+    ─────────────────────────────────────
+    {% endcomment %}
+    {% with field_name=form.road_conditions.name label=form.road_conditions.label value=form.road_conditions.value help_text=form.road_conditions.help_text rows=8 %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
+
+    {% comment %}
+    ─────────────────────────────────────
+    Sinalização viária (Markdown)
+    ─────────────────────────────────────
+    {% endcomment %}
+    {% with field_name=form.traffic_signage.name label=form.traffic_signage.label value=form.traffic_signage.value help_text=form.traffic_signage.help_text rows=8 %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
+
+    {% comment %}
+    ─────────────────────────────────────
+    Elementos observados (Markdown)
+    ─────────────────────────────────────
+    {% endcomment %}
+    {% with field_name=form.observed_elements.name label=form.observed_elements.label value=form.observed_elements.value help_text=form.observed_elements.help_text rows=10 %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
+
+    <div class="d-flex justify-content-end gap-2 mt-4">
+      <a
+        href="{% url 'report_maker:report_detail' report.pk %}"
+        class="btn btn-outline-secondary"
+      >
+        Cancelar
+      </a>
+
+      <button type="submit" class="btn btn-primary">
+        {% if object %}Salvar alterações{% else %}Criar exame{% endif %}
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'report_maker/js/markdown_editor.js' %}"></script>
+{% endblock %}

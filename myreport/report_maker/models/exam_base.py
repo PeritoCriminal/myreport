@@ -30,10 +30,10 @@ class ExamObject(models.Model):
     )
 
     report_case = models.ForeignKey(
-        ReportCase,
+        "report_maker.ReportCase",
         on_delete=models.CASCADE,
-        related_name="exam_objects",
-        verbose_name="Laudo",
+        related_name="%(class)s_objects",
+        related_query_name="%(class)s_object",
     )
 
     order = models.PositiveIntegerField(
