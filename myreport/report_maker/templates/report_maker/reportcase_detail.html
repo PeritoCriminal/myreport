@@ -101,33 +101,25 @@
         {% endif %}
       </div>
 
-      {% if report.exam_objects.all %}
-        <div
-          class="list-group"
-          id="examObjectsList"
-          data-report-id="{{ report.pk }}"
-          data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}"
-        >
-          {% for obj in report.exam_objects.all %}
+      {% if exam_objects %}
+        <div class="list-group" id="examObjectsList" data-report-id="{{ report.pk }}" data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}">
+          {% for obj in exam_objects %}
             {% with c=obj.concrete %}
-              {% with model_name=c._meta.model_name %}
+              {% with model_name=obj.concrete_model_name %}
                 <div class="list-group-item d-flex align-items-start gap-2" data-id="{{ obj.pk }}" data-type="{{ model_name }}">
                   {% if report.can_edit %}
-                    <span class="text-muted small js-drag-handle flex-shrink-0" title="Arrastar para reordenar" style="cursor: grab; user-select: none; padding-top: 2px;">
-                      <i class="bi bi-grip-vertical"></i>
-                    </span>
+                    <span class="text-muted small js-drag-handle flex-shrink-0" title="Arrastar para reordenar" style="cursor: grab; user-select: none; padding-top: 2px;"><i class="bi bi-grip-vertical"></i></span>
                   {% endif %}
 
                   <div class="flex-grow-1">
-
-                    {# Link do objeto: editar quando can_edit; sem link quando concluído #}
                     {% if report.can_edit %}
-                      {% if model_name == "genericexamobject" %}
+                      {% if model_name == 'genericexamobject' %}
                         {% url 'report_maker:generic_object_update' c.pk as obj_url %}
-                      {% elif model_name == "publicroadexamobject" %}
+                      {% elif model_name == 'publicroadexamobject' %}
                         {% url 'report_maker:public_road_object_update' c.pk as obj_url %}
                       {% else %}
-                        {% with "" as obj_url %}{% endwith %}
+                        {% with obj_url='' %}
+                        {% endwith %}
                       {% endif %}
 
                       <a href="{{ obj_url }}" class="text-decoration-none text-dark d-block">
@@ -143,21 +135,12 @@
                       {% endif %}
                     {% endif %}
 
-                    {# Imagens do objeto (GenericRelation) #}
                     {% if obj.images.exists %}
-                      <div
-                        id="images-grid-{{ obj.pk }}"
-                        class="row g-2 mt-2"
-                        data-sortable="images"
-                        data-object-id="{{ obj.pk }}"
-                        data-reorder-url="{% url 'report_maker:images_reorder' %}"
-                      >
+                      <div id="images-grid-{{ obj.pk }}" class="row g-2 mt-2" data-sortable="images" data-object-id="{{ obj.pk }}" data-reorder-url="{% url 'report_maker:images_reorder' %}">
                         {% for img in obj.images.all %}
                           <div class="col-6 col-sm-4 col-md-3 col-lg-2" data-image-id="{{ img.pk }}" data-index="{{ img.index }}">
                             <div class="card h-100 shadow-sm">
-                              <a href="{{ img.image.url }}" target="_blank" rel="noopener" class="text-decoration-none">
-                                <img src="{{ img.image.url }}" class="card-img-top" alt="{{ img.caption|default:'Imagem' }}" style="height: 90px; object-fit: cover;" />
-                              </a>
+                              <a href="{{ img.image.url }}" target="_blank" rel="noopener" class="text-decoration-none"><img src="{{ img.image.url }}" class="card-img-top" alt="{{ img.caption|default:'Imagem' }}" style="height: 90px; object-fit: cover;" /></a>
 
                               <div class="card-body p-2">
                                 {% if img.caption %}
@@ -168,9 +151,7 @@
 
                                 {% if report.can_edit %}
                                   <div class="d-flex justify-content-end mt-1">
-                                    <span class="text-muted small js-drag-handle" title="Arrastar para reordenar" style="cursor: grab; user-select: none;">
-                                      <i class="bi bi-grip-vertical"></i>
-                                    </span>
+                                    <span class="text-muted small js-drag-handle" title="Arrastar para reordenar" style="cursor: grab; user-select: none;"><i class="bi bi-grip-vertical"></i></span>
                                   </div>
                                 {% endif %}
                               </div>
@@ -202,9 +183,7 @@
     <div class="mt-5 d-flex justify-content-between align-items-center">
       <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-outline-secondary">Voltar à lista</a>
 
-      <a href="{% url 'report_maker:reportcase_preview' report.pk %}" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">
-        Visualizar laudo
-      </a>
+      <a href="{% url 'report_maker:reportcase_preview' report.pk %}" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">Visualizar laudo</a>
 
       {% if report.can_edit %}
         <div class="btn-group">
@@ -230,20 +209,19 @@
 
   <script>
     window.REPORT_MAKER_IMAGES_REORDER_URL = "{% url 'report_maker:images_reorder' %}"
-
     ;(function () {
       const list = document.getElementById('examObjectsList')
       if (!list) return
       if (!list.querySelector('.js-drag-handle')) return
-
+    
       const reorderUrl = list.dataset.reorderUrl
       const reportId = list.dataset.reportId
-
+    
       function getCSRFToken() {
         const el = document.querySelector('input[name=csrfmiddlewaretoken]')
         return el ? el.value : ''
       }
-
+    
       Sortable.create(list, {
         animation: 150,
         handle: '.js-drag-handle',
@@ -253,7 +231,7 @@
         onEnd: async function () {
           const rows = Array.from(list.querySelectorAll('[data-id]'))
           const ids = rows.map((row) => row.dataset.id)
-
+    
           const resp = await fetch(reorderUrl, {
             method: 'POST',
             headers: {
@@ -263,7 +241,7 @@
             },
             body: JSON.stringify({ report_id: reportId, ids })
           })
-
+    
           if (!resp.ok) {
             console.error('Falha ao reordenar objetos')
           }

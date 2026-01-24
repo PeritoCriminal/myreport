@@ -7,6 +7,8 @@ from django.http import Http404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 
+from report_maker.forms.report_case import ReportCaseForm
+
 from report_maker.models import ReportCase
 
 
@@ -84,24 +86,7 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
 class ReportCaseCreateView(LoginRequiredMixin, CreateView):
     model = ReportCase
     template_name = "report_maker/reportcase_form.html"
-    fields = (
-        "report_number",
-        "protocol",
-        "objective",
-        "requesting_authority",
-        "police_report",
-        "police_inquiry",
-        "police_station",
-        "criminal_typification",
-        "occurrence_datetime",
-        "assignment_datetime",
-        "examination_datetime",
-        "photography_by",
-        "sketch_by",
-        "institution",
-        "nucleus",
-        "team",
-    )
+    form_class = ReportCaseForm  # <- aqui
 
     def form_valid(self, form):
         form.instance.author = self.request.user
@@ -121,24 +106,7 @@ class ReportCaseUpdateView(
     template_name = "report_maker/reportcase_form.html"
     context_object_name = "report"
     pk_url_kwarg = "pk"
-    fields = (
-        "report_number",
-        "protocol",
-        "objective",
-        "requesting_authority",
-        "police_report",
-        "police_inquiry",
-        "police_station",
-        "criminal_typification",
-        "occurrence_datetime",
-        "assignment_datetime",
-        "examination_datetime",
-        "photography_by",
-        "sketch_by",
-        "institution",
-        "nucleus",
-        "team",
-    )
+    form_class = ReportCaseForm  # <- aqui
 
     def get_success_url(self):
         return reverse_lazy("report_maker:reportcase_detail", kwargs={"pk": self.object.pk})

@@ -1,3 +1,6 @@
+# report_maker/forms/report_case.py
+from __future__ import annotations
+
 from django import forms
 
 from common.mixins import BaseModelForm
@@ -10,10 +13,9 @@ class ReportCaseForm(BaseModelForm):
     """
     Formulário de criação e edição do Laudo.
 
-    Ajustes principais:
-    - Padronizou DateTimeInput com type="datetime-local" + formatos compatíveis.
-    - Aplicou classe JS para padronização automática de campos de protocolo.
-    - Centralizou validação de coerência temporal.
+    - DateTimeInput com type="datetime-local"
+    - Classe JS para padronização automática de campos de protocolo
+    - Validação de coerência temporal
     """
 
     DATETIME_LOCAL_INPUT_FORMATS = (
@@ -21,22 +23,26 @@ class ReportCaseForm(BaseModelForm):
         "%Y-%m-%dT%H:%M:%S",
     )
 
+    def _dt_widget(self) -> forms.DateTimeInput:
+        return forms.DateTimeInput(attrs={"type": "datetime-local"}, format=DT_LOCAL_FORMAT)
+
+    # sobrescreve os campos para controlar widget + input_formats
     occurrence_datetime = forms.DateTimeField(
         required=False,
         input_formats=DATETIME_LOCAL_INPUT_FORMATS,
-        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}, format=DT_LOCAL_FORMAT),
         label="Ocorrência",
     )
     assignment_datetime = forms.DateTimeField(
         required=False,
         input_formats=DATETIME_LOCAL_INPUT_FORMATS,
-        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}, format=DT_LOCAL_FORMAT),
         label="Designação",
     )
     examination_datetime = forms.DateTimeField(
         required=False,
         input_formats=DATETIME_LOCAL_INPUT_FORMATS,
-        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}, format=DT_LOCAL_FORMAT),
         label="Exame pericial",
     )
 
@@ -60,20 +66,8 @@ class ReportCaseForm(BaseModelForm):
             "photography_by",
             "sketch_by",
         ]
-        widgets = {
-            "occurrence_datetime": forms.DateTimeInput(
-                attrs={"type": "datetime-local"},
-                format=DT_LOCAL_FORMAT,
-            ),
-            "assignment_datetime": forms.DateTimeInput(
-                attrs={"type": "datetime-local"},
-                format=DT_LOCAL_FORMAT,
-            ),
-            "examination_datetime": forms.DateTimeInput(
-                attrs={"type": "datetime-local"},
-                format=DT_LOCAL_FORMAT,
-            ),
-        }
+        # não repete widgets aqui porque já foram definidos nos campos acima
+        widgets = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -89,7 +83,7 @@ class ReportCaseForm(BaseModelForm):
                 attrs["class"] = f"{css_class} {protocol_class}".strip()
 
         # ─────────────────────────────────────
-        # Correção de renderização datetime-local (EDIT)
+        # Render correto do datetime-local no EDIT
         # ─────────────────────────────────────
         for field_name in ("occurrence_datetime", "assignment_datetime", "examination_datetime"):
             if field_name in self.fields:
@@ -98,11 +92,11 @@ class ReportCaseForm(BaseModelForm):
                     self.initial[field_name] = value.strftime(DT_LOCAL_FORMAT)
 
     def clean(self):
-        cleaned_data = super().clean()
+        cleaned = super().clean()
 
-        occurrence = cleaned_data.get("occurrence_datetime")
-        assignment = cleaned_data.get("assignment_datetime")
-        examination = cleaned_data.get("examination_datetime")
+        occurrence = cleaned.get("occurrence_datetime")
+        assignment = cleaned.get("assignment_datetime")
+        examination = cleaned.get("examination_datetime")
 
         if occurrence and examination and examination < occurrence:
             raise forms.ValidationError(
@@ -114,4 +108,4 @@ class ReportCaseForm(BaseModelForm):
                 "A data do exame pericial não pode ser anterior à data da designação."
             )
 
-        return cleaned_data
+        return cleaned

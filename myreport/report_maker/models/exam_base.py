@@ -82,17 +82,26 @@ class ExamObject(models.Model):
 
         super().save(*args, **kwargs)
 
+
     @property
     def concrete(self):
         """
         Retorna a instância concreta (filha) quando existir.
         Útil para preview/templates (downcast manual).
         """
-        # nomes padrão do Django: <modelname em minúsculo>
         for rel in ("publicroadexamobject", "genericexamobject"):
             if hasattr(self, rel):
                 return getattr(self, rel)
         return self
+
+
+@property
+def concrete_model_name(self) -> str:
+    """
+    Nome do model concreto (ex.: 'genericexamobject', 'publicroadexamobject').
+    Seguro para uso em template (não acessa _meta no template).
+    """
+    return self.concrete._meta.model_name
 
     def __str__(self) -> str:
         return self.title or f"Objeto ({self.pk})"

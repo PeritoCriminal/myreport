@@ -57,6 +57,8 @@ urlpatterns = [
         name="exam_object_dashboard",
     ),
 
+    path("images/reorder/", images_reorder, name="images_reorder"),
+
     # ─────────────────────────────────────
     # Objetos de exame (genérico)
     # ─────────────────────────────────────
