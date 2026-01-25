@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from report_maker.forms import GenericExamObjectForm
 
 from report_maker.models import ReportCase, GenericExamObject
 
@@ -62,13 +63,10 @@ class GenericExamObjectOwnedQuerySetMixin:
 # CRUD
 # ─────────────────────────────────────────────────────────────
 
-class GenericExamObjectCreateView(
-    CanEditReportRequiredMixin,
-    CreateView,
-):
+class GenericExamObjectCreateView(CanEditReportRequiredMixin, CreateView):
     model = GenericExamObject
     template_name = "report_maker/generic_object_form.html"
-    fields = ("title", "description")
+    form_class = GenericExamObjectForm
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -93,7 +91,7 @@ class GenericExamObjectUpdateView(
     template_name = "report_maker/generic_object_form.html"
     context_object_name = "obj"
     pk_url_kwarg = "pk"
-    fields = ("title", "description")
+    form_class = GenericExamObjectForm
 
     def dispatch(self, request, *args, **kwargs):
         # report_case é usado no context + success_url
@@ -143,9 +141,4 @@ class GenericExamObjectDeleteView(
 
     def get_success_url(self):
         return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
-
-
-# ─────────────────────────────────────────────────────────────
-# AJAX: reordenar objetos do laudo (opcional, mas útil)
-# ─────────────────────────────────────────────────────────────
 

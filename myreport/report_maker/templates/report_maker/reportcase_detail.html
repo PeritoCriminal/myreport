@@ -88,13 +88,16 @@
       </dl>
     </div>
 
-    {# Objetos de exame #}
+    {# Objetos de exame (accordion) #}
     <div class="mb-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Objetos de exame</h5>
 
         {% if report.can_edit %}
-          <a href="{% url 'report_maker:exam_object_dashboard' report.pk %}" class="btn btn-sm btn-outline-primary">
+          <a
+            href="{% url 'report_maker:exam_object_dashboard' report.pk %}"
+            class="btn btn-sm btn-outline-primary"
+          >
             <i class="bi bi-plus-lg"></i>
             Novo objeto
           </a>
@@ -102,56 +105,131 @@
       </div>
 
       {% if exam_objects %}
-        <div class="list-group" id="examObjectsList" data-report-id="{{ report.pk }}" data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}">
+        <div
+          class="list-group"
+          id="examObjectsList"
+          data-report-id="{{ report.pk }}"
+          data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}"
+        >
           {% for obj in exam_objects %}
             {% with c=obj.concrete %}
-              {% with model_name=obj.concrete_model_name %}
-                <div class="list-group-item d-flex align-items-start gap-2" data-id="{{ obj.pk }}" data-type="{{ model_name }}">
+            {% with model_name=obj.concrete_model_name %}
+
+              {# resolve urls (somente para edição/exclusão; clique principal abre accordion) #}
+              {% if model_name == 'genericexamobject' %}
+                {% url 'report_maker:generic_object_update' report.pk c.pk as obj_edit_url %}
+                {% url 'report_maker:generic_object_delete' report.pk c.pk as obj_delete_url %}
+              {% elif model_name == 'publicroadexamobject' %}
+                {% url 'report_maker:public_road_object_update' report.pk c.pk as obj_edit_url %}
+                {% url 'report_maker:public_road_object_delete' report.pk c.pk as obj_delete_url %}
+              {% else %}
+                {% with obj_edit_url=None obj_delete_url=None %}{% endwith %}
+              {% endif %}
+
+              <div
+                class="list-group-item d-flex align-items-start gap-2"
+                data-id="{{ obj.pk }}"
+                data-type="{{ model_name }}"
+              >
+                {% if report.can_edit %}
+                  <span
+                    class="text-muted small js-drag-handle flex-shrink-0"
+                    title="Arrastar para reordenar"
+                    style="cursor: grab; user-select: none; padding-top: 2px;"
+                  >
+                    <i class="bi bi-grip-vertical"></i>
+                  </span>
+                {% endif %}
+
+                <div class="flex-grow-1">
+
+                  {# Cabeçalho clicável: abre/fecha accordion #}
+                  <button
+                    class="btn btn-link text-decoration-none text-dark p-0 text-start w-100"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapse-{{ obj.pk }}"
+                    aria-expanded="false"
+                    aria-controls="collapse-{{ obj.pk }}"
+                  >
+                    <div class="fw-semibold">
+                      {{ obj.title|default:"Objeto sem título" }}
+                    </div>
+
+                    {% if obj.description %}
+                      <div class="text-muted small">
+                        {{ obj.description|truncatechars:120 }}
+                      </div>
+                    {% endif %}
+                  </button>
+
                   {% if report.can_edit %}
-                    <span class="text-muted small js-drag-handle flex-shrink-0" title="Arrastar para reordenar" style="cursor: grab; user-select: none; padding-top: 2px;"><i class="bi bi-grip-vertical"></i></span>
+                    <div class="mt-2 d-flex gap-2">
+                      {% if obj_edit_url %}
+                        <a class="btn btn-sm btn-outline-secondary" href="{{ obj_edit_url }}">
+                          <i class="bi bi-pencil"></i> Editar
+                        </a>
+                      {% endif %}
+                      {% if obj_delete_url %}
+                        <a class="btn btn-sm btn-outline-danger" href="{{ obj_delete_url }}">
+                          <i class="bi bi-trash"></i> Excluir
+                        </a>
+                      {% endif %}
+                    </div>
                   {% endif %}
 
-                  <div class="flex-grow-1">
-                    {% if report.can_edit %}
-                      {% if model_name == 'genericexamobject' %}
-                        {% url 'report_maker:generic_object_update' c.pk as obj_url %}
-                      {% elif model_name == 'publicroadexamobject' %}
-                        {% url 'report_maker:public_road_object_update' c.pk as obj_url %}
-                      {% else %}
-                        {% with obj_url='' %}
-                        {% endwith %}
-                      {% endif %}
-
-                      <a href="{{ obj_url }}" class="text-decoration-none text-dark d-block">
-                        <div class="fw-semibold">{{ obj.title|default:'Objeto sem título' }}</div>
-                        {% if obj.description %}
-                          <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
-                        {% endif %}
-                      </a>
-                    {% else %}
-                      <div class="fw-semibold">{{ obj.title|default:'Objeto sem título' }}</div>
-                      {% if obj.description %}
-                        <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
-                      {% endif %}
-                    {% endif %}
-
+                  {# Corpo do accordion (imagens) #}
+                  <div id="collapse-{{ obj.pk }}" class="collapse mt-2">
                     {% if obj.images.exists %}
-                      <div id="images-grid-{{ obj.pk }}" class="row g-2 mt-2" data-sortable="images" data-object-id="{{ obj.pk }}" data-reorder-url="{% url 'report_maker:images_reorder' %}">
+                      <div
+                        id="images-grid-{{ obj.pk }}"
+                        class="row g-2"
+                        data-sortable="images"
+                        data-object-id="{{ obj.pk }}"
+                        data-reorder-url="{% url 'report_maker:images_reorder' %}"
+                      >
                         {% for img in obj.images.all %}
-                          <div class="col-6 col-sm-4 col-md-3 col-lg-2" data-image-id="{{ img.pk }}" data-index="{{ img.index }}">
+                          <div
+                            class="col-6 col-sm-4 col-md-3 col-lg-2"
+                            data-image-id="{{ img.pk }}"
+                            data-index="{{ img.index }}"
+                          >
                             <div class="card h-100 shadow-sm">
-                              <a href="{{ img.image.url }}" target="_blank" rel="noopener" class="text-decoration-none"><img src="{{ img.image.url }}" class="card-img-top" alt="{{ img.caption|default:'Imagem' }}" style="height: 90px; object-fit: cover;" /></a>
+                              <a
+                                href="{{ img.image.url }}"
+                                target="_blank"
+                                rel="noopener"
+                                class="text-decoration-none"
+                              >
+                                <img
+                                  src="{{ img.image.url }}"
+                                  class="card-img-top"
+                                  alt="{{ img.caption|default:'Imagem' }}"
+                                  loading="lazy"
+                                  width="400"
+                                  height="300"
+                                  style="height: 90px; object-fit: cover;"
+                                />
+                              </a>
 
                               <div class="card-body p-2">
                                 {% if img.caption %}
-                                  <div class="small text-truncate" title="{{ img.caption }}">{{ img.index }} – {{ img.caption }}</div>
+                                  <div class="small text-truncate" title="{{ img.caption }}">
+                                    {{ img.index }} – {{ img.caption }}
+                                  </div>
                                 {% else %}
                                   <div class="small text-muted">Sem legenda</div>
                                 {% endif %}
 
                                 {% if report.can_edit %}
                                   <div class="d-flex justify-content-end mt-1">
-                                    <span class="text-muted small js-drag-handle" title="Arrastar para reordenar" style="cursor: grab; user-select: none;"><i class="bi bi-grip-vertical"></i></span>
+                                    <span
+                                      class="text-muted small js-drag-handle"
+                                      title="Arrastar para reordenar"
+                                      style="cursor: grab; user-select: none;"
+                                    >
+                                      <i class="bi bi-grip-vertical"></i>
+                                    </span>
                                   </div>
                                 {% endif %}
                               </div>
@@ -159,15 +237,22 @@
                           </div>
                         {% endfor %}
                       </div>
+                    {% else %}
+                      <p class="text-muted small mb-0">Nenhuma imagem associada.</p>
                     {% endif %}
                   </div>
+
                 </div>
-              {% endwith %}
+              </div>
+
+            {% endwith %}
             {% endwith %}
           {% endfor %}
         </div>
       {% else %}
-        <p class="text-muted small mb-0">Nenhum objeto de exame cadastrado.</p>
+        <p class="text-muted small mb-0">
+          Nenhum objeto de exame cadastrado.
+        </p>
       {% endif %}
     </div>
 
@@ -183,7 +268,14 @@
     <div class="mt-5 d-flex justify-content-between align-items-center">
       <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-outline-secondary">Voltar à lista</a>
 
-      <a href="{% url 'report_maker:reportcase_preview' report.pk %}" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">Visualizar laudo</a>
+      <a
+        href="{% url 'report_maker:reportcase_preview' report.pk %}"
+        class="btn btn-outline-secondary"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Visualizar laudo
+      </a>
 
       {% if report.can_edit %}
         <div class="btn-group">
@@ -213,15 +305,15 @@
       const list = document.getElementById('examObjectsList')
       if (!list) return
       if (!list.querySelector('.js-drag-handle')) return
-    
+
       const reorderUrl = list.dataset.reorderUrl
       const reportId = list.dataset.reportId
-    
+
       function getCSRFToken() {
         const el = document.querySelector('input[name=csrfmiddlewaretoken]')
         return el ? el.value : ''
       }
-    
+
       Sortable.create(list, {
         animation: 150,
         handle: '.js-drag-handle',
@@ -231,7 +323,7 @@
         onEnd: async function () {
           const rows = Array.from(list.querySelectorAll('[data-id]'))
           const ids = rows.map((row) => row.dataset.id)
-    
+
           const resp = await fetch(reorderUrl, {
             method: 'POST',
             headers: {
@@ -241,7 +333,7 @@
             },
             body: JSON.stringify({ report_id: reportId, ids })
           })
-    
+
           if (!resp.ok) {
             console.error('Falha ao reordenar objetos')
           }

@@ -1,4 +1,4 @@
-# myreport/report_maker/models/exam_base.py
+# report_maker/models/exam_base.py
 
 from __future__ import annotations
 
@@ -6,8 +6,6 @@ import uuid
 
 from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
-
-from .images import ObjectImage
 
 
 class ExamObject(models.Model):
@@ -31,7 +29,7 @@ class ExamObject(models.Model):
     order = models.PositiveIntegerField(
         "Ordem",
         editable=False,
-        blank=True,  # <- importante (form/admin)
+        blank=True,
         help_text="Ordem de exibição do objeto dentro do laudo.",
     )
 
@@ -49,7 +47,7 @@ class ExamObject(models.Model):
     )
 
     images = GenericRelation(
-        ObjectImage,
+        "report_maker.ObjectImage",
         related_query_name="exam_object",
     )
 
@@ -57,7 +55,6 @@ class ExamObject(models.Model):
     updated_at = models.DateTimeField("Atualizado em", auto_now=True)
 
     class Meta:
-        abstract = False
         ordering = ("order",)
         constraints = [
             models.UniqueConstraint(
@@ -82,7 +79,6 @@ class ExamObject(models.Model):
 
         super().save(*args, **kwargs)
 
-
     @property
     def concrete(self):
         """
@@ -94,14 +90,13 @@ class ExamObject(models.Model):
                 return getattr(self, rel)
         return self
 
-
-@property
-def concrete_model_name(self) -> str:
-    """
-    Nome do model concreto (ex.: 'genericexamobject', 'publicroadexamobject').
-    Seguro para uso em template (não acessa _meta no template).
-    """
-    return self.concrete._meta.model_name
+    @property
+    def concrete_model_name(self) -> str:
+        """
+        Nome do model concreto (ex.: 'genericexamobject', 'publicroadexamobject').
+        Seguro para uso em template.
+        """
+        return self.concrete._meta.model_name
 
     def __str__(self) -> str:
         return self.title or f"Objeto ({self.pk})"

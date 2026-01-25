@@ -1,15 +1,17 @@
-# myreport/report_maker/views/report_case.py
+# report_maker/views/report_case.py
 from __future__ import annotations
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.db.models import Prefetch
 from django.http import Http404
 from django.urls import reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from report_maker.forms.report_case import ReportCaseForm
-
 from report_maker.models import ReportCase
+from report_maker.models.images import ObjectImage
+
 
 
 class ReportCaseAuthorQuerySetMixin:
@@ -37,6 +39,8 @@ class ReportCaseCanEditRequiredMixin:
 # LIST / DETAIL
 # ─────────────────────────────────────────────────────────────
 
+# Se na view abaixo eu puder filtrar e criar uma lista com os laudos,
+# la no template poderei iterar sobre essa lista? Isso já é feito aqui mas eu não vejo?
 class ReportCaseListView(LoginRequiredMixin, ListView):
     model = ReportCase
     template_name = "report_maker/reportcase_list.html"
@@ -49,7 +53,9 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
             .filter(author=self.request.user)
             .select_related("institution", "nucleus", "team", "author")
             .order_by("-updated_at")
-        )
+        ) 
+
+
 
 
 class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, DetailView):
@@ -62,14 +68,16 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         ctx = super().get_context_data(**kwargs)
         report: ReportCase = ctx["report"]
 
-        # objetos “gerais” (base concreta)
+        images_qs = ObjectImage.objects.order_by("index")
+
         ctx["exam_objects"] = (
             report.exam_objects
-            .select_related()  # mantém leve; downcast fica no template via obj.concrete
+            .prefetch_related(
+                Prefetch("images", queryset=images_qs)
+            )
             .order_by("order")
         )
 
-        # blocos de texto
         ctx["text_blocks"] = (
             report.text_blocks
             .all()

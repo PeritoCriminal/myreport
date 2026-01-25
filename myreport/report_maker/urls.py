@@ -46,7 +46,7 @@ urlpatterns = [
     path("reports/<uuid:pk>/preview/", ReportCasePreviewView.as_view(), name="reportcase_preview"),
     path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="reportcase_update"),
     path("reports/<uuid:pk>/delete/", ReportCaseDeleteView.as_view(), name="reportcase_delete"),
-    path("reports/<uuid:pk>/close/", ReportCaseCloseView.as_view(), name="reportcase_close"),
+    path("reports/<uuid:pk>/close/", ReportCaseCloseView.as_view(), name="reportcase_close"), 
 
     # ─────────────────────────────────────
     # Dashboard para adicionar objetos de exame
@@ -68,12 +68,12 @@ urlpatterns = [
         name="generic_object_create",
     ),
     path(
-        "objects/generic/<uuid:pk>/edit/",
+        "reports/<uuid:report_pk>/objects/generic/<uuid:pk>/edit/",
         GenericExamObjectUpdateView.as_view(),
         name="generic_object_update",
     ),
     path(
-        "objects/generic/<uuid:pk>/delete/",
+        "reports/<uuid:report_pk>/objects/generic/<uuid:pk>/delete/",
         GenericExamObjectDeleteView.as_view(),
         name="generic_object_delete",
     ),
@@ -87,12 +87,12 @@ urlpatterns = [
         name="public_road_object_create",
     ),
     path(
-        "objects/public-road/<uuid:pk>/edit/",
+        "reports/<uuid:report_pk>/objects/public-road/<uuid:pk>/edit/",
         PublicRoadExamObjectUpdateView.as_view(),
         name="public_road_object_update",
     ),
     path(
-        "objects/public-road/<uuid:pk>/delete/",
+        "reports/<uuid:report_pk>/objects/public-road/<uuid:pk>/delete/",
         PublicRoadExamObjectDeleteView.as_view(),
         name="public_road_object_delete",
     ),

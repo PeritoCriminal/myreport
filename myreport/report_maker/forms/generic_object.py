@@ -2,14 +2,14 @@
 from django import forms
 
 from common.mixins import BaseModelForm
-from report_maker.models import GenericExamObject
+from report_maker.models.generic_object import GenericExamObject
 
 
 class GenericExamObjectForm(BaseModelForm):
     """
     Formulário para criação e edição de objeto de exame genérico.
     """
-
+#
     class Meta:
         model = GenericExamObject
         fields = (
