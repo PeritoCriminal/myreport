@@ -13,6 +13,10 @@ class PublicRoadExamObject(HasObservedElementsMixin, ExamObject):
     Objeto de exame: Via Pública.
     """
 
+    # nomes das rotas (usados pelo ExamObject para resolver reverse)
+    edit_url_name = "report_maker:public_road_object_update"
+    delete_url_name = "report_maker:public_road_object_delete"
+
     weather_conditions = models.TextField("Condições climáticas", blank=True)
     road_conditions = models.TextField("Condições da via", blank=True)
     traffic_signage = models.TextField("Sinalização viária", blank=True)
@@ -21,3 +25,6 @@ class PublicRoadExamObject(HasObservedElementsMixin, ExamObject):
         verbose_name = "Exame de Via Pública"
         verbose_name_plural = "Exames de Via Pública"
         ordering = ("order",)
+
+    def __str__(self) -> str:
+        return self.title or f"Exame de Via Pública ({self.pk})"

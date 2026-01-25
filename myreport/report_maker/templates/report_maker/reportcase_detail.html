@@ -1,3 +1,5 @@
+{# report_maker/tempaltes/report_maker/reportcase_detail.html #}
+
 {% extends 'base.html' %}
 {% load static %}
 
@@ -26,7 +28,7 @@
     {# Preâmbulo #}
     {% if report.preamble %}
       <div class="mb-4">
-        <p class="text-justify">{{ report.preamble }}</p>
+        <p class="text-justify">{{ report.preamble|linebreaks }}</p>
       </div>
     {% endif %}
 
@@ -112,24 +114,11 @@
           data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}"
         >
           {% for obj in exam_objects %}
-            {% with c=obj.concrete %}
-            {% with model_name=obj.concrete_model_name %}
 
-              {# resolve urls (somente para edição/exclusão; clique principal abre accordion) #}
-              {% if model_name == 'genericexamobject' %}
-                {% url 'report_maker:generic_object_update' report.pk c.pk as obj_edit_url %}
-                {% url 'report_maker:generic_object_delete' report.pk c.pk as obj_delete_url %}
-              {% elif model_name == 'publicroadexamobject' %}
-                {% url 'report_maker:public_road_object_update' report.pk c.pk as obj_edit_url %}
-                {% url 'report_maker:public_road_object_delete' report.pk c.pk as obj_delete_url %}
-              {% else %}
-                {% with obj_edit_url=None obj_delete_url=None %}{% endwith %}
-              {% endif %}
-
+            {% with obj_edit_url=obj.edit_url obj_delete_url=obj.delete_url %}
               <div
                 class="list-group-item d-flex align-items-start gap-2"
                 data-id="{{ obj.pk }}"
-                data-type="{{ model_name }}"
               >
                 {% if report.can_edit %}
                   <span
@@ -142,7 +131,6 @@
                 {% endif %}
 
                 <div class="flex-grow-1">
-
                   {# Cabeçalho clicável: abre/fecha accordion #}
                   <button
                     class="btn btn-link text-decoration-none text-dark p-0 text-start w-100"
@@ -241,12 +229,10 @@
                       <p class="text-muted small mb-0">Nenhuma imagem associada.</p>
                     {% endif %}
                   </div>
-
                 </div>
               </div>
+            {% endwith %}
 
-            {% endwith %}
-            {% endwith %}
           {% endfor %}
         </div>
       {% else %}
@@ -299,46 +285,45 @@
   <script src="{% static 'report_maker/js/sortable.min.js' %}"></script>
   <script src="{% static 'report_maker/js/image_sortable.js' %}"></script>
 
-<script>
-  ;(function () {
-    const list = document.getElementById('examObjectsList')
-    if (!list) return
-    if (!list.querySelector('.js-drag-handle')) return
+  <script>
+    ;(function () {
+      const list = document.getElementById('examObjectsList')
+      if (!list) return
+      if (!list.querySelector('.js-drag-handle')) return
 
-    const reorderUrl = list.dataset.reorderUrl
-    const reportId = list.dataset.reportId
+      const reorderUrl = list.dataset.reorderUrl
+      const reportId = list.dataset.reportId
 
-    function getCSRFToken() {
-      const el = document.querySelector('input[name=csrfmiddlewaretoken]')
-      return el ? el.value : ''
-    }
-
-    Sortable.create(list, {
-      animation: 150,
-      handle: '.js-drag-handle',
-      draggable: '.list-group-item',
-      ghostClass: 'sortable-ghost',
-      chosenClass: 'sortable-chosen',
-      onEnd: async function () {
-        const rows = Array.from(list.querySelectorAll('[data-id]'))
-        const items = rows.map((row) => ({ id: row.dataset.id }))
-
-        const resp = await fetch(reorderUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken(),
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          body: JSON.stringify({ report_id: reportId, items })
-        })
-
-        if (!resp.ok) {
-          console.error('Falha ao reordenar objetos')
-        }
+      function getCSRFToken() {
+        const el = document.querySelector('input[name=csrfmiddlewaretoken]')
+        return el ? el.value : ''
       }
-    })
-  })()
-</script>
 
+      Sortable.create(list, {
+        animation: 150,
+        handle: '.js-drag-handle',
+        draggable: '.list-group-item',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onEnd: async function () {
+          const rows = Array.from(list.querySelectorAll('[data-id]'))
+          const items = rows.map((row) => ({ id: row.dataset.id }))
+
+          const resp = await fetch(reorderUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCSRFToken(),
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ report_id: reportId, items })
+          })
+
+          if (!resp.ok) {
+            console.error('Falha ao reordenar objetos')
+          }
+        }
+      })
+    })()
+  </script>
 {% endblock %}

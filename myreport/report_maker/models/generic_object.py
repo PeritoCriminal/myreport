@@ -11,6 +11,10 @@ class GenericExamObject(RenderableExamObjectMixin, ExamObject):
     Objeto de exame genérico.
     """
 
+    # nomes das rotas (usados pelo ExamObject para resolver reverse)
+    edit_url_name = "report_maker:generic_object_update"
+    delete_url_name = "report_maker:generic_object_delete"
+
     RENDER_SECTIONS = [
         ReportSection(key="exam", title="Exame", fmt="md", level=2),
         ReportSection(key="results", title="Resultados", fmt="md", level=2),

@@ -5,7 +5,9 @@ from __future__ import annotations
 import uuid
 
 from django.db import models
+from django.db.models import Max
 from django.contrib.contenttypes.fields import GenericRelation
+from django.urls import reverse
 
 
 class ExamObject(models.Model):
@@ -30,6 +32,7 @@ class ExamObject(models.Model):
         "Ordem",
         editable=False,
         blank=True,
+        null=True,  # <- importante para o "if self.order is None" funcionar
         help_text="Ordem de exibição do objeto dentro do laudo.",
     )
 
@@ -64,16 +67,12 @@ class ExamObject(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        """
-        Define automaticamente a ordem do objeto dentro do laudo.
-        Ordem GLOBAL dentro do report_case.
-        """
         if self.order is None:
             last = (
-                ExamObject.objects
+                ExamObject.objects  # <- base: enxerga todos os filhos
                 .filter(report_case=self.report_case)
-                .aggregate(models.Max("order"))
-                .get("order__max")
+                .aggregate(last_order=Max("order"))
+                .get("last_order")
             )
             self.order = (last or 0) + 1
 
@@ -85,6 +84,7 @@ class ExamObject(models.Model):
         Retorna a instância concreta (filha) quando existir.
         Útil para preview/templates (downcast manual).
         """
+        # mantenha esta lista enquanto você estiver com downcast manual
         for rel in ("publicroadexamobject", "genericexamobject"):
             if hasattr(self, rel):
                 return getattr(self, rel)
@@ -97,6 +97,22 @@ class ExamObject(models.Model):
         Seguro para uso em template.
         """
         return self.concrete._meta.model_name
+
+    @property
+    def edit_url(self):
+        c = self.concrete
+        url_name = getattr(c, "edit_url_name", None)
+        if not url_name:
+            return None
+        return reverse(url_name, args=[self.report_case_id, c.pk])
+
+    @property
+    def delete_url(self):
+        c = self.concrete
+        url_name = getattr(c, "delete_url_name", None)
+        if not url_name:
+            return None
+        return reverse(url_name, args=[self.report_case_id, c.pk])
 
     def __str__(self) -> str:
         return self.title or f"Objeto ({self.pk})"

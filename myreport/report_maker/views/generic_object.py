@@ -1,19 +1,14 @@
 # myreport/report_maker/views/generic_object.py
 
+from __future__ import annotations
+
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, JsonResponse
-from django.urls import reverse, reverse_lazy
-from django.views import View
+from django.http import Http404
+from django.urls import reverse
 from django.views.generic import CreateView, UpdateView, DeleteView
-from django.views.decorators.http import require_POST
-from django.utils.decorators import method_decorator
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+
 from report_maker.forms import GenericExamObjectForm
-
 from report_maker.models import ReportCase, GenericExamObject
-
-
 
 
 # ─────────────────────────────────────────────────────────────
@@ -55,22 +50,55 @@ class GenericExamObjectOwnedQuerySetMixin:
     Garante que o objeto (GenericExamObject) pertence ao usuário via report_case.author.
     """
     def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.select_related("report_case").filter(report_case__author=self.request.user)
+        return (
+            super()
+            .get_queryset()
+            .select_related("report_case")
+            .filter(report_case__author=self.request.user)
+        )
+
+
+class ReportCaseContextMixin:
+    """
+    Injeta o ReportCase no context.
+    """
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["report"] = self.report_case
+        return ctx
+
+
+class ReportCaseObjectGuardMixin(ReportCaseOwnedMixin):
+    """
+    Garante que o objeto pertence ao report_case da URL.
+    (Útil para Update/Delete.)
+    """
+    def dispatch(self, request, *args, **kwargs):
+        self.report_case = self.get_report_case()
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset=queryset)
+        if obj.report_case_id != self.report_case.id:
+            raise PermissionDenied("Objeto não pertence a este laudo.")
+        return obj
 
 
 # ─────────────────────────────────────────────────────────────
 # CRUD
 # ─────────────────────────────────────────────────────────────
 
-class GenericExamObjectCreateView(CanEditReportRequiredMixin, CreateView):
+class GenericExamObjectCreateView(
+    CanEditReportRequiredMixin,
+    ReportCaseContextMixin,
+    CreateView,
+):
     model = GenericExamObject
     template_name = "report_maker/generic_object_form.html"
     form_class = GenericExamObjectForm
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["report"] = self.report_case
         ctx["mode"] = "create"
         return ctx
 
@@ -84,7 +112,9 @@ class GenericExamObjectCreateView(CanEditReportRequiredMixin, CreateView):
 
 class GenericExamObjectUpdateView(
     CanEditReportRequiredMixin,
+    ReportCaseObjectGuardMixin,
     GenericExamObjectOwnedQuerySetMixin,
+    ReportCaseContextMixin,
     UpdateView,
 ):
     model = GenericExamObject
@@ -93,20 +123,8 @@ class GenericExamObjectUpdateView(
     pk_url_kwarg = "pk"
     form_class = GenericExamObjectForm
 
-    def dispatch(self, request, *args, **kwargs):
-        # report_case é usado no context + success_url
-        self.report_case = self.get_report_case()
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_object(self, queryset=None):
-        obj = super().get_object(queryset=queryset)
-        if obj.report_case_id != self.report_case.id:
-            raise PermissionDenied("Objeto não pertence a este laudo.")
-        return obj
-
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["report"] = self.report_case
         ctx["mode"] = "update"
         return ctx
 
@@ -116,7 +134,9 @@ class GenericExamObjectUpdateView(
 
 class GenericExamObjectDeleteView(
     CanEditReportRequiredMixin,
+    ReportCaseObjectGuardMixin,
     GenericExamObjectOwnedQuerySetMixin,
+    ReportCaseContextMixin,
     DeleteView,
 ):
     model = GenericExamObject
@@ -124,21 +144,5 @@ class GenericExamObjectDeleteView(
     context_object_name = "obj"
     pk_url_kwarg = "pk"
 
-    def dispatch(self, request, *args, **kwargs):
-        self.report_case = self.get_report_case()
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_object(self, queryset=None):
-        obj = super().get_object(queryset=queryset)
-        if obj.report_case_id != self.report_case.id:
-            raise PermissionDenied("Objeto não pertence a este laudo.")
-        return obj
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["report"] = self.report_case
-        return ctx
-
     def get_success_url(self):
         return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
-
