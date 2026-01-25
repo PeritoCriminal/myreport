@@ -299,46 +299,46 @@
   <script src="{% static 'report_maker/js/sortable.min.js' %}"></script>
   <script src="{% static 'report_maker/js/image_sortable.js' %}"></script>
 
-  <script>
-    window.REPORT_MAKER_IMAGES_REORDER_URL = "{% url 'report_maker:images_reorder' %}"
-    ;(function () {
-      const list = document.getElementById('examObjectsList')
-      if (!list) return
-      if (!list.querySelector('.js-drag-handle')) return
+<script>
+  ;(function () {
+    const list = document.getElementById('examObjectsList')
+    if (!list) return
+    if (!list.querySelector('.js-drag-handle')) return
 
-      const reorderUrl = list.dataset.reorderUrl
-      const reportId = list.dataset.reportId
+    const reorderUrl = list.dataset.reorderUrl
+    const reportId = list.dataset.reportId
 
-      function getCSRFToken() {
-        const el = document.querySelector('input[name=csrfmiddlewaretoken]')
-        return el ? el.value : ''
-      }
+    function getCSRFToken() {
+      const el = document.querySelector('input[name=csrfmiddlewaretoken]')
+      return el ? el.value : ''
+    }
 
-      Sortable.create(list, {
-        animation: 150,
-        handle: '.js-drag-handle',
-        draggable: '.list-group-item',
-        ghostClass: 'sortable-ghost',
-        chosenClass: 'sortable-chosen',
-        onEnd: async function () {
-          const rows = Array.from(list.querySelectorAll('[data-id]'))
-          const ids = rows.map((row) => row.dataset.id)
+    Sortable.create(list, {
+      animation: 150,
+      handle: '.js-drag-handle',
+      draggable: '.list-group-item',
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      onEnd: async function () {
+        const rows = Array.from(list.querySelectorAll('[data-id]'))
+        const items = rows.map((row) => ({ id: row.dataset.id }))
 
-          const resp = await fetch(reorderUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': getCSRFToken(),
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({ report_id: reportId, ids })
-          })
+        const resp = await fetch(reorderUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ report_id: reportId, items })
+        })
 
-          if (!resp.ok) {
-            console.error('Falha ao reordenar objetos')
-          }
+        if (!resp.ok) {
+          console.error('Falha ao reordenar objetos')
         }
-      })
-    })()
-  </script>
+      }
+    })
+  })()
+</script>
+
 {% endblock %}
