@@ -1,3 +1,4 @@
 from .report_case import ReportCaseForm
 from .generic_object import GenericExamObjectForm
 from .images import ObjectImageForm
+from .exam_public_road import PublicRoadExamObjectForm

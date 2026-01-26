@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.views.generic import CreateView, UpdateView, DeleteView
 
 from report_maker.models import ReportCase, PublicRoadExamObject
+from report_maker.forms import PublicRoadExamObjectForm
 
 
 # ─────────────────────────────────────────────────────────────
@@ -93,13 +94,7 @@ class PublicRoadExamObjectCreateView(
 ):
     model = PublicRoadExamObject
     template_name = "report_maker/public_road_form.html"
-    fields = (
-        "title",
-        "description",
-        "traffic_signage",
-        "road_conditions",
-        "weather_conditions",
-    )
+    form_class = PublicRoadExamObjectForm
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -125,13 +120,7 @@ class PublicRoadExamObjectUpdateView(
     template_name = "report_maker/public_road_form.html"
     context_object_name = "obj"
     pk_url_kwarg = "pk"
-    fields = (
-        "title",
-        "description",
-        "traffic_signage",
-        "road_conditions",
-        "weather_conditions",
-    )
+    form_class = PublicRoadExamObjectForm
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

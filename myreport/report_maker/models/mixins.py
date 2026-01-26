@@ -45,7 +45,7 @@ class HasObservedElementsMixin(models.Model):
     (ex.: tabela relacionada, json, ou blocos ordenáveis).
     """
     observed_elements = models.TextField(
-        "Resultados",
+        "Elementos Observados",
         blank=True,
     )
 
