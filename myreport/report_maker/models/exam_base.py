@@ -107,6 +107,14 @@ class ExamObject(models.Model):
         return reverse(url_name, args=[self.report_case_id, c.pk])
 
     @property
+    def app_label(self) -> str:
+        return self._meta.app_label
+
+    @property
+    def model_name(self) -> str:
+        return self._meta.model_name
+
+    @property
     def delete_url(self):
         c = self.concrete
         url_name = getattr(c, "delete_url_name", None)

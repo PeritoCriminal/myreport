@@ -32,6 +32,9 @@ LOGOUT_REDIRECT_URL = "home:index"
 # Apps
 # ---------------------------------------------------------------------
 INSTALLED_APPS = [
+    # ─────────────────────────────────────
+    # Django core
+    # ─────────────────────────────────────
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -39,17 +42,26 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # ─────────────────────────────────────
+    # Third-party
+    # ─────────────────────────────────────
     'django_extensions',
 
+    # ─────────────────────────────────────
+    # Project apps
+    # ─────────────────────────────────────
     'accounts.apps.AccountsConfig',
     'home',
+    'common',
     'groups',
+    'institutions',
     'social_net',
     'technical_repository',
-    'report_maker',
-    'common',
-    'institutions',
+    'report_maker.apps.ReportMakerConfig',
 
+    # ─────────────────────────────────────
+    # Dev / tools
+    # ─────────────────────────────────────
     'devtools',
 ]
 

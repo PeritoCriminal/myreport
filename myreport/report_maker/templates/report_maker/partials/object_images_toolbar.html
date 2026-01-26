@@ -1,0 +1,10 @@
+{# Botões de imagem: só faz sentido quando o objeto já existe #}
+{% if report.can_edit and obj.pk %}
+  <div class="d-flex gap-2 flex-wrap mt-3">
+    <a class="btn btn-sm btn-outline-primary"
+       href="{% url 'report_maker:object_image_create' report.pk obj.pk %}">
+      <i class="bi bi-image"></i>
+      Inserir imagem
+    </a>
+  </div>
+{% endif %}
