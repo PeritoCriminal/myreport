@@ -38,8 +38,8 @@ class CanEditReportRequiredMixin(ReportCaseOwnedMixin):
     Bloqueia qualquer operação de escrita quando report_case.can_edit == False.
     """
     def dispatch(self, request, *args, **kwargs):
-        self.get_report_case()
-        if not getattr(self.report_case, "can_edit", False):
+        report = self.get_report_case()
+        if not getattr(report, "can_edit", False):
             raise PermissionDenied("Este laudo não pode ser editado no momento.")
         return super().dispatch(request, *args, **kwargs)
 

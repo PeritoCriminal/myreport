@@ -1,25 +1,33 @@
-import uuid
+# report_maker/models/object_image.py
+
 import os
+import uuid
 
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.db import models
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, models, transaction
 from django.db.models import Max
 from django.utils.text import get_valid_filename
 
 
-def object_image_upload_path(instance, filename):
+def object_image_upload_path(instance: "ObjectImage", filename: str) -> str:
+    """
+    Caminho:
+      reports/<report_case_id>/objects/<app_label>/<model>/<object_id>/<filename>
+
+    Observação:
+      - exige que o content_object possua report_case_id (padrão ExamObject).
+    """
     obj = instance.content_object
     if not obj or not getattr(obj, "report_case_id", None):
-        raise ValueError(
-            "ObjectImage precisa estar associado a um objeto com report_case."
-        )
+        raise ValueError("ObjectImage precisa estar associado a um objeto com report_case.")
 
     filename = get_valid_filename(os.path.basename(filename))
 
     return (
         f"reports/{obj.report_case_id}/"
-        f"objects/{instance.content_type.model}/"
+        f"objects/{instance.content_type.app_label}/{instance.content_type.model}/"
         f"{instance.object_id}/"
         f"{filename}"
     )
@@ -27,8 +35,8 @@ def object_image_upload_path(instance, filename):
 
 class ObjectImage(models.Model):
     """
-    Imagem associada a um objeto de exame específico,
-    com posição documental definida por índice.
+    Imagem associada a um objeto (via GenericForeignKey),
+    com posição documental definida por índice (Figura 1..N) por objeto.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -49,7 +57,9 @@ class ObjectImage(models.Model):
 
     caption = models.CharField("Legenda", max_length=240, blank=True)
 
-    index = models.PositiveIntegerField("Índice", default=0)
+    # Índice (Figura 1..N) por objeto.
+    # Mantido como nullable para permitir "não informado" e auto-index na criação.
+    index = models.PositiveIntegerField("Índice", null=True, blank=True)
 
     # dimensões originais da imagem (base para todas as transformações)
     original_width = models.PositiveIntegerField(
@@ -73,21 +83,54 @@ class ObjectImage(models.Model):
                 name="unique_image_index_per_object",
             )
         ]
+        indexes = [
+            models.Index(fields=["content_type", "object_id"]),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.index is not None and self.index <= 0:
+            raise ValidationError({"index": "O índice deve ser um inteiro positivo (>= 1)."})
+
+    def _calc_next_index(self) -> int:
+        last_index = (
+            self.__class__.objects.filter(
+                content_type=self.content_type,
+                object_id=self.object_id,
+            )
+            .aggregate(max_index=Max("index"))
+            .get("max_index")
+        )
+        return (last_index or 0) + 1
 
     def save(self, *args, **kwargs):
-        # auto-index (1..N) por objeto quando vier 0
-        if not self.index:
-            last_index = (
-                self.__class__.objects.filter(
-                    content_type=self.content_type,
-                    object_id=self.object_id,
-                )
-                .aggregate(max_index=Max("index"))
-                .get("max_index")
-            )
-            self.index = (last_index or 0) + 1
+        """
+        Auto-index:
+          - apenas na criação (self._state.adding)
+          - apenas quando index não for informado
+        Proteção simples contra corrida:
+          - tenta salvar
+          - se colidir UniqueConstraint, recalcula e tenta de novo (poucas tentativas)
+        """
+        # valida coerência básica
+        if self.object_id and not isinstance(self.object_id, uuid.UUID):
+            raise ValueError("object_id deve ser UUID.")
 
-        super().save(*args, **kwargs)
+        if self._state.adding and not self.index:
+            # poucas tentativas resolvem a maior parte dos casos concorrentes
+            for _ in range(3):
+                self.index = self._calc_next_index()
+                try:
+                    with transaction.atomic():
+                        return super().save(*args, **kwargs)
+                except IntegrityError:
+                    # provável colisão de índice; tenta recalcular
+                    self.index = None
+            # se ainda colidir, propaga para o caller tratar
+            raise
+
+        return super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Figura {self.index}"
+        # quando index ainda não foi atribuído (ex.: antes de salvar)
+        return f"Figura {self.index or '-'}"
