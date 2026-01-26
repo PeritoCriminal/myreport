@@ -118,6 +118,10 @@
                   {% if obj.description %}
                     <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
                   {% endif %}
+
+                  {% include "report_maker/partials/image_card_list.html" with obj=obj report=report %}
+
+
                 </div>
 
                 {% if report.can_edit %}
@@ -175,7 +179,8 @@
 
 {% block scripts %}
   <script src="{% static 'report_maker/js/sortable.min.js' %}"></script>
-  <script src="{% static 'report_maker/js/image_sortable.js' %}"></script>
+  <script src="{% static 'report_maker/js/image_sortable.js' %}?v=4"></script>
+
 
   <script>
     ;(function () {
@@ -198,7 +203,7 @@
         ghostClass: 'sortable-ghost',
         chosenClass: 'sortable-chosen',
         onEnd: async function () {
-          const rows = Array.from(list.querySelectorAll('[data-id]'))
+          const rows = Array.from(list.querySelectorAll(':scope > .list-group-item[data-id]'))
           const items = rows.map((row) => ({ id: row.dataset.id }))
     
           const resp = await fetch(reorderUrl, {

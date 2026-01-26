@@ -1,4 +1,5 @@
 # report_maker/views/report_case.py
+
 from __future__ import annotations
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -6,11 +7,18 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch
 from django.http import Http404
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
+)
 
 from report_maker.forms.report_case import ReportCaseForm
 from report_maker.models import ReportCase
 from report_maker.models.images import ObjectImage
+
 
 
 
@@ -68,23 +76,21 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         ctx = super().get_context_data(**kwargs)
         report: ReportCase = ctx["report"]
 
-        images_qs = ObjectImage.objects.order_by("index")
+        images_qs = ObjectImage.objects.order_by("index", "id")
 
         ctx["exam_objects"] = (
-            report.exam_objects
-            .prefetch_related(
-                Prefetch("images", queryset=images_qs)
-            )
-            .order_by("order")
+            report.exam_objects.all()
+            .prefetch_related(Prefetch("images", queryset=images_qs))
+            .order_by("order", "created_at")
         )
 
         ctx["text_blocks"] = (
-            report.text_blocks
-            .all()
+            report.text_blocks.all()
             .order_by("placement", "order", "created_at")
         )
 
         return ctx
+
 
 
 # ─────────────────────────────────────────────────────────────

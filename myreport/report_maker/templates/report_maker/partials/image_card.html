@@ -1,0 +1,38 @@
+{# report_maker/templates/report_maker/partials/image_card.html #}
+
+<div class="card shadow-sm rm-img-card">
+  {% if report.can_edit %}
+    <div class="d-flex justify-content-between align-items-center px-2 pt-2">
+      <span class="text-muted small js-img-drag-handle"
+            title="Arrastar"
+            style="cursor: grab; user-select: none;">
+        <i class="bi bi-grip-vertical"></i>
+      </span>
+
+      <div class="btn-group btn-group-sm">
+        <a class="btn btn-outline-secondary"
+           href="{% url 'report_maker:image_update' img.pk %}"
+           title="Editar">
+          <i class="bi bi-pencil"></i>
+        </a>
+        <a class="btn btn-outline-danger"
+           href="{% url 'report_maker:image_delete' img.pk %}"
+           title="Excluir">
+          <i class="bi bi-trash"></i>
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+  <a href="{% url 'report_maker:image_update' img.pk %}" class="text-decoration-none">
+    <img src="{{ img.image.url }}"
+         alt="Figura {{ img.index }}"
+         class="w-100 rm-img-thumb" />
+  </a>
+
+  {% if img.caption %}
+    <div class="px-2 pb-2 pt-2 small text-muted rm-img-caption">
+      {{ img.caption }}
+    </div>
+  {% endif %}
+</div>

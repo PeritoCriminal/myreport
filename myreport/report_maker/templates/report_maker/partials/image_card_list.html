@@ -1,0 +1,21 @@
+{# report_maker/templates/report_maker/partials/image_card_list.html #}
+{# espera: obj, report #}
+
+{% with imgs=obj.images.all %}
+  {% if imgs %}
+    <div class="mt-2">
+      <div class="d-flex gap-2 flex-wrap js-images-list"
+           data-sortable="images"
+           data-reorder-url="{% url 'report_maker:images_reorder' %}"
+           data-object-id="{{ obj.pk }}">
+        {% for img in imgs %}
+          <div class="js-image-card"
+               data-image-id="{{ img.pk }}"
+               style="width: 220px;">
+            {% include "report_maker/partials/image_card.html" with img=img report=report %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endwith %}
