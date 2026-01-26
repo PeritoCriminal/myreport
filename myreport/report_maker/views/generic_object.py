@@ -140,7 +140,7 @@ class GenericExamObjectDeleteView(
     DeleteView,
 ):
     model = GenericExamObject
-    template_name = "report_maker/generic_object_confirm_delete.html"
+    template_name = "report_maker/object_confirm_delete.html"
     context_object_name = "obj"
     pk_url_kwarg = "pk"
 

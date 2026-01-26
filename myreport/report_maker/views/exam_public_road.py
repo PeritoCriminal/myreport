@@ -139,9 +139,10 @@ class PublicRoadExamObjectDeleteView(
     DeleteView,
 ):
     model = PublicRoadExamObject
-    template_name = "report_maker/public_road_confirm_delete.html"
+    template_name = "report_maker/object_confirm_delete.html"
     context_object_name = "obj"
     pk_url_kwarg = "pk"
 
     def get_success_url(self):
         return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
+
