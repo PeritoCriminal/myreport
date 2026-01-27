@@ -56,7 +56,7 @@
     </div>
   </form>
 
-  {# Imagens vinculadas ao objeto (só renderiza se obj.pk, conforme seu fragmento) #}
+  {# Agora aqui, chamamos o fragmento abaixo, que ter pk para ser exibido. A ideia é só permitir cadastro de imagens na edição e não na criação do objeto #}
   {% include "report_maker/partials/images_block.html" %}
 
 </div>

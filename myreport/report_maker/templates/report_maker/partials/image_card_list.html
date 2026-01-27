@@ -1,6 +1,7 @@
 {# report_maker/templates/report_maker/partials/image_card_list.html #}
 
-{% with imgs=obj.images.all %}
+{# Alteração na linha abaixo: usamos obj.concrete para buscar as imagens do modelo correto #}
+{% with imgs=obj.concrete.images.all %}
   {% if imgs %}
     <div class="mt-2">
       <div class="d-flex gap-2 flex-wrap js-images-list"

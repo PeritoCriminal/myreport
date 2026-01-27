@@ -130,7 +130,11 @@
                       <a class="btn btn-sm btn-outline-secondary" href="{{ obj_edit_url }}" title="Editar"><i class="bi bi-pencil"></i></a>
                     {% endif %}
 
-                    <a class="btn btn-sm btn-outline-primary" href="{% url 'report_maker:image_add' obj.app_label obj.model_name obj.pk %}" title="Inserir imagem"><i class="bi bi-image"></i></a>
+                    <a class="btn btn-sm btn-outline-primary" 
+                      href="{% url 'report_maker:image_add' obj.concrete.app_label obj.concrete.model_name obj.pk %}" 
+                      title="Inserir imagem">
+                      <i class="bi bi-image"></i>
+                    </a>
                     {% if obj_delete_url %}
                       <a class="btn btn-sm btn-outline-danger" href="{{ obj_delete_url }}" title="Excluir"><i class="bi bi-trash"></i></a>
                     {% endif %}

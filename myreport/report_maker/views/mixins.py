@@ -90,7 +90,7 @@ class ReportCaseObjectGuardMixin(ReportCaseOwnedMixin):
 
 
 class ExamObjectImagesContextMixin:
-    image_create_url_name: str | None = "report_maker:image_add"  # ou "image_add"
+    image_create_url_name: str | None = "report_maker:image_add"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -100,17 +100,14 @@ class ExamObjectImagesContextMixin:
             ctx["images"] = []
             return ctx
 
-        # 1) Mesmo vínculo mais provável do reportcase_detail: FK exam_object
-        qs = ObjectImage.objects.filter(exam_object=obj)
+        concrete_obj = getattr(obj, "concrete", obj) 
+        ct = ContentType.objects.get_for_model(concrete_obj)
 
-        # 2) Fallback: GFK (content_type + object_id)
-        if not qs.exists():
-            ct = ContentType.objects.get_for_model(obj.__class__)
-            qs = ObjectImage.objects.filter(content_type=ct, object_id=obj.pk)
-
-        ctx["images"] = qs.order_by("index", "created_at")
-
-        # botão add (sua rota atual)
+        ctx["images"] = ObjectImage.objects.filter(
+            content_type=ct,
+            object_id=concrete_obj.pk
+        ).order_by("index", "created_at")
+        
         if self.image_create_url_name:
             ctx["image_create_url"] = reverse(
                 self.image_create_url_name,
