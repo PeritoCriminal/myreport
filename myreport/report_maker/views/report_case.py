@@ -132,7 +132,7 @@ class ReportCaseDeleteView(
     ReportCaseCanEditRequiredMixin,
     DeleteView,
 ):
-    model = ReportCase
+    model = ReportCase 
     template_name = "report_maker/reportcase_confirm_delete.html"
     context_object_name = "report"
     pk_url_kwarg = "pk"

@@ -161,9 +161,9 @@
     <div class="mt-5 d-flex justify-content-between align-items-center">
       <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-outline-secondary">Voltar à lista</a>
 
-      <a href="{% url 'report_maker:reportcase_preview' report.pk %}" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">Visualizar laudo</a>
+      <a href="{% url 'report_maker:reportcase_showpage' report.pk %}" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">Visualizar laudo</a>
 
-      {% if report.can_edit %}
+      {% if report.can_edit %} 
         <div class="btn-group">
           <a href="{% url 'report_maker:reportcase_update' report.pk %}" class="btn btn-outline-primary btn-sm">Editar laudo</a>
           <a href="{% url 'report_maker:reportcase_delete' report.pk %}" class="btn btn-outline-danger btn-sm">Excluir laudo</a>

@@ -1,0 +1,229 @@
+# myreport/report_maker/views/report_case_showpage.py
+
+from __future__ import annotations
+
+from collections import defaultdict
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
+from django.views.generic import DetailView
+
+from report_maker.models import ReportCase
+from report_maker.models.images import ObjectImage
+
+
+class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
+    """
+    Página de visualização/preview do laudo (A4), com:
+    - cabeçalho institucional (snapshot-aware via ReportCase.header_context)
+    - preâmbulo
+    - Dados do Boletim (T1)
+    - Dados da Requisição (T1)
+    - Objetos de exame (cada obj = T1, campos = T2)
+    - Figuras com numeração contínua (Figura 1..N)
+    """
+    model = ReportCase
+    template_name = "report_maker/report_case_showpage.html"
+    context_object_name = "report"
+    pk_url_kwarg = "pk"
+
+    # ─────────────────────────────────────────────────────────────
+    # Queryset guard
+    # ─────────────────────────────────────────────────────────────
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(author=self.request.user)
+            .select_related("institution", "nucleus", "team", "author")
+        )
+
+    # ─────────────────────────────────────────────────────────────
+    # Helpers
+    # ─────────────────────────────────────────────────────────────
+    def _kv(self, label: str, value) -> dict:
+        return {"label": label, "value": "" if value is None else value}
+
+    def _get_concrete_obj(self, obj):
+        """
+        Resolve o objeto concreto (multi-table inheritance).
+        Ajuste a lista conforme você adicionar novos tipos.
+        """
+        for rel in (
+            "publicroadexamobject",
+            "genericexamobject",
+            # "vehicleexamobject",
+            # "corpseexamobject",
+        ):
+            child = getattr(obj, rel, None)
+            if child is not None:
+                return child
+        return obj
+
+    def _build_bo_fields(self, report: ReportCase) -> list[dict]:
+        return [
+            self._kv("Boletim de ocorrência", report.police_report),
+            self._kv("Inquérito policial", report.police_inquiry),
+            self._kv("Distrito policial", report.police_station),
+            self._kv("Tipificação penal", report.criminal_typification),
+            self._kv("Data e hora da ocorrência", report.occurrence_datetime),
+            self._kv("Data e hora da designação", report.assignment_datetime),
+            self._kv("Data e hora do exame pericial", report.examination_datetime),
+        ]
+
+    def _build_req_fields(self, report: ReportCase) -> list[dict]:
+        return [
+            self._kv("Autoridade requisitante", report.requesting_authority),
+            self._kv("Objetivo", report.get_objective_display() if report.objective else ""),
+            self._kv("Protocolo", report.protocol),
+            self._kv("Fotografia", report.photography_by),
+            self._kv("Croqui", report.sketch_by),
+        ]
+
+    def _build_obj_field_groups(self, obj) -> list[dict]:
+        """
+        Extrai campos "textuais" do model concreto para exibição como T2.
+
+        Observação:
+        - Isso varre _meta.fields e ignora IDs, relações e metadados.
+        - Se quiser controle total por tipo de objeto, depois trocamos por
+          uma lista explícita por model.
+        """
+        skip_names = {
+            "id", "pk",
+            "report_case",
+            "order", "created_at", "updated_at",
+            "status", "is_locked",
+            "is_active",
+        }
+
+        out = []
+        for f in obj._meta.fields:
+            if f.name in skip_names:
+                continue
+            if f.is_relation:
+                continue
+
+            value = getattr(obj, f.name, "")
+            if value in (None, ""):
+                continue
+
+            out.append({
+                "label": str(getattr(f, "verbose_name", f.name)).capitalize(),
+                "value": value,
+            })
+        return out
+
+    # ─────────────────────────────────────────────────────────────
+    # Context
+    # ─────────────────────────────────────────────────────────────
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        report: ReportCase = ctx["report"]
+
+        # ─────────────────────────────────────────────
+        # Numeração T1/T2 (como você definiu)
+        # ─────────────────────────────────────────────
+        T1 = 1
+
+        def next_t1() -> int:
+            nonlocal T1
+            n = T1
+            T1 += 1
+            return n
+
+        def build_t2_groups(obj, t1_number: int) -> list[dict]:
+            T2 = 1
+            groups = []
+            for fg in self._build_obj_field_groups(obj):
+                groups.append({
+                    **fg,
+                    "t2": f"{t1_number}.{T2}",
+                })
+                T2 += 1
+            return groups
+
+        # ─────────────────────────────────────────────
+        # Seções fixas (T1)
+        # ─────────────────────────────────────────────
+        section_nums = {
+            "bo": next_t1(),   # 1
+            "req": next_t1(),  # 2
+        }
+
+        # ─────────────────────────────────────────────
+        # Objetos (base -> concreto) preservando ordem
+        # ─────────────────────────────────────────────
+        base_objects = list(
+            report.exam_objects.all()
+            .order_by("order", "created_at")
+        )
+        concrete_objects = [self._get_concrete_obj(o) for o in base_objects]
+
+        # ─────────────────────────────────────────────
+        # Imagens em lote por ContentType do CONCRETO
+        # ─────────────────────────────────────────────
+        models_set = {o.__class__ for o in concrete_objects}
+        ct_map = ContentType.objects.get_for_models(*models_set) if models_set else {}
+
+        ids_by_ct = defaultdict(list)  # {ct_id: [uuid...]}
+        for o in concrete_objects:
+            ct = ct_map.get(o.__class__)
+            if not ct:
+                continue
+            ids_by_ct[ct.id].append(o.pk)
+
+        q = Q()
+        for ct_id, ids in ids_by_ct.items():
+            q |= Q(content_type_id=ct_id, object_id__in=ids)
+
+        images_by_key = defaultdict(list)  # {(ct_id, obj_id): [ObjectImage]}
+        if q:
+            imgs = (
+                ObjectImage.objects
+                .filter(q)
+                .order_by("index", "id")
+                .select_related("content_type")
+            )
+            for img in imgs:
+                images_by_key[(img.content_type_id, img.object_id)].append(img)
+
+        # ─────────────────────────────────────────────
+        # Monta UI final: T1/T2 + Figuras contínuas
+        # ─────────────────────────────────────────────
+        figure_counter = 1
+        exam_objects_ui = []
+
+        for obj in concrete_objects:
+            ct = ct_map.get(obj.__class__)
+            ct_id = ct.id if ct else None
+
+            t1_num = next_t1()  # 3, 4, 5...
+
+            images_ui = []
+            for img in images_by_key.get((ct_id, obj.pk), []):
+                images_ui.append({
+                    "img": img,
+                    "figure_label": f"Figura {figure_counter}",
+                })
+                figure_counter += 1
+
+            exam_objects_ui.append({
+                "obj": obj,
+                "t1": t1_num,
+                "title": getattr(obj, "title", "") or "Objeto sem título",
+                "field_groups": build_t2_groups(obj, t1_num),
+                "images": images_ui,
+            })
+
+        ctx.update({
+            "report_number": report.report_number,
+            "header": report.header_context,
+            "preamble": report.preamble,
+            "bo_fields": self._build_bo_fields(report),
+            "req_fields": self._build_req_fields(report),
+            "section_nums": section_nums,
+            "exam_objects_ui": exam_objects_ui,
+        })
+        return ctx

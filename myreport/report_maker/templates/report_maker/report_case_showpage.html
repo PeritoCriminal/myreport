@@ -1,0 +1,155 @@
+{# myreport/report_maker/templates/report_maker/report_case_showpage.html #}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Laudo nº {{ report.report_number }}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'report_maker/css/report_preview.css' %}" />
+    <link rel="stylesheet" href="{% static 'report_maker/css/report_print.css' %}" />
+  </head>
+
+  <body>
+    <button type="button" class="btn btn-light close-btn" data-action="close-preview">
+      Fechar
+    </button>
+
+    <main class="report-stage">
+      <section class="report-page">
+
+        {# ───────────────────────────── Cabeçalho institucional ───────────────────────────── #}
+        <header class="text-center">
+          <table class="report-header" role="presentation">
+            <tr>
+              <td class="rh-img rh-left">
+                {% if header.emblem_primary %}
+                  <img src="{{ header.emblem_primary.url }}" alt="Emblema" class="rh-emblem" />
+                {% endif %}
+              </td>
+
+              <td class="rh-center">
+                <div class="rh-line rh-1">SECRETARIA DA SEGURANÇA PÚBLICA</div>
+
+                {% if header.name or header.acronym %}
+                  <div class="rh-line rh-2">
+                    {{ header.name|default:'' }}
+                    {% if header.acronym %}
+                      ({{ header.acronym }})
+                    {% endif %}
+                  </div>
+                {% endif %}
+
+                {% if header.kind_display %}
+                  <div class="rh-line rh-3">{{ header.kind_display }}</div>
+                {% endif %}
+
+                {% if header.honoree_line %}
+                  <div class="rh-line rh-4">"{{ header.honoree_line|upper }}"</div>
+                {% endif %}
+
+                {% if header.unit_line %}
+                  <div class="rh-line rh-5">{{ header.unit_line }}</div>
+                {% endif %}
+              </td>
+
+              <td class="rh-img rh-right">
+                {% if header.emblem_secondary %}
+                  <img src="{{ header.emblem_secondary.url }}" alt="Emblema" class="rh-emblem" />
+                {% endif %}
+              </td>
+            </tr>
+          </table>
+
+          <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
+        </header>
+
+        {# ───────────────────────────── Preâmbulo ───────────────────────────── #}
+        {% if preamble %}
+          <section class="report-section preamble">
+            {{ preamble|linebreaks }}
+          </section>
+        {% endif %}
+
+        {# ───────────────────────────── Dados do Boletim (T1) ───────────────────────────── #}
+        <section class="report-section">
+          <h2 class="section-heading">{{ section_nums.bo }} Dados do Boletim</h2>
+
+          <dl class="data-list">
+            {% for it in bo_fields %}
+              <dt>{{ it.label }}</dt>
+              <dd>
+                {% if it.value %}
+                  {{ it.value }}
+                {% else %}
+                  —
+                {% endif %}
+              </dd>
+            {% endfor %}
+          </dl>
+        </section>
+
+        {# ───────────────────────────── Dados da Requisição (T1) ───────────────────────────── #}
+        <section class="report-section">
+          <h2 class="section-heading">{{ section_nums.req }} Dados da Requisição</h2>
+
+          <dl class="data-list">
+            {% for it in req_fields %}
+              <dt>{{ it.label }}</dt>
+              <dd>
+                {% if it.value %}
+                  {{ it.value }}
+                {% else %}
+                  —
+                {% endif %}
+              </dd>
+            {% endfor %}
+          </dl>
+        </section>
+
+        {# ───────────────────────────── Objetos de exame (T1) ───────────────────────────── #}
+        {% if exam_objects_ui %}
+          {% for item in exam_objects_ui %}
+            <section class="report-section object-block">
+
+              {# T1 do objeto #}
+              <h2 class="section-heading">{{ item.t1 }} {{ item.title }}</h2>
+
+              {# T2 (campos) #}
+              {% for fg in item.field_groups %}
+                <div class="object-subtitle">{{ fg.t2 }} {{ fg.label }}</div>
+                <p>{{ fg.value }}</p>
+              {% endfor %}
+
+              {# Figuras contínuas: Figura 1..N #}
+              {% if item.images %}
+                <div class="figure-grid">
+                  {% for it in item.images %}
+                    <figure class="report-figure">
+                      <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
+                      <figcaption>
+                        {{ it.figure_label }}
+                        {% if it.img.caption %}
+                          — {{ it.img.caption }}
+                        {% endif %}
+                      </figcaption>
+                    </figure>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+            </section>
+          {% endfor %}
+        {% else %}
+          <section class="report-section">
+            <p class="text-muted small mb-0">Nenhum objeto de exame cadastrado.</p>
+          </section>
+        {% endif %}
+
+      </section>
+    </main>
+  </body>
+</html>

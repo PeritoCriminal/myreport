@@ -11,6 +11,7 @@ from report_maker.views.report_case import (
 
 from report_maker.views.report_case_close import ReportCaseCloseView
 from report_maker.views.report_case_preview import ReportCasePreviewView
+from report_maker.views.report_case_showpage import ReportCaseShowPageView
 
 from report_maker.views.exam_object_dashboard import ExamObjectDashboardView
 from report_maker.views.exam_objects_reorder import exam_objects_reorder
@@ -44,6 +45,7 @@ urlpatterns = [
     path("reports/create/", ReportCaseCreateView.as_view(), name="reportcase_create"),
     path("reports/<uuid:pk>/", ReportCaseDetailView.as_view(), name="reportcase_detail"),
     path("reports/<uuid:pk>/preview/", ReportCasePreviewView.as_view(), name="reportcase_preview"),
+    path("reports/<uuid:pk>/showpage/", ReportCaseShowPageView.as_view(), name="reportcase_showpage"),
     path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="reportcase_update"),
     path("reports/<uuid:pk>/delete/", ReportCaseDeleteView.as_view(), name="reportcase_delete"),
     path("reports/<uuid:pk>/close/", ReportCaseCloseView.as_view(), name="reportcase_close"), 
