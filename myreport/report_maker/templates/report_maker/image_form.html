@@ -16,6 +16,7 @@
 
     <form method="post" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.GET.next }}">
 
       {% if form.non_field_errors %}
         <div class="alert alert-danger">
@@ -165,9 +166,14 @@
             Cancelar
           </a>
 
+          {# preserva a URL de origem (?next=) no POST #}
+          <input type="hidden" name="next" value="{{ request.GET.next }}">
+
           <button type="submit" class="btn btn-primary btn-sm" data-action="save">
             <i class="bi bi-check-lg"></i> Salvar
           </button>
+        </div>
+
         </div>
 
       </div>

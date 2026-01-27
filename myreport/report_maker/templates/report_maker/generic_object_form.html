@@ -18,7 +18,7 @@
     {% csrf_token %}
     {{ form.non_field_errors }}
 
-    {% for field in form %} 
+    {% for field in form %}
 
       {% if field.name == "description" or field.name == "methodology" or field.name == "examination" or field.name == "results" %}
         {% include "report_maker/partials/text_block_editor.html" with field_name=field.name label=field.label value=field.value help_text=field.help_text rows=8 %}
@@ -43,7 +43,6 @@
         </div>
       {% endif %}
 
-
     {% endfor %}
 
     <div class="d-flex justify-content-end gap-2 mt-4">
@@ -56,6 +55,9 @@
       </button>
     </div>
   </form>
+
+  {# Imagens vinculadas ao objeto (só renderiza se obj.pk, conforme seu fragmento) #}
+  {% include "report_maker/partials/images_block.html" %}
 
 </div>
 {% endblock %}

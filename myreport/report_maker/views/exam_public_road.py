@@ -11,6 +11,7 @@ from report_maker.views.mixins import (
     CanEditReportRequiredMixin,
     ReportCaseContextMixin,
     ReportCaseObjectGuardMixin,
+    ExamObjectImagesContextMixin,
 )
 
 
@@ -53,6 +54,7 @@ class PublicRoadExamObjectUpdateView(
     ReportCaseObjectGuardMixin,
     PublicRoadExamObjectOwnedQuerySetMixin,
     ReportCaseContextMixin,
+    ExamObjectImagesContextMixin,
     UpdateView,
 ):
     model = PublicRoadExamObject

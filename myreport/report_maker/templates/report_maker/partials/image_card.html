@@ -11,12 +11,12 @@
 
       <div class="btn-group btn-group-sm">
         <a class="btn btn-outline-secondary"
-           href="{% url 'report_maker:image_update' img.pk %}"
+           href="{% url 'report_maker:image_update' img.pk %}?next={{ request.get_full_path|urlencode }}"
            title="Editar">
           <i class="bi bi-pencil"></i>
         </a>
         <a class="btn btn-outline-danger"
-           href="{% url 'report_maker:image_delete' img.pk %}"
+           href="{% url 'report_maker:image_delete' img.pk %}?next={{ request.get_full_path|urlencode }}"
            title="Excluir">
           <i class="bi bi-trash"></i>
         </a>

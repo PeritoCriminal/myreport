@@ -1,0 +1,61 @@
+
+{# myreport/report_maker/templates/report_maker/image_confirm_delete.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  Excluir imagem
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+
+  <h4 class="mb-3 text-danger">
+    Excluir imagem
+  </h4>
+
+  <div class="alert alert-danger">
+    <p class="mb-2 fw-semibold">
+      Confirma a exclusão definitiva desta imagem?
+    </p>
+    <p class="mb-0">
+      Esta ação não poderá ser desfeita.
+    </p>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body text-center">
+      <img
+        src="{{ object.image.url }}"
+        alt="Imagem a ser excluída"
+        class="img-fluid rounded"
+        style="max-height: 300px;"
+      />
+
+      {% if object.caption %}
+        <div class="mt-2 small text-muted">
+          {{ object.caption }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="d-flex justify-content-end gap-2">
+      <a
+        href="{{ request.META.HTTP_REFERER|default:'javascript:history.back()' }}"
+        class="btn btn-outline-secondary"
+      >
+        Cancelar
+      </a>
+
+      <button type="submit" class="btn btn-danger">
+        Excluir imagem
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

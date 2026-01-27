@@ -113,6 +113,9 @@
     </div>
   </form>
 
+  {# Imagens vinculadas ao objeto (só renderiza se obj.pk, conforme seu fragmento) #}
+  {% include "report_maker/partials/images_block.html" with can_edit=report.can_edit %}
+
 </div>
 {% endblock %}
 

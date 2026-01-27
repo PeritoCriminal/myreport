@@ -6,9 +6,7 @@ import json
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Max
 from django.http import Http404, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -16,9 +14,9 @@ from django.views.generic import CreateView, DeleteView, UpdateView
 
 from PIL import Image
 
-from common.mixins import CanEditReportsRequiredMixin
 from report_maker.forms import ObjectImageForm
-from report_maker.models import ObjectImage, ReportCase
+from report_maker.models import ObjectImage
+from report_maker.views.mixins import NextUrlMixin
 
 
 class _ImageAccessMixin(LoginRequiredMixin):
@@ -29,17 +27,18 @@ class _ImageAccessMixin(LoginRequiredMixin):
     - possui report_case
     - report_case pertence ao usuário
     - report_case está editável (can_edit)
+
+    Faz cache em self._target_cache.
+    Retorno: (content_type, target_obj, report_case)
     """
 
     def _get_target_object(self):
-        # cache para evitar múltiplas queries na mesma request
-        if hasattr(self, "_target_cache") and self._target_cache is not None:
+        if getattr(self, "_target_cache", None) is not None:
             return self._target_cache
 
         app_label = self.kwargs.get("app_label")
         model = self.kwargs.get("model")
         object_id = self.kwargs.get("object_id")
-
         if not (app_label and model and object_id):
             raise Http404
 
@@ -55,8 +54,7 @@ class _ImageAccessMixin(LoginRequiredMixin):
         if not obj:
             raise Http404
 
-        # garante que o alvo é um ExamObject (ou herdeiro)
-        from report_maker.models import ExamObject
+        from report_maker.models import ExamObject  # import local para evitar circular
 
         if not isinstance(obj, ExamObject):
             raise Http404
@@ -65,7 +63,6 @@ class _ImageAccessMixin(LoginRequiredMixin):
         if not report:
             raise Http404
 
-        # reforça owner + editabilidade
         if report.author_id != self.request.user.id:
             raise Http404
         if not getattr(report, "can_edit", False):
@@ -74,8 +71,39 @@ class _ImageAccessMixin(LoginRequiredMixin):
         self._target_cache = (ct, obj, report)
         return self._target_cache
 
+    def _validate_image_access(self, image: ObjectImage) -> ObjectImage:
+        """
+        Valida acesso para Update/Delete pelo próprio ObjectImage:
+        - content_object existe
+        - é ExamObject (ou herdeiro) + possui report_case
+        - owner + can_edit
+        """
+        obj = image.content_object
+        if not obj:
+            raise Http404
 
-class ObjectImageCreateView(_ImageAccessMixin, CreateView):
+        from report_maker.models import ExamObject  # import local para evitar circular
+
+        if not isinstance(obj, ExamObject):
+            raise Http404
+
+        report = getattr(obj, "report_case", None)
+        if not report:
+            raise Http404
+
+        if report.author_id != self.request.user.id:
+            raise Http404
+        if not getattr(report, "can_edit", False):
+            raise Http404
+
+        return image
+
+
+# ─────────────────────────────────────────────────────────────
+# Create
+# ─────────────────────────────────────────────────────────────
+
+class ObjectImageCreateView(NextUrlMixin, _ImageAccessMixin, CreateView):
     model = ObjectImage
     template_name = "report_maker/image_form.html"
     form_class = ObjectImageForm  # index não é editável pelo usuário
@@ -86,7 +114,7 @@ class ObjectImageCreateView(_ImageAccessMixin, CreateView):
         ctx["initial_image_url"] = ""
 
         _ct, _obj, report = self._get_target_object()
-        ctx["cancel_url"] = reverse(
+        ctx["cancel_url"] = self.get_next_url() or reverse(
             "report_maker:reportcase_detail",
             kwargs={"pk": report.pk},
         )
@@ -108,59 +136,34 @@ class ObjectImageCreateView(_ImageAccessMixin, CreateView):
         # index é calculado automaticamente no model (save)
         return super().form_valid(form)
 
-    def get_success_url(self):
+    def get_fallback_url(self) -> str:
         _ct, _obj, report = self._get_target_object()
-        return reverse(
-            "report_maker:reportcase_detail",
-            kwargs={"pk": report.pk},
-        )
+        return reverse("report_maker:reportcase_detail", kwargs={"pk": report.pk})
 
 
+# ─────────────────────────────────────────────────────────────
+# Update
+# ─────────────────────────────────────────────────────────────
 
-class ObjectImageUpdateView(_ImageAccessMixin, UpdateView):
+class ObjectImageUpdateView(NextUrlMixin, _ImageAccessMixin, UpdateView):
     model = ObjectImage
     template_name = "report_maker/image_form.html"
     form_class = ObjectImageForm
     context_object_name = "image"
 
     def get_object(self, queryset=None):
-        """
-        Valida acesso pelo próprio ObjectImage:
-        - content_object existe
-        - é ExamObject (ou herdeiro) + possui report_case
-        - owner + can_edit
-        """
         image = super().get_object(queryset=queryset)
-
-        obj = image.content_object
-        if not obj:
-            raise Http404
-
-        from report_maker.models import ExamObject
-
-        if not isinstance(obj, ExamObject):
-            raise Http404
-
-        report = getattr(obj, "report_case", None)
-        if not report:
-            raise Http404
-
-        if report.author_id != self.request.user.id:
-            raise Http404
-        if not getattr(report, "can_edit", False):
-            raise Http404
-
-        return image
+        return self._validate_image_access(image)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["mode"] = "update"
 
-        img = self.object  # já carregado pelo UpdateView/get_object
+        img = self.object
         ctx["initial_image_url"] = img.image.url if getattr(img, "image", None) else ""
 
         report = img.content_object.report_case
-        ctx["cancel_url"] = reverse(
+        ctx["cancel_url"] = self.get_next_url() or reverse(
             "report_maker:reportcase_detail",
             kwargs={"pk": report.pk},
         )
@@ -172,36 +175,42 @@ class ObjectImageUpdateView(_ImageAccessMixin, UpdateView):
         form.instance.index = current.index
         return super().form_valid(form)
 
-    def get_success_url(self):
+    def get_fallback_url(self) -> str:
         obj = self.object.content_object
         return reverse("report_maker:reportcase_detail", kwargs={"pk": obj.report_case.pk})
 
 
-class ObjectImageDeleteView(_ImageAccessMixin, CanEditReportsRequiredMixin, DeleteView):
+# ─────────────────────────────────────────────────────────────
+# Delete
+# ─────────────────────────────────────────────────────────────
+
+class ObjectImageDeleteView(NextUrlMixin, _ImageAccessMixin, DeleteView):
     model = ObjectImage
     template_name = "report_maker/image_confirm_delete.html"
     context_object_name = "image"
 
     def get_object(self, queryset=None):
         image = super().get_object(queryset=queryset)
-        obj = image.content_object
-        if not obj:
-            raise Http404
+        return self._validate_image_access(image)
 
-        report = getattr(obj, "report_case", None)
-        if not report:
-            raise Http404
-        if report.author_id != self.request.user.id:
-            raise Http404
-        if not getattr(report, "can_edit", False):
-            raise Http404
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        img = self.object
+        report = img.content_object.report_case
+        ctx["cancel_url"] = self.get_next_url() or reverse(
+            "report_maker:reportcase_detail",
+            kwargs={"pk": report.pk},
+        )
+        return ctx
 
-        return image
-
-    def get_success_url(self):
+    def get_fallback_url(self) -> str:
         obj = self.object.content_object
         return reverse("report_maker:reportcase_detail", kwargs={"pk": obj.report_case.pk})
 
+
+# ─────────────────────────────────────────────────────────────
+# Reorder
+# ─────────────────────────────────────────────────────────────
 
 @login_required
 @require_POST
@@ -218,7 +227,8 @@ def images_reorder(request):
     if qs.count() != len(ordered_ids):
         return HttpResponseBadRequest("Há IDs inexistentes em ordered_ids")
 
-    first = qs.first()
+    # usa o 1º id enviado para determinar o grupo (mais previsível que qs.first())
+    first = ObjectImage.objects.filter(pk=ordered_ids[0]).first()
     if not first:
         return HttpResponseBadRequest("Imagens não encontradas")
 

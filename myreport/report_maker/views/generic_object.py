@@ -11,6 +11,7 @@ from report_maker.views.mixins import (
     CanEditReportRequiredMixin,
     ReportCaseContextMixin,
     ReportCaseObjectGuardMixin,
+    ExamObjectImagesContextMixin,
 )
 
 
@@ -52,6 +53,7 @@ class GenericExamObjectUpdateView(
     ReportCaseObjectGuardMixin,
     GenericExamObjectOwnedQuerySetMixin,
     ReportCaseContextMixin,
+    ExamObjectImagesContextMixin,
     UpdateView,
 ):
     model = GenericExamObject
