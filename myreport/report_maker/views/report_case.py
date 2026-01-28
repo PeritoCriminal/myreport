@@ -96,7 +96,7 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         # Textos do laudo (por placement + ordem)
         text_blocks_qs = (
             report.text_blocks.all()
-            .order_by("placement", "order", "created_at")
+            .order_by("position", "created_at")
         )
 
         ctx["text_blocks"] = text_blocks_qs

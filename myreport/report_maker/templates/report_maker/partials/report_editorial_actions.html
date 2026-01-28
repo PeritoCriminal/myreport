@@ -8,15 +8,14 @@
 {% if report.can_edit %}
 
   {% if compact %}
-    {# Modo compacto (lista de laudos) #}
     <div class="btn-group btn-group-sm">
-      <a href="{% url 'report_maker:textblock_create' report.pk %}?placement=BEFORE_OBJECTS"
+      <a href="{% url 'report_maker:text_block_upsert' report.pk 'SUMMARY' %}"
          class="btn btn-outline-secondary"
-         title="Resumo do laudo">
+         title="Resumo">
         <i class="bi bi-card-text"></i>
       </a>
 
-      <a href="{% url 'report_maker:textblock_create' report.pk %}?placement=CONCLUSION"
+      <a href="{% url 'report_maker:text_block_upsert' report.pk 'CONCLUSION' %}"
          class="btn btn-outline-secondary"
          title="Conclusão">
         <i class="bi bi-chat-text"></i>
@@ -30,7 +29,6 @@
     </div>
 
   {% else %}
-    {#    Modo completo (detail do laudo) #}
     <div class="btn-group">
       <a href="{% url 'report_maker:exam_object_dashboard' report.pk %}"
          class="btn btn-sm btn-outline-primary">
@@ -48,22 +46,22 @@
       <ul class="dropdown-menu dropdown-menu-end">
         <li>
           <a class="dropdown-item"
-             href="{% url 'report_maker:textblock_create' report.pk %}?placement=BEFORE_OBJECTS">
-            Resumo (geral)
+             href="{% url 'report_maker:text_block_upsert' report.pk 'PREAMBLE' %}">
+            Preâmbulo
           </a>
         </li>
 
         <li>
           <a class="dropdown-item"
-             href="{% url 'report_maker:textblock_create' report.pk %}?placement=LOCATIONS_INTRO">
-            Locais – texto introdutório
+             href="{% url 'report_maker:text_block_upsert' report.pk 'SUMMARY' %}">
+            Resumo
           </a>
         </li>
 
         <li>
           <a class="dropdown-item"
-             href="{% url 'report_maker:textblock_create' report.pk %}?placement=AFTER_OBJECTS">
-            Texto após os objetos
+             href="{% url 'report_maker:text_block_upsert' report.pk 'TOC' %}">
+            Sumário
           </a>
         </li>
 
@@ -71,14 +69,37 @@
 
         <li>
           <a class="dropdown-item"
-             href="{% url 'report_maker:textblock_create' report.pk %}?placement=FINAL_CONSIDERATIONS">
+             href="{% url 'report_maker:text_block_upsert' report.pk 'OBJECT_GROUP_INTRO' %}?group_key=LOCATIONS">
+            Locais – texto comum do grupo
+          </a>
+        </li>
+
+        <li>
+          <a class="dropdown-item"
+             href="{% url 'report_maker:text_block_upsert' report.pk 'OBJECT_GROUP_INTRO' %}?group_key=VEHICLES">
+            Veículos – texto comum do grupo
+          </a>
+        </li>
+
+        <li><hr class="dropdown-divider"></li>
+
+        <li>
+          <a class="dropdown-item"
+             href="{% url 'report_maker:text_block_upsert' report.pk 'OBSERVATIONS' %}">
+            Observações
+          </a>
+        </li>
+
+        <li>
+          <a class="dropdown-item"
+             href="{% url 'report_maker:text_block_upsert' report.pk 'FINAL_CONSIDERATIONS' %}">
             Considerações finais
           </a>
         </li>
 
         <li>
           <a class="dropdown-item"
-             href="{% url 'report_maker:textblock_create' report.pk %}?placement=CONCLUSION">
+             href="{% url 'report_maker:text_block_upsert' report.pk 'CONCLUSION' %}">
             Conclusão
           </a>
         </li>

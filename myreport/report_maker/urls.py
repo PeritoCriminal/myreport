@@ -43,6 +43,7 @@ from report_maker.views.report_text_block import (
     ReportTextBlockCreateView,
     ReportTextBlockUpdateView,
     ReportTextBlockDeleteView,
+    ReportTextBlockUpsertView,
 )
 
 app_name = "report_maker"
@@ -82,6 +83,11 @@ urlpatterns = [
         "reports/<uuid:report_pk>/text-blocks/<uuid:pk>/delete/",
         ReportTextBlockDeleteView.as_view(),
         name="textblock_delete",
+    ),
+    path(
+        "reports/<uuid:report_pk>/text-blocks/<str:placement>/",
+        ReportTextBlockUpsertView.as_view(),
+        name="text_block_upsert",
     ),
 
     # ─────────────────────────────────────
