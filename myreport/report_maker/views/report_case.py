@@ -15,9 +15,11 @@ from django.views.generic import (
     UpdateView,
 )
 
+from report_maker.models import ReportCase, ObjectImage, ReportTextBlock
 from report_maker.forms.report_case import ReportCaseForm
-from report_maker.models import ReportCase
 from report_maker.models.images import ObjectImage
+
+from report_maker.views.report_outline import build_report_outline
 
 
 
@@ -66,13 +68,7 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
 
 
 
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Prefetch
-from django.views.generic import DetailView
 
-from report_maker.models import ReportCase
-from report_maker.models.images import ObjectImage
-from report_maker.models.report_text_block import ReportTextBlock
 
 
 class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, DetailView):
@@ -94,11 +90,7 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         )
 
         # Textos do laudo (por placement + ordem)
-        text_blocks_qs = (
-            report.text_blocks.all()
-            .order_by("position", "created_at")
-        )
-
+        text_blocks_qs = report.text_blocks.all().order_by("placement", "position", "created_at")
         ctx["text_blocks"] = text_blocks_qs
 
         # Conveniências para o template (opcional, mas útil)
@@ -106,6 +98,14 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
             k: list(text_blocks_qs.filter(placement=k))
             for k, _ in ReportTextBlock.Placement.choices
         }
+
+        # Outline (agrupamento + numeração relativa por grupo/objeto/seções)
+        ctx["outline"] = build_report_outline(
+            report=report,
+            exam_objects_qs=ctx["exam_objects"],
+            text_blocks_qs=text_blocks_qs,
+            start_at=1,
+        )
 
         return ctx
 

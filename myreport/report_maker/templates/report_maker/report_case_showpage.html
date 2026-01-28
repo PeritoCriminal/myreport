@@ -110,42 +110,78 @@
           </dl>
         </section>
 
-        {# ───────────────────────────── Objetos de exame (T1) ───────────────────────────── #}
-        {% if exam_objects_ui %}
-          {% for item in exam_objects_ui %}
-            <section class="report-section object-block">
+        {# ───────────────────────────── Objetos de exame (agrupados) ───────────────────────────── #}
+        {% if outline %}
+          {% for g in outline %}
 
-              {# T1 do objeto #}
-              <h2 class="section-heading">{{ item.t1 }} {{ item.title }}</h2>
+            {# Cabeçalho do grupo (quando houver numeração do grupo) #}
+            {% if g.number %}
+              <section class="report-section group-block">
+                <h2 class="section-heading">{{ g.number }} {{ g.group_label }}</h2>
 
-              {# T2 (campos) #}
-              {% for fg in item.field_groups %}
-                <div class="object-subtitle">{{ fg.t2 }} {{ fg.label }}</div>
-                <p>{{ fg.value }}</p>
-              {% endfor %}
+                {% if g.intro_text %}
+                  <div class="mb-3">
+                    {{ g.intro_text|linebreaks }}
+                  </div>
+                {% endif %}
+              </section>
+            {% endif %}
 
-              {# Figuras contínuas: Figura 1..N #}
-              {% if item.images %}
-                <div class="figure-grid">
-                  {% for it in item.images %}
-                    <figure class="report-figure">
-                      <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
-                      <figcaption>
-                        {{ it.figure_label }}
-                        {% if it.img.caption %}
-                          — {{ it.img.caption }}
-                        {% endif %}
-                      </figcaption>
-                    </figure>
-                  {% endfor %}
-                </div>
-              {% endif %}
+            {# Objetos do grupo #}
+            {% for o in g.objects %}
+              <section class="report-section object-block">
 
-            </section>
+                {# Título do objeto (pode ser "4" ou "4.1") #}
+                <h2 class="section-heading">{{ o.number }} {{ o.title }}</h2>
+
+                {# Seções (título abaixo do objeto) #}
+                {% for s in o.sections %}
+                  <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
+
+                  {% if s.fmt == "md" %}
+                    {{ s.text|safe }}
+                  {% else %}
+                    <p>{{ s.text|linebreaksbr }}</p>
+                  {% endif %}
+                {% endfor %}
+
+                {# Figuras contínuas #}
+                {% if o.images %}
+                  <div class="figure-grid">
+                    {% for it in o.images %}
+                      <figure class="report-figure">
+                        <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
+                        <figcaption>
+                          {{ it.figure_label }}
+                          {% if it.img.caption %}
+                            — {{ it.img.caption }}
+                          {% endif %}
+                        </figcaption>
+                      </figure>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+
+              </section>
+            {% endfor %}
+
           {% endfor %}
         {% else %}
           <section class="report-section">
             <p class="text-muted small mb-0">Nenhum objeto de exame cadastrado.</p>
+          </section>
+        {% endif %}
+
+        {# ───────────────────────────── Conclusão (último T1) ───────────────────────────── #}
+        {% if conclusion_blocks %}
+          <section class="report-section">
+            <h2 class="section-heading">{{ conclusion_num }} Conclusão</h2>
+
+            {% for block in conclusion_blocks %}
+              <div class="mb-3">
+                {{ block.body|linebreaks }}
+              </div>
+            {% endfor %}
           </section>
         {% endif %}
 

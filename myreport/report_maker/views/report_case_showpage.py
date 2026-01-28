@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import asdict
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
@@ -11,17 +12,19 @@ from django.views.generic import DetailView
 
 from report_maker.models import ReportCase
 from report_maker.models.images import ObjectImage
+from report_maker.models import ReportTextBlock
+from report_maker.views.report_outline import build_report_outline
 
 
 class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
     """
-    Página de visualização/preview do laudo (A4), com:
-    - cabeçalho institucional (se can_edit: dados do usuário; senão: snapshots)
-    - preâmbulo
-    - Dados do Boletim (T1)
-    - Dados da Requisição (T1)
-    - Objetos de exame (cada obj = T1, campos = T2)
-    - Figuras com numeração contínua (Figura 1..N)
+    Página de visualização/preview do laudo (A4).
+
+    Agora:
+    - Objetos são renderizados via "outline" (grupo -> objeto -> seções),
+      respeitando group_key e get_render_blocks() dos models.
+    - A numeração (T1/T2/T3) é definida aqui (start_at e profundidade com/sem grupo).
+    - Figuras continuam com numeração contínua (Figura 1..N).
     """
     model = ReportCase
     template_name = "report_maker/report_case_showpage.html"
@@ -45,22 +48,6 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
     def _kv(self, label: str, value) -> dict:
         return {"label": label, "value": "" if value is None else value}
 
-    def _get_concrete_obj(self, obj):
-        """
-        Resolve o objeto concreto (multi-table inheritance).
-        Ajuste a lista conforme você adicionar novos tipos.
-        """
-        for rel in (
-            "publicroadexamobject",
-            "genericexamobject",
-            # "vehicleexamobject",
-            # "corpseexamobject",
-        ):
-            child = getattr(obj, rel, None)
-            if child is not None:
-                return child
-        return obj
-
     def _build_bo_fields(self, report: ReportCase) -> list[dict]:
         return [
             self._kv("Boletim de ocorrência", report.police_report),
@@ -81,47 +68,10 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
             self._kv("Croqui", report.sketch_by),
         ]
 
-    def _build_obj_field_groups(self, obj) -> list[dict]:
-        """
-        Extrai campos "textuais" do model concreto para exibição como T2.
-
-        Observação:
-        - Isso varre _meta.fields e ignora IDs, relações e metadados.
-        - Se quiser controle total por tipo de objeto, depois trocamos por
-          uma lista explícita por model.
-        """
-        skip_names = {
-            "id", "pk",
-            "report_case",
-            "order", "created_at", "updated_at",
-            "status", "is_locked",
-            "is_active",
-        }
-
-        out = []
-        for f in obj._meta.fields:
-            if f.name in skip_names:
-                continue
-            if f.is_relation:
-                continue
-
-            value = getattr(obj, f.name, "")
-            if value in (None, ""):
-                continue
-
-            out.append({
-                "label": str(getattr(f, "verbose_name", f.name)).capitalize(),
-                "value": value,
-            })
-        return out
-
     # ─────────────────────────────────────────────────────────────
-    # Header builders (VIEW-driven, conforme combinado)
+    # Header builders (VIEW-driven, conforme combinado) order
     # ─────────────────────────────────────────────────────────────
     def _build_header_from_user(self) -> dict:
-        """
-        Se can_edit: busca dados a partir dos vínculos ativos do usuário logado.
-        """
         user = self.request.user
 
         aia = getattr(user, "active_institution_assignment", None)
@@ -148,10 +98,14 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         elif hon_name:
             honoree_line = hon_name
 
-        unit_line = " - ".join(p for p in [
-            (getattr(nucleus, "name", "") or "") if nucleus else "",
-            (getattr(team, "name", "") or "") if team else "",
-        ] if p)
+        unit_line = " - ".join(
+            p
+            for p in [
+                (getattr(nucleus, "name", "") or "") if nucleus else "",
+                (getattr(team, "name", "") or "") if team else "",
+            ]
+            if p
+        )
 
         return {
             "name": name or None,
@@ -164,10 +118,7 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         }
 
     def _build_header_from_snapshots(self, report: ReportCase) -> dict:
-        """
-        Se não can_edit: busca estritamente dos snapshots do laudo.
-        """
-        inst = report.institution  # fallback opcional só para emblemas (se existir FK)
+        inst = report.institution  # fallback opcional só para emblemas
 
         name = (report.institution_name_snapshot or "").strip()
         acronym = (report.institution_acronym_snapshot or "").strip()
@@ -204,50 +155,70 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         report: ReportCase = ctx["report"]
 
-        # ─────────────────────────────────────────────
         # Header: regra combinada
-        # ─────────────────────────────────────────────
         can_edit = bool(getattr(report, "can_edit", False))
         header = self._build_header_from_user() if can_edit else self._build_header_from_snapshots(report)
 
-        # ─────────────────────────────────────────────
-        # Numeração T1/T2 (como você definiu)
-        # ─────────────────────────────────────────────
-        T1 = 1
-
-        def next_t1() -> int:
-            nonlocal T1
-            n = T1
-            T1 += 1
-            return n
-
-        def build_t2_groups(obj, t1_number: int) -> list[dict]:
-            T2 = 1
-            groups = []
-            for fg in self._build_obj_field_groups(obj):
-                groups.append({
-                    **fg,
-                    "t2": f"{t1_number}.{T2}",
-                })
-                T2 += 1
-            return groups
-
-        # ─────────────────────────────────────────────
         # Seções fixas (T1)
-        # ─────────────────────────────────────────────
         section_nums = {
-            "bo": next_t1(),   # 1
-            "req": next_t1(),  # 2
+            "bo": 1,
+            "req": 2,
         }
 
-        # ─────────────────────────────────────────────
-        # Objetos (base -> concreto) preservando ordem
-        # ─────────────────────────────────────────────
-        base_objects = list(
-            report.exam_objects.all()
-            .order_by("order", "created_at")
+        # Textos do laudo (inclui intros de grupo)
+        text_blocks_qs = report.text_blocks.all().order_by("placement", "position", "created_at")
+        ctx["text_blocks"] = text_blocks_qs
+        ctx["text_blocks_by_placement"] = {
+            k: list(text_blocks_qs.filter(placement=k))
+            for k, _ in ReportTextBlock.Placement.choices
+        }
+
+        # Objetos base (ordem do laudo) -> concretos via property .concrete
+        base_objects = list(report.exam_objects.all().order_by("order", "created_at"))
+        concrete_objects = [o.concrete for o in base_objects]
+
+        # Outline (com start_at após BO/REQ)
+        outline = build_report_outline(
+            report=report,
+            exam_objects_qs=base_objects,  # build_report_outline faz .concrete internamente
+            text_blocks_qs=text_blocks_qs,
+            start_at=3,
         )
-        concrete_objects = [self._get_concrete_obj(o) for o in base_objects]
+
+        # ─────────────────────────────────────────────
+        # Conclusão (último T1)
+        # ─────────────────────────────────────────────
+        conclusion_blocks = list(
+            text_blocks_qs.filter(placement=ReportTextBlock.Placement.CONCLUSION)
+        )
+
+        # Descobre se o outline está usando cabeçalho de grupo:
+        use_group_headers = any(g.number for g in outline)
+
+        if use_group_headers:
+            # Top-level é "grupo": o último T1 é o último group.number
+            last_top = 2
+            for g in outline:
+                if g.number:
+                    last_top = int(g.number)
+        else:
+            # Top-level é "objeto": o último T1 é o maior número de objeto
+            last_top = 2
+            for g in outline:
+                for o in g.objects:
+                    # o.number é "4" quando sem grupo
+                    try:
+                        last_top = max(last_top, int(o.number))
+                    except (TypeError, ValueError):
+                        pass
+
+        conclusion_num = last_top + 1 if conclusion_blocks else None
+
+        ctx.update({
+            "conclusion_num": conclusion_num,
+            "conclusion_blocks": conclusion_blocks,
+        })
+
 
         # ─────────────────────────────────────────────
         # Imagens em lote por ContentType do CONCRETO
@@ -278,32 +249,35 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
                 images_by_key[(img.content_type_id, img.object_id)].append(img)
 
         # ─────────────────────────────────────────────
-        # Monta UI final: T1/T2 + Figuras contínuas
+        # Monta outline "UI" com figuras contínuas
         # ─────────────────────────────────────────────
         figure_counter = 1
-        exam_objects_ui = []
+        outline_ui: list[dict] = []
 
-        for obj in concrete_objects:
-            ct = ct_map.get(obj.__class__)
-            ct_id = ct.id if ct else None
+        for g in outline:
+            g_dict = asdict(g)
+            g_objects_ui: list[dict] = []
 
-            t1_num = next_t1()  # 3, 4, 5...
+            for o in g.objects:
+                o_dict = asdict(o)
+                obj = o.obj  # instância concreta
 
-            images_ui = []
-            for img in images_by_key.get((ct_id, obj.pk), []):
-                images_ui.append({
-                    "img": img,
-                    "figure_label": f"Figura {figure_counter}",
-                })
-                figure_counter += 1
+                ct = ct_map.get(obj.__class__)
+                ct_id = ct.id if ct else None
 
-            exam_objects_ui.append({
-                "obj": obj,
-                "t1": t1_num,
-                "title": getattr(obj, "title", "") or "Objeto sem título",
-                "field_groups": build_t2_groups(obj, t1_num),
-                "images": images_ui,
-            })
+                images_ui = []
+                for img in images_by_key.get((ct_id, obj.pk), []):
+                    images_ui.append({
+                        "img": img,
+                        "figure_label": f"Figura {figure_counter}",
+                    })
+                    figure_counter += 1
+
+                o_dict["images"] = images_ui
+                g_objects_ui.append(o_dict)
+
+            g_dict["objects"] = g_objects_ui
+            outline_ui.append(g_dict)
 
         ctx.update({
             "report_number": report.report_number,
@@ -312,6 +286,11 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
             "bo_fields": self._build_bo_fields(report),
             "req_fields": self._build_req_fields(report),
             "section_nums": section_nums,
-            "exam_objects_ui": exam_objects_ui,
+
+            # novo: estrutura principal do laudo (grupo -> objeto -> seções)
+            "outline": outline_ui,
+
+            # contador final (se quiser mostrar/debug)
+            "figure_counter_end": figure_counter,
         })
         return ctx
