@@ -66,6 +66,15 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
 
 
 
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Prefetch
+from django.views.generic import DetailView
+
+from report_maker.models import ReportCase
+from report_maker.models.images import ObjectImage
+from report_maker.models.report_text_block import ReportTextBlock
+
+
 class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, DetailView):
     model = ReportCase
     template_name = "report_maker/reportcase_detail.html"
@@ -84,10 +93,19 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
             .order_by("order", "created_at")
         )
 
-        ctx["text_blocks"] = (
+        # Textos do laudo (por placement + ordem)
+        text_blocks_qs = (
             report.text_blocks.all()
             .order_by("placement", "order", "created_at")
         )
+
+        ctx["text_blocks"] = text_blocks_qs
+
+        # Conveniências para o template (opcional, mas útil)
+        ctx["text_blocks_by_placement"] = {
+            k: list(text_blocks_qs.filter(placement=k))
+            for k, _ in ReportTextBlock.Placement.choices
+        }
 
         return ctx
 

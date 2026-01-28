@@ -35,6 +35,16 @@ from report_maker.views.images import (
     images_reorder,
 )
 
+# ─────────────────────────────────────
+# Textos genéricos do laudo (ReportTextBlock)
+# ─────────────────────────────────────
+from report_maker.views.report_text_block import (
+    ReportTextBlockListView,
+    ReportTextBlockCreateView,
+    ReportTextBlockUpdateView,
+    ReportTextBlockDeleteView,
+)
+
 app_name = "report_maker"
 
 urlpatterns = [
@@ -48,7 +58,31 @@ urlpatterns = [
     path("reports/<uuid:pk>/showpage/", ReportCaseShowPageView.as_view(), name="reportcase_showpage"),
     path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="reportcase_update"),
     path("reports/<uuid:pk>/delete/", ReportCaseDeleteView.as_view(), name="reportcase_delete"),
-    path("reports/<uuid:pk>/close/", ReportCaseCloseView.as_view(), name="reportcase_close"), 
+    path("reports/<uuid:pk>/close/", ReportCaseCloseView.as_view(), name="reportcase_close"),
+
+    # ─────────────────────────────────────
+    # Textos do laudo (ReportTextBlock)
+    # ─────────────────────────────────────
+    path(
+        "reports/<uuid:report_pk>/text-blocks/",
+        ReportTextBlockListView.as_view(),
+        name="textblock_list",
+    ),
+    path(
+        "reports/<uuid:report_pk>/text-blocks/create/",
+        ReportTextBlockCreateView.as_view(),
+        name="textblock_create",
+    ),
+    path(
+        "reports/<uuid:report_pk>/text-blocks/<uuid:pk>/edit/",
+        ReportTextBlockUpdateView.as_view(),
+        name="textblock_update",
+    ),
+    path(
+        "reports/<uuid:report_pk>/text-blocks/<uuid:pk>/delete/",
+        ReportTextBlockDeleteView.as_view(),
+        name="textblock_delete",
+    ),
 
     # ─────────────────────────────────────
     # Dashboard para adicionar objetos de exame

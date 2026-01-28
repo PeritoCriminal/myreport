@@ -1,0 +1,98 @@
+{% comment %}
+  Ações editoriais do laudo
+  Uso:
+    {% include "report_maker/partials/report_editorial_actions.html" with report=report %}
+    {% include "report_maker/partials/report_editorial_actions.html" with report=report compact=True %}
+{% endcomment %}
+
+{% if report.can_edit %}
+
+  {% if compact %}
+    {# Modo compacto (lista de laudos) #}
+    <div class="btn-group btn-group-sm">
+      <a href="{% url 'report_maker:textblock_create' report.pk %}?placement=BEFORE_OBJECTS"
+         class="btn btn-outline-secondary"
+         title="Resumo do laudo">
+        <i class="bi bi-card-text"></i>
+      </a>
+
+      <a href="{% url 'report_maker:textblock_create' report.pk %}?placement=CONCLUSION"
+         class="btn btn-outline-secondary"
+         title="Conclusão">
+        <i class="bi bi-chat-text"></i>
+      </a>
+
+      <a href="{% url 'report_maker:exam_object_dashboard' report.pk %}"
+         class="btn btn-outline-primary"
+         title="Objetos de exame">
+        <i class="bi bi-plus-lg"></i>
+      </a>
+    </div>
+
+  {% else %}
+    {#    Modo completo (detail do laudo) #}
+    <div class="btn-group">
+      <a href="{% url 'report_maker:exam_object_dashboard' report.pk %}"
+         class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-plus-lg"></i>
+        Novo objeto
+      </a>
+
+      <button type="button"
+              class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split"
+              data-bs-toggle="dropdown"
+              aria-expanded="false">
+        <span class="visually-hidden">Novo texto</span>
+      </button>
+
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+          <a class="dropdown-item"
+             href="{% url 'report_maker:textblock_create' report.pk %}?placement=BEFORE_OBJECTS">
+            Resumo (geral)
+          </a>
+        </li>
+
+        <li>
+          <a class="dropdown-item"
+             href="{% url 'report_maker:textblock_create' report.pk %}?placement=LOCATIONS_INTRO">
+            Locais – texto introdutório
+          </a>
+        </li>
+
+        <li>
+          <a class="dropdown-item"
+             href="{% url 'report_maker:textblock_create' report.pk %}?placement=AFTER_OBJECTS">
+            Texto após os objetos
+          </a>
+        </li>
+
+        <li><hr class="dropdown-divider"></li>
+
+        <li>
+          <a class="dropdown-item"
+             href="{% url 'report_maker:textblock_create' report.pk %}?placement=FINAL_CONSIDERATIONS">
+            Considerações finais
+          </a>
+        </li>
+
+        <li>
+          <a class="dropdown-item"
+             href="{% url 'report_maker:textblock_create' report.pk %}?placement=CONCLUSION">
+            Conclusão
+          </a>
+        </li>
+
+        <li><hr class="dropdown-divider"></li>
+
+        <li>
+          <a class="dropdown-item"
+             href="{% url 'report_maker:textblock_list' report.pk %}">
+            Gerenciar textos…
+          </a>
+        </li>
+      </ul>
+    </div>
+  {% endif %}
+
+{% endif %}
