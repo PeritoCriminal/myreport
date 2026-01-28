@@ -16,7 +16,7 @@ from report_maker.models.images import ObjectImage
 class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
     """
     Página de visualização/preview do laudo (A4), com:
-    - cabeçalho institucional (snapshot-aware via ReportCase.header_context)
+    - cabeçalho institucional (se can_edit: dados do usuário; senão: snapshots)
     - preâmbulo
     - Dados do Boletim (T1)
     - Dados da Requisição (T1)
@@ -116,11 +116,99 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         return out
 
     # ─────────────────────────────────────────────────────────────
+    # Header builders (VIEW-driven, conforme combinado)
+    # ─────────────────────────────────────────────────────────────
+    def _build_header_from_user(self) -> dict:
+        """
+        Se can_edit: busca dados a partir dos vínculos ativos do usuário logado.
+        """
+        user = self.request.user
+
+        aia = getattr(user, "active_institution_assignment", None)
+        inst = getattr(aia, "institution", None)
+
+        ata = getattr(user, "active_team_assignment", None)
+        team = getattr(ata, "team", None)
+        nucleus = getattr(team, "nucleus", None) if team else None
+
+        name = (getattr(inst, "name", "") or "") if inst else ""
+        acronym = (getattr(inst, "acronym", "") or "") if inst else ""
+
+        if inst and hasattr(inst, "get_kind_display"):
+            kind_display = inst.get_kind_display()
+        else:
+            kind_display = str(getattr(inst, "kind", "") or "") if inst else ""
+
+        hon_title = (getattr(inst, "honoree_title", "") or "") if inst else ""
+        hon_name = (getattr(inst, "honoree_name", "") or "") if inst else ""
+
+        honoree_line = ""
+        if hon_title and hon_name:
+            honoree_line = f"{hon_title} {hon_name}"
+        elif hon_name:
+            honoree_line = hon_name
+
+        unit_line = " - ".join(p for p in [
+            (getattr(nucleus, "name", "") or "") if nucleus else "",
+            (getattr(team, "name", "") or "") if team else "",
+        ] if p)
+
+        return {
+            "name": name or None,
+            "acronym": acronym or None,
+            "kind_display": kind_display or None,
+            "honoree_line": honoree_line or None,
+            "unit_line": unit_line or None,
+            "emblem_primary": getattr(inst, "emblem_primary", None) if inst else None,
+            "emblem_secondary": getattr(inst, "emblem_secondary", None) if inst else None,
+        }
+
+    def _build_header_from_snapshots(self, report: ReportCase) -> dict:
+        """
+        Se não can_edit: busca estritamente dos snapshots do laudo.
+        """
+        inst = report.institution  # fallback opcional só para emblemas (se existir FK)
+
+        name = (report.institution_name_snapshot or "").strip()
+        acronym = (report.institution_acronym_snapshot or "").strip()
+        kind_display = (report.institution_kind_snapshot or "").strip()
+
+        hon_title = (report.honoree_title_snapshot or "").strip()
+        hon_name = (report.honoree_name_snapshot or "").strip()
+
+        honoree_line = ""
+        if hon_title and hon_name:
+            honoree_line = f"{hon_title} {hon_name}"
+        elif hon_name:
+            honoree_line = hon_name
+
+        unit_line = " - ".join(p for p in [report.nucleus_display, report.team_display] if p)
+
+        emblem_primary = report.emblem_primary_snapshot or (inst.emblem_primary if inst else None)
+        emblem_secondary = report.emblem_secondary_snapshot or (inst.emblem_secondary if inst else None)
+
+        return {
+            "name": name or None,
+            "acronym": acronym or None,
+            "kind_display": kind_display or None,
+            "honoree_line": honoree_line or None,
+            "unit_line": unit_line or None,
+            "emblem_primary": emblem_primary,
+            "emblem_secondary": emblem_secondary,
+        }
+
+    # ─────────────────────────────────────────────────────────────
     # Context
     # ─────────────────────────────────────────────────────────────
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         report: ReportCase = ctx["report"]
+
+        # ─────────────────────────────────────────────
+        # Header: regra combinada
+        # ─────────────────────────────────────────────
+        can_edit = bool(getattr(report, "can_edit", False))
+        header = self._build_header_from_user() if can_edit else self._build_header_from_snapshots(report)
 
         # ─────────────────────────────────────────────
         # Numeração T1/T2 (como você definiu)
@@ -219,7 +307,7 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
 
         ctx.update({
             "report_number": report.report_number,
-            "header": report.header_context,
+            "header": header,
             "preamble": report.preamble,
             "bo_fields": self._build_bo_fields(report),
             "req_fields": self._build_req_fields(report),
