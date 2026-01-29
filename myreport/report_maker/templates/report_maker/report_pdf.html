@@ -1,0 +1,46 @@
+{# report_maker/templates/report_maker/report_pdf.html #}
+
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <title>Laudo nº {{ report.report_number }}</title>
+
+    {# Você pode deixar o CSS só via stylesheets na view.
+       Se preferir garantir, pode manter estes links também: #}
+    <link rel="stylesheet" href="{% static 'report_maker/css/report_print.css' %}" />
+  </head>
+
+  <body>
+    <main class="report-stage">
+      <section class="report-page">
+        {# Cabeçalho institucional (se você já tem um partial, melhor) #}
+        {# {% include "report_maker/partials/report_header.html" %} #}
+
+        {# Renderização pelo outline #}
+        {% for group in outline %}
+          {% if group.number %}
+            <h2 class="t1">{{ group.number }} - {{ group.group_label }}</h2>
+          {% endif %}
+
+          {% if group.intro_text %}
+            <div class="block-body">{{ group.intro_text|linebreaksbr }}</div>
+          {% endif %}
+
+          {% for obj in group.objects %}
+            <h3 class="t2">{{ obj.number }} - {{ obj.title }}</h3>
+
+            {% for sec in obj.sections %}
+              <h4 class="t3">{{ sec.number }} - {{ sec.label }}</h4>
+              <div class="block-body">{{ sec.text|linebreaksbr }}</div>
+            {% endfor %}
+          {% endfor %}
+        {% endfor %}
+
+        {# Rodapé (se você quiser por CSS @page, melhor) #}
+      </section>
+    </main>
+  </body>
+</html>

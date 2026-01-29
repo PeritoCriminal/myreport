@@ -16,9 +16,18 @@
   </head>
 
   <body>
+    {# Esse button não estpa funcionando, precisamos restaurar isso #}
     <button type="button" class="btn btn-light close-btn" data-action="close-preview">
       Fechar
     </button>
+
+    {# Logo abaixo dele, acresncetar o para gerar pdf #}
+    <a href="{% url 'report_maker:report_pdf' report.pk %}"
+      target="_blank"
+      class="btn btn-light pdf-btn">
+      PDF
+    </a>
+
 
     <main class="report-stage">
       <section class="report-page">

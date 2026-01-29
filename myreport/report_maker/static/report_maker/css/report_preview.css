@@ -56,6 +56,15 @@ body {
   top: 16px;
   right: 16px;
   z-index: 10;
+  width:80px;
+}
+
+.pdf-btn {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  z-index: 10;
+  width:80px;
 }
 
 .report-number {

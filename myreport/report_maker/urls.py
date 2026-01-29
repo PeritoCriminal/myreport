@@ -12,6 +12,7 @@ from report_maker.views.report_case import (
 from report_maker.views.report_case_close import ReportCaseCloseView
 from report_maker.views.report_case_preview import ReportCasePreviewView
 from report_maker.views.report_case_showpage import ReportCaseShowPageView
+from report_maker.views.report_pdf_generator import reportPDFGenerator
 
 from report_maker.views.exam_object_dashboard import ExamObjectDashboardView
 from report_maker.views.exam_objects_reorder import exam_objects_reorder
@@ -60,6 +61,8 @@ urlpatterns = [
     path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="reportcase_update"),
     path("reports/<uuid:pk>/delete/", ReportCaseDeleteView.as_view(), name="reportcase_delete"),
     path("reports/<uuid:pk>/close/", ReportCaseCloseView.as_view(), name="reportcase_close"),
+    path("reports/<uuid:pk>/pdf/", reportPDFGenerator, name="report_pdf"),
+
 
     # ─────────────────────────────────────
     # Textos do laudo (ReportTextBlock)
