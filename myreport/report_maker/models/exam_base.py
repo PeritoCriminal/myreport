@@ -5,19 +5,19 @@ from __future__ import annotations
 import uuid
 from typing import TypedDict, Literal, ClassVar
 
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.db.models import Max
-from django.contrib.contenttypes.fields import GenericRelation
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 
 class ExamObjectGroup(models.TextChoices):
     LOCATIONS = "LOCATIONS", _("Locais")
-    VEHICLES  = "VEHICLES", _("Veículos")
-    PARTS     = "PARTS", _("Peças")
-    CADAVERS  = "CADAVERS", _("Cadáveres")
-    OTHER     = "OTHER", _("Outros")
+    VEHICLES = "VEHICLES", _("Veículos")
+    PARTS = "PARTS", _("Peças")
+    CADAVERS = "CADAVERS", _("Cadáveres")
+    OTHER = "OTHER", _("Outros")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -51,10 +51,11 @@ class ExamObject(models.Model):
 
     - group_key: persiste no BD e serve para agrupamento no laudo
     - GROUP_KEY: constante por classe concreta para travar consistência
+        * None/"": significa "sem grupo" (objeto vira T1 direto)
     - get_render_blocks(): descreve a estrutura do objeto sem numeração
     """
 
-    GROUP_KEY: ClassVar[str] = ExamObjectGroup.OTHER  # sobrescreva nos filhos
+    GROUP_KEY: ClassVar[str | None] = ExamObjectGroup.OTHER  # sobrescreva nos filhos (pode ser None)
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -77,10 +78,11 @@ class ExamObject(models.Model):
         "Grupo",
         max_length=24,
         choices=ExamObjectGroup.choices,
-        default=ExamObjectGroup.OTHER,
+        blank=True,
+        null=True,
         db_index=True,
         editable=False,
-        help_text="Agrupamento lógico no laudo (Locais, Veículos, Peças, Cadáveres...).",
+        help_text="Agrupamento lógico no laudo (Locais, Veículos, Peças, Cadáveres...). Vazio = sem grupo.",
     )
 
     title = models.CharField(
@@ -115,7 +117,13 @@ class ExamObject(models.Model):
 
     def save(self, *args, **kwargs):
         # trava consistência do grupo com base na classe concreta
-        self.group_key = getattr(self, "GROUP_KEY", ExamObjectGroup.OTHER) or ExamObjectGroup.OTHER
+        group_key = getattr(self, "GROUP_KEY", None)
+
+        if isinstance(group_key, str):
+            group_key = group_key.strip()
+
+        # None/"": significa "sem grupo" (objeto vira T1 direto)
+        self.group_key = group_key or None
 
         if self.order is None:
             last = (
@@ -159,8 +167,12 @@ class ExamObject(models.Model):
 
     @property
     def group_label(self) -> str:
-        # "Locais", "Veículos", etc.
-        return ExamObjectGroup(self.group_key).label
+        if not self.group_key:
+            return ""
+        try:
+            return ExamObjectGroup(self.group_key).label
+        except ValueError:
+            return str(self.group_key)
 
     # ─────────────────────────────────────
     # Downcast utilitário (mantém seu fluxo atual)
@@ -182,10 +194,6 @@ class ExamObject(models.Model):
         return self
 
     @property
-    def concrete_model_name(self) -> str:
-        return self.concrete._meta.model_name
-
-    @property
     def edit_url(self):
         c = self.concrete
         url_name = getattr(c, "edit_url_name", None)
@@ -200,7 +208,7 @@ class ExamObject(models.Model):
         if not url_name:
             return None
         return reverse(url_name, args=[self.report_case_id, c.pk])
-    
+
     @property
     def app_label(self) -> str:
         return self._meta.app_label
@@ -213,7 +221,7 @@ class ExamObject(models.Model):
     @property
     def model(self) -> str:
         return self._meta.model_name
-    
+
     @property
     def concrete_app_label(self) -> str:
         return self.concrete._meta.app_label

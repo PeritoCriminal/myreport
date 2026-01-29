@@ -11,7 +11,7 @@ class GenericExamObject(RenderableExamObjectMixin, ExamObject):
     Objeto de exame genérico.
     """
 
-    GROUP_KEY = ExamObjectGroup.OTHER
+    GROUP_KEY = None
 
     edit_url_name = "report_maker:generic_object_update"
     delete_url_name = "report_maker:generic_object_delete"

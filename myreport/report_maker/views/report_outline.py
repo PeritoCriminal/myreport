@@ -46,7 +46,7 @@ def _get_group_intro_map(text_blocks_qs: Iterable[ReportTextBlock]) -> dict[str,
     return intro_by_group
 
 
-def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: int = 1) -> list[OutlineGroup]:
+def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: int = 1) -> tuple[list[OutlineGroup], int]:
     """
     Monta uma estrutura pronta para renderização:
 
@@ -61,32 +61,78 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
         4.1 - Identificação
         4.2 - Testes operacionais
 
-    O model define a estrutura (get_render_blocks). A view decide a profundidade (com/sem grupo).
+    Regra ajustada (mix):
+    - Cabeçalho de grupo só aparece quando o grupo "agrupar" de fato:
+        * houver 2+ objetos no mesmo group_key, OU
+        * existir texto introdutório (OBJECT_GROUP_INTRO) para aquele group_key.
+    - Objetos "genéricos"/sem classificação podem vir com group_key vazio (None/""):
+        * NÃO geram cabeçalho,
+        * cada objeto consome um número de nível superior (T1).
+
+    Retorna:
+        (outline, next_top)
+        - next_top é o próximo número disponível de nível superior (T1), útil para Conclusão.
     """
+    UNGROUPED = "__UNGROUPED__"
+
     # Downcast para o concreto (você já tem .concrete no ExamObject)
     objects = [o.concrete for o in exam_objects_qs]
+
+    def _normalize_group_key(raw: Any) -> Any:
+        """
+        Normaliza group_key:
+        - None/"": vira UNGROUPED
+        - strings: strip
+        - demais: retorna como está
+        """
+        if raw is None:
+            return UNGROUPED
+        if isinstance(raw, str):
+            raw = raw.strip()
+            return raw or UNGROUPED
+        return raw or UNGROUPED
 
     # Agrupa mantendo a ordem de aparição no laudo
     grouped: "OrderedDict[str, list[Any]]" = OrderedDict()
     for obj in objects:
-        gk = getattr(obj, "group_key", ExamObjectGroup.OTHER) or ExamObjectGroup.OTHER
+        raw_gk = getattr(obj, "group_key", None)
+        gk = _normalize_group_key(raw_gk)
         grouped.setdefault(gk, []).append(obj)
 
     intro_by_group = _get_group_intro_map(text_blocks_qs)
+    group_counts = {k: len(v) for k, v in grouped.items()}
 
-    # Regra para “ativar” cabeçalho de grupo:
-    # - mais de 1 grupo, OU
-    # - existe texto introdutório para algum grupo
-    use_group_headers = (len(grouped) > 1) or any(intro_by_group.values())
+    def group_has_header(group_key: str) -> bool:
+        """
+        Cabeçalho de grupo por group_key (não global).
+        - UNGROUPED nunca gera cabeçalho.
+        - Caso exista intro_text para o grupo, mantém cabeçalho mesmo com 1 objeto.
+        - Caso contrário, só gera cabeçalho se houver 2+ objetos no grupo.
+        """
+        if group_key == UNGROUPED:
+            return False
+        if (intro_by_group.get(group_key) or "").strip():
+            return True
+        return group_counts.get(group_key, 0) >= 2
 
     outline: list[OutlineGroup] = []
     n_top = start_at  # contador de nível superior
 
     for group_key, group_objs in grouped.items():
-        group_label = ExamObjectGroup(group_key).label if group_key in ExamObjectGroup.values else str(group_key)
-        intro_text = intro_by_group.get(group_key, "")
+        use_header = group_has_header(group_key)
 
-        group_number = f"{n_top}" if use_group_headers else ""
+        if group_key == UNGROUPED:
+            group_label = ""
+        else:
+            group_label = (
+                ExamObjectGroup(group_key).label
+                if group_key in ExamObjectGroup.values
+                else str(group_key)
+            )
+
+        intro_text = intro_by_group.get(group_key, "") if group_key != UNGROUPED else ""
+
+        group_number = f"{n_top}" if use_header else ""
 
         out_objs: list[OutlineObject] = []
         n_obj = 1
@@ -96,7 +142,7 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
             title_field = obj.get_object_title_field() if hasattr(obj, "get_object_title_field") else "title"
             title_value = (getattr(obj, title_field, "") or "").strip() or str(obj)
 
-            if use_group_headers:
+            if use_header:
                 obj_number = f"{n_top}.{n_obj}"
             else:
                 obj_number = f"{n_top}"
@@ -130,33 +176,47 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
                 if not text:
                     continue
 
-                if use_group_headers:
+                if use_header:
                     sec_number = f"{n_top}.{n_obj}.{n_sec}"
                 else:
                     sec_number = f"{n_top}.{n_sec}"
 
-                out_sections.append(OutlineSection(number=sec_number, label=label, text=text, fmt=fmt))
+                out_sections.append(
+                    OutlineSection(
+                        number=sec_number,
+                        label=label,
+                        text=text,
+                        fmt=fmt,
+                    )
+                )
                 n_sec += 1
 
-            out_objs.append(OutlineObject(number=obj_number, obj=obj, title=title_value, sections=out_sections))
+            out_objs.append(
+                OutlineObject(
+                    number=obj_number,
+                    obj=obj,
+                    title=title_value,
+                    sections=out_sections,
+                )
+            )
             n_obj += 1
 
-            if not use_group_headers:
-                # sem grupos, cada objeto consome um número de nível superior
+            if not use_header:
+                # sem cabeçalho de grupo, cada objeto consome um número de nível superior
                 n_top += 1
 
         outline.append(
             OutlineGroup(
                 number=group_number,
-                group_key=group_key,
+                group_key=("" if group_key == UNGROUPED else str(group_key)),
                 group_label=group_label,
                 intro_text=intro_text,
                 objects=out_objs,
             )
         )
 
-        if use_group_headers:
-            # com grupos, cada grupo consome um número de nível superior
+        if use_header:
+            # com cabeçalho de grupo, cada grupo consome um número de nível superior
             n_top += 1
 
-    return outline
+    return outline, n_top

@@ -27,7 +27,7 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
     - Figuras continuam com numeração contínua (Figura 1..N).
     """
     model = ReportCase
-    template_name = "report_maker/report_case_showpage.html"
+    template_name = "report_maker/reportcase_showpage.html"
     context_object_name = "report"
     pk_url_kwarg = "pk"
 
@@ -178,12 +178,13 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         concrete_objects = [o.concrete for o in base_objects]
 
         # Outline (com start_at após BO/REQ)
-        outline = build_report_outline(
+        outline, next_top = build_report_outline(
             report=report,
-            exam_objects_qs=base_objects,  # build_report_outline faz .concrete internamente
+            exam_objects_qs=base_objects,
             text_blocks_qs=text_blocks_qs,
             start_at=3,
         )
+
 
         # ─────────────────────────────────────────────
         # Conclusão (último T1)
@@ -192,27 +193,7 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
             text_blocks_qs.filter(placement=ReportTextBlock.Placement.CONCLUSION)
         )
 
-        # Descobre se o outline está usando cabeçalho de grupo:
-        use_group_headers = any(g.number for g in outline)
-
-        if use_group_headers:
-            # Top-level é "grupo": o último T1 é o último group.number
-            last_top = 2
-            for g in outline:
-                if g.number:
-                    last_top = int(g.number)
-        else:
-            # Top-level é "objeto": o último T1 é o maior número de objeto
-            last_top = 2
-            for g in outline:
-                for o in g.objects:
-                    # o.number é "4" quando sem grupo
-                    try:
-                        last_top = max(last_top, int(o.number))
-                    except (TypeError, ValueError):
-                        pass
-
-        conclusion_num = last_top + 1 if conclusion_blocks else None
+        conclusion_num = next_top if conclusion_blocks else None
 
         ctx.update({
             "conclusion_num": conclusion_num,
