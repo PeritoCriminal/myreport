@@ -10,30 +10,17 @@ from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.views.generic import DetailView
 
-from report_maker.models import ReportCase
+from report_maker.models import ReportCase, ReportTextBlock
 from report_maker.models.images import ObjectImage
-from report_maker.models import ReportTextBlock
 from report_maker.views.report_outline import build_report_outline
 
 
 class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
-    """
-    Página de visualização/preview do laudo (A4).
-
-    Agora:
-    - Objetos são renderizados via "outline" (grupo -> objeto -> seções),
-      respeitando group_key e get_render_blocks() dos models.
-    - A numeração (T1/T2/T3) é definida aqui (start_at e profundidade com/sem grupo).
-    - Figuras continuam com numeração contínua (Figura 1..N).
-    """
     model = ReportCase
     template_name = "report_maker/reportcase_showpage.html"
     context_object_name = "report"
     pk_url_kwarg = "pk"
 
-    # ─────────────────────────────────────────────────────────────
-    # Queryset guard
-    # ─────────────────────────────────────────────────────────────
     def get_queryset(self):
         return (
             super()
@@ -69,7 +56,7 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         ]
 
     # ─────────────────────────────────────────────────────────────
-    # Header builders (VIEW-driven, conforme combinado) order
+    # Header builders
     # ─────────────────────────────────────────────────────────────
     def _build_header_from_user(self) -> dict:
         user = self.request.user
@@ -160,10 +147,7 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         header = self._build_header_from_user() if can_edit else self._build_header_from_snapshots(report)
 
         # Seções fixas (T1)
-        section_nums = {
-            "bo": 1,
-            "req": 2,
-        }
+        section_nums = {"bo": 1, "req": 2}
 
         # Textos do laudo (inclui intros de grupo)
         text_blocks_qs = report.text_blocks.all().order_by("placement", "position", "created_at")
@@ -172,6 +156,15 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
             k: list(text_blocks_qs.filter(placement=k))
             for k, _ in ReportTextBlock.Placement.choices
         }
+
+        # Preâmbulo: usuário > sistema (report.preamble)
+        preamble_text = (
+            text_blocks_qs
+            .filter(placement=ReportTextBlock.Placement.PREAMBLE)
+            .values_list("body", flat=True)
+            .first()
+        )
+        preamble = (preamble_text or "").strip() or report.preamble
 
         # Objetos base (ordem do laudo) -> concretos via property .concrete
         base_objects = list(report.exam_objects.all().order_by("order", "created_at"))
@@ -185,21 +178,13 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
             start_at=3,
         )
 
-
         # ─────────────────────────────────────────────
         # Conclusão (último T1)
         # ─────────────────────────────────────────────
         conclusion_blocks = list(
             text_blocks_qs.filter(placement=ReportTextBlock.Placement.CONCLUSION)
         )
-
         conclusion_num = next_top if conclusion_blocks else None
-
-        ctx.update({
-            "conclusion_num": conclusion_num,
-            "conclusion_blocks": conclusion_blocks,
-        })
-
 
         # ─────────────────────────────────────────────
         # Imagens em lote por ContentType do CONCRETO
@@ -260,18 +245,24 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
             g_dict["objects"] = g_objects_ui
             outline_ui.append(g_dict)
 
+        # ─────────────────────────────────────────────
+        # Context final
+        # ─────────────────────────────────────────────
         ctx.update({
             "report_number": report.report_number,
             "header": header,
-            "preamble": report.preamble,
+            "preamble": preamble,  # <- mantém a regra usuário > sistema
             "bo_fields": self._build_bo_fields(report),
             "req_fields": self._build_req_fields(report),
             "section_nums": section_nums,
 
-            # novo: estrutura principal do laudo (grupo -> objeto -> seções)
             "outline": outline_ui,
 
-            # contador final (se quiser mostrar/debug)
+            "next_top": next_top,
+            "conclusion_num": conclusion_num,
+            "conclusion_blocks": conclusion_blocks,
+
             "figure_counter_end": figure_counter,
         })
+
         return ctx

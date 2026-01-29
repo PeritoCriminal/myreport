@@ -13,7 +13,6 @@
     <div class="d-flex justify-content-between align-items-start mb-4">
       <div>
         <h4 class="mb-1">Laudo nº {{ report.report_number }}</h4>
-        <div class="text-muted small">{{ report.get_objective_display }}</div>
       </div>
 
       <div class="text-end">
@@ -26,9 +25,9 @@
     </div>
 
     {# Preâmbulo #}
-    {% if report.preamble %}
+    {% if preamble %}
       <div class="mb-4">
-        <p class="text-justify">{{ report.preamble|linebreaks }}</p>
+        <p class="text-justify">{{ preamble|linebreaks }}</p>
       </div>
     {% endif %}
 

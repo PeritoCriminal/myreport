@@ -1,5 +1,7 @@
-{# myreport/report_maker/templates/report_maker/report_case_showpage.html #}
+{# myreport/report_maker/templates/report_maker/reportcase_showpage.html #}
+
 {% load static %}
+{% load markdown_extras %}
 
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -138,11 +140,9 @@
                 {% for s in o.sections %}
                   <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
 
-                  {% if s.fmt == "md" %}
-                    {{ s.text|safe }}
-                  {% else %}
-                    <p>{{ s.text|linebreaksbr }}</p>
-                  {% endif %}
+                  {# Renderiza sempre como Markdown (sanitizado pelo filtro) #}
+                  {{ s.text|render_markdown }}
+
                 {% endfor %}
 
                 {# Figuras contínuas #}
@@ -179,7 +179,7 @@
 
             {% for block in conclusion_blocks %}
               <div class="mb-3">
-                {{ block.body|linebreaks }}
+                {{ block.body|render_markdown }}
               </div>
             {% endfor %}
           </section>

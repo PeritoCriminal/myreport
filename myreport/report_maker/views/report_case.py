@@ -67,10 +67,6 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
 
 
 
-
-
-
-
 class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, DetailView):
     model = ReportCase
     template_name = "report_maker/reportcase_detail.html"
@@ -90,14 +86,27 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         )
 
         # Textos do laudo (por placement + ordem)
-        text_blocks_qs = report.text_blocks.all().order_by("placement", "position", "created_at")
+        text_blocks_qs = report.text_blocks.all().order_by(
+            "placement", "position", "created_at"
+        )
         ctx["text_blocks"] = text_blocks_qs
 
-        # Conveniências para o template (opcional, mas útil)
         ctx["text_blocks_by_placement"] = {
             k: list(text_blocks_qs.filter(placement=k))
             for k, _ in ReportTextBlock.Placement.choices
         }
+
+        # Preâmbulo:
+        # 1) se o usuário cadastrou PREAMBLE, usa ele
+        # 2) senão, usa report.preamble (@property do model)
+        preamble_text = (
+            text_blocks_qs
+            .filter(placement=ReportTextBlock.Placement.PREAMBLE)
+            .values_list("body", flat=True)
+            .first()
+        )
+
+        ctx["preamble"] = (preamble_text or "").strip() or report.preamble
 
         # Outline (agrupamento + numeração relativa por grupo/objeto/seções)
         ctx["outline"] = build_report_outline(
@@ -108,6 +117,7 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         )
 
         return ctx
+
 
 
 
