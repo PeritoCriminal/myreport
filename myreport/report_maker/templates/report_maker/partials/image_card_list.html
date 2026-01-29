@@ -1,21 +1,50 @@
-{# report_maker/templates/report_maker/partials/image_card_list.html #}
-
-{# Alteração na linha abaixo: usamos obj.concrete para buscar as imagens do modelo correto #}
 {% with imgs=obj.concrete.images.all %}
   {% if imgs %}
-    <div class="mt-2">
-      <div class="d-flex gap-2 flex-wrap js-images-list"
-           data-sortable="images"
-           data-reorder-url="{% url 'report_maker:images_reorder' %}"
-           data-object-id="{{ obj.pk }}">
-        {% for img in imgs %}
-          <div class="js-image-card"
-               data-image-id="{{ img.pk }}"
-               style="width: 220px;">
-            {% include "report_maker/partials/image_card.html" with img=img report=report %}
+    <div class="accordion w-100 mt-2" id="imagesAccordion-{{ obj.pk }}">
+      <div class="accordion-item border-0 bg-transparent">
+        <h2 class="accordion-header" id="imagesHeading-{{ obj.pk }}">
+          <button
+            class="accordion-button collapsed px-2 py-1 bg-transparent shadow-none"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#imagesCollapse-{{ obj.pk }}"
+            aria-expanded="false"
+            aria-controls="imagesCollapse-{{ obj.pk }}"
+          >
+            Imagens
+          </button>
+        </h2>
+
+        <div
+          id="imagesCollapse-{{ obj.pk }}"
+          class="accordion-collapse collapse"
+          aria-labelledby="imagesHeading-{{ obj.pk }}"
+          data-bs-parent="#imagesAccordion-{{ obj.pk }}"
+        >
+          <div class="accordion-body px-0 pt-2">
+            <div
+              class="d-flex gap-2 flex-wrap js-images-list"
+              data-sortable="images"
+              data-reorder-url="{% url 'report_maker:images_reorder' %}"
+              data-object-id="{{ obj.pk }}"
+            >
+              {% for img in imgs %}
+                <div
+                  class="js-image-card"
+                  data-image-id="{{ img.pk }}"
+                  style="width: 220px;"
+                >
+                  {% include "report_maker/partials/image_card.html" with img=img report=report %}
+                </div>
+              {% endfor %}
+            </div>
           </div>
-        {% endfor %}
+        </div>
       </div>
+    </div>
+  {% else %}
+    <div class="text-muted small mt-2">
+      Sem imagens
     </div>
   {% endif %}
 {% endwith %}
