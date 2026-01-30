@@ -1,11 +1,26 @@
 # report_maker/models/report_text_block.py
+
+from __future__ import annotations
+
 import uuid
+
 from django.db import models
 from django.db.models import Max, Q
+
 from .report_case import ReportCase
 
 
 class ReportTextBlock(models.Model):
+    """
+    Representa um bloco estrutural de texto do laudo pericial.
+
+    Cada bloco é identificado por um tipo (placement) e por uma chave de grupo
+    (group_key). O título exibido no laudo não é persistido, sendo derivado
+    dessas informações.
+    """
+
+    GLOBAL_GROUP_KEY = "__GLOBAL__"
+
     class Placement(models.TextChoices):
         PREAMBLE = "PREAMBLE", "Preâmbulo"
         SUMMARY = "SUMMARY", "Resumo"
@@ -17,7 +32,6 @@ class ReportTextBlock(models.Model):
         FINAL_CONSIDERATIONS = "FINAL_CONSIDERATIONS", "Considerações finais"
         CONCLUSION = "CONCLUSION", "Conclusão"
 
-    # Placements que só podem existir 0..1 por laudo
     SINGLETON_PLACEMENTS = {
         Placement.PREAMBLE,
         Placement.SUMMARY,
@@ -27,7 +41,6 @@ class ReportTextBlock(models.Model):
         Placement.CONCLUSION,
     }
 
-    # Títulos padrão (se title vier vazio, você injeta isso)
     DEFAULT_TITLES = {
         Placement.PREAMBLE: "PREÂMBULO",
         Placement.SUMMARY: "RESUMO",
@@ -37,13 +50,11 @@ class ReportTextBlock(models.Model):
         Placement.CONCLUSION: "CONCLUSÃO",
     }
 
-    # Define se entra na numeração T1 (preâmbulo normalmente não)
     NUMBERED_PLACEMENTS = {
         Placement.SUMMARY,
         Placement.OBSERVATIONS,
         Placement.FINAL_CONSIDERATIONS,
         Placement.CONCLUSION,
-        # TOC: escolha sua (muitos deixam sem número)
     }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -62,20 +73,21 @@ class ReportTextBlock(models.Model):
         db_index=True,
     )
 
-    # para OBJECT_GROUP_INTRO (um texto por tipo de objeto/grupo)
     group_key = models.CharField(
         "Chave do grupo",
         max_length=40,
-        blank=True,
+        blank=False,
+        default=GLOBAL_GROUP_KEY,
         db_index=True,
-        help_text="Usado apenas em 'Texto comum do grupo de objetos'. Ex.: LOCATIONS, VEHICLES...",
     )
 
-    title = models.CharField("Título", max_length=160, blank=True)
-    body = models.TextField("Texto", blank=True)
+    body = models.TextField("Texto")
 
-    # ordem GLOBAL no laudo (é isso que vai guiar a numeração/posição)
-    position = models.PositiveIntegerField("Posição no laudo", default=0, db_index=True)
+    position = models.PositiveIntegerField(
+        "Posição no laudo",
+        default=0,
+        db_index=True,
+    )
 
     created_at = models.DateTimeField("Criado em", auto_now_add=True)
     updated_at = models.DateTimeField("Atualizado em", auto_now=True)
@@ -89,7 +101,6 @@ class ReportTextBlock(models.Model):
             models.Index(fields=["report_case", "placement", "group_key"]),
         ]
         constraints = [
-            # 0..1 por laudo para os singletons
             models.UniqueConstraint(
                 fields=["report_case", "placement"],
                 condition=Q(placement__in=[
@@ -102,7 +113,6 @@ class ReportTextBlock(models.Model):
                 ]),
                 name="uq_report_textblock_singleton_per_placement",
             ),
-            # 0..1 por grupo (só quando for OBJECT_GROUP_INTRO)
             models.UniqueConstraint(
                 fields=["report_case", "placement", "group_key"],
                 condition=Q(placement="OBJECT_GROUP_INTRO"),
@@ -112,23 +122,44 @@ class ReportTextBlock(models.Model):
 
     @property
     def is_numbered(self) -> bool:
+        """
+        Indica se o bloco participa da numeração estrutural do laudo.
+        """
         return self.placement in self.NUMBERED_PLACEMENTS
 
-    def save(self, *args, **kwargs):
-        # título default
-        if not (self.title or "").strip():
-            self.title = self.DEFAULT_TITLES.get(self.placement, "")
+    @property
+    def display_title(self) -> str:
+        """
+        Retorna o título a ser exibido no laudo, derivado do tipo do bloco.
 
-        # garante group_key onde precisa e limpa onde não precisa
+        Para textos de grupo de objetos, o título é obtido a partir da chave
+        do grupo. Para os demais, utiliza-se o título padrão do placement.
+        """
+        if self.placement == self.Placement.OBJECT_GROUP_INTRO:
+            return (self.group_key or "").replace("_", " ").upper()
+
+        return self.DEFAULT_TITLES.get(
+            self.placement,
+            self.get_placement_display().upper(),
+        )
+
+    def save(self, *args, **kwargs):
+        """
+        Normaliza o group_key e define automaticamente a posição do bloco no laudo.
+        """
         if self.placement == self.Placement.OBJECT_GROUP_INTRO:
             self.group_key = (self.group_key or "").strip()
+            if not self.group_key or self.group_key == self.GLOBAL_GROUP_KEY:
+                raise ValueError(
+                    "group_key obrigatório e não pode ser __GLOBAL__ para OBJECT_GROUP_INTRO."
+                )
         else:
-            self.group_key = ""
+            self.group_key = self.GLOBAL_GROUP_KEY
 
-        # auto-position global por laudo
         if not self.position:
             last_pos = (
-                self.__class__.objects.filter(report_case=self.report_case)
+                self.__class__.objects
+                .filter(report_case=self.report_case)
                 .aggregate(max_pos=Max("position"))
                 .get("max_pos")
             )
@@ -136,6 +167,5 @@ class ReportTextBlock(models.Model):
 
         super().save(*args, **kwargs)
 
-    def __str__(self):
-        t = (self.title or "").strip()
-        return t or f"Texto ({self.get_placement_display()})"
+    def __str__(self) -> str:
+        return self.display_title

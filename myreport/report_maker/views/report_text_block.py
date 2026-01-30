@@ -3,26 +3,25 @@
 from __future__ import annotations
 
 from django.http import Http404
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect
 
+from report_maker.forms import ReportTextBlockForm
 from report_maker.models import ReportCase
 from report_maker.models.report_text_block import ReportTextBlock
-from report_maker.forms import ReportTextBlockForm
 
-
-# ─────────────────────────────────────────────────────────────
-# Helpers / Mixins
-# ─────────────────────────────────────────────────────────────
 
 class ReportCaseContextMixin:
     """
-    Carrega o ReportCase do URL e expõe no self.report_case.
-    Garante que o laudo pertence ao usuário logado.
+    Carrega o ReportCase a partir do URL e expõe em `self.report_case`.
+
+    Restringe o acesso ao autor do laudo. Em métodos de escrita, bloqueia
+    a operação quando o laudo não estiver editável.
     """
+
     report_pk_url_kwarg = "report_pk"
 
     def dispatch(self, request, *args, **kwargs):
@@ -39,7 +38,6 @@ class ReportCaseContextMixin:
         except ReportCase.DoesNotExist:
             raise Http404("Laudo não encontrado.")
 
-        # bloqueio lógico (não editar quando não pode)
         if request.method in ("POST", "PUT", "PATCH", "DELETE") and not self.report_case.can_edit:
             raise Http404("Laudo bloqueado para edição.")
 
@@ -51,11 +49,10 @@ class ReportCaseContextMixin:
         return ctx
 
 
-# ─────────────────────────────────────────────────────────────
-# Views
-# ─────────────────────────────────────────────────────────────
-
 class ReportTextBlockListView(LoginRequiredMixin, ReportCaseContextMixin, ListView):
+    """
+    Lista os blocos de texto do laudo.
+    """
     model = ReportTextBlock
     template_name = "report_maker/report_text_block_list.html"
     context_object_name = "blocks"
@@ -65,11 +62,14 @@ class ReportTextBlockListView(LoginRequiredMixin, ReportCaseContextMixin, ListVi
             super()
             .get_queryset()
             .filter(report_case=self.report_case)
-            .order_by("placement", "order", "created_at")
+            .order_by("placement", "position", "created_at")
         )
 
 
 class ReportTextBlockCreateView(LoginRequiredMixin, ReportCaseContextMixin, CreateView):
+    """
+    Cria um bloco de texto no laudo.
+    """
     model = ReportTextBlock
     template_name = "report_maker/report_text_block_form.html"
     form_class = ReportTextBlockForm
@@ -77,21 +77,22 @@ class ReportTextBlockCreateView(LoginRequiredMixin, ReportCaseContextMixin, Crea
     def get_initial(self):
         initial = super().get_initial()
         placement = self.request.GET.get("placement")
-        group_key = self.request.GET.get("group_key")
         if placement:
             initial["placement"] = placement
-        if group_key:
-            initial["group_key"] = group_key
         return initial
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        # garante que clean() consegue validar
         form.instance.report_case = self.report_case
+
+        placement = form.initial.get("placement") or self.request.GET.get("placement")
+        if placement == ReportTextBlock.Placement.OBJECT_GROUP_INTRO:
+            group_key = (self.request.GET.get("group_key") or "").strip()
+            form.instance.group_key = group_key
+
         return form
 
     def form_valid(self, form):
-        # mantém redundante (ok)
         form.instance.report_case = self.report_case
         return super().form_valid(form)
 
@@ -99,8 +100,10 @@ class ReportTextBlockCreateView(LoginRequiredMixin, ReportCaseContextMixin, Crea
         return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
 
 
-
 class ReportTextBlockUpdateView(LoginRequiredMixin, ReportCaseContextMixin, UpdateView):
+    """
+    Edita um bloco de texto do laudo.
+    """
     model = ReportTextBlock
     template_name = "report_maker/report_text_block_form.html"
     form_class = ReportTextBlockForm
@@ -109,11 +112,23 @@ class ReportTextBlockUpdateView(LoginRequiredMixin, ReportCaseContextMixin, Upda
     def get_queryset(self):
         return super().get_queryset().filter(report_case=self.report_case)
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.instance.report_case = self.report_case
+        return form
+
+    def form_valid(self, form):
+        form.instance.report_case = self.report_case
+        return super().form_valid(form)
+
     def get_success_url(self):
         return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
 
 
 class ReportTextBlockDeleteView(LoginRequiredMixin, ReportCaseContextMixin, DeleteView):
+    """
+    Exclui um bloco de texto do laudo.
+    """
     model = ReportTextBlock
     template_name = "report_maker/report_text_block_confirm_delete.html"
     pk_url_kwarg = "pk"
@@ -124,10 +139,16 @@ class ReportTextBlockDeleteView(LoginRequiredMixin, ReportCaseContextMixin, Dele
 
     def get_success_url(self):
         return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
-    
 
 
 class ReportTextBlockUpsertView(LoginRequiredMixin, ReportCaseContextMixin, View):
+    """
+    Redireciona para edição caso o bloco exista, ou para criação caso não exista.
+
+    Útil para placements únicos e para textos de grupo (OBJECT_GROUP_INTRO),
+    permitindo que o usuário "clique no título" e caia no formulário correto.
+    """
+
     def get(self, request, *args, **kwargs):
         placement = kwargs.get("placement")
         group_key = request.GET.get("group_key", "").strip()
