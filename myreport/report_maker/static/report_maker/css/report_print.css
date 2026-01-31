@@ -1,25 +1,30 @@
 /* ==========================================================================
-   Report Maker — Preview do Laudo (Impressão)
+   Report Maker — PDF/Impressão
    Arquivo: static/report_maker/css/report_print.css
-   Escopo: regras exclusivas de impressão (@media print)
    ========================================================================== */
 
 @media print {
 
-  /* Define A4 e margens (mais consistente na impressão) */
+  /* A4 e margens */
   @page {
     size: A4;
     margin: 3cm 2cm 2cm 3cm; /* sup dir inf esq */
   }
 
+  html, body {
+    background: #fff !important;
+    margin: 0;
+    padding: 0;
+  }
+
   body {
-    background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 
     font-family: Arial, Helvetica, sans-serif;
     font-size: 12pt;
     line-height: 1.5;
+    color: #000;
   }
 
   .close-btn {
@@ -29,19 +34,108 @@
   .report-stage {
     padding: 0 !important;
     min-height: auto !important;
+    background: #fff !important;
   }
 
   .report-page {
+    background: #fff !important;
     box-shadow: none !important;
+    border: none !important;
     border-radius: 0 !important;
     max-width: none !important;
-
-    /* As margens ficam no @page */
-    padding: 0 !important;
-    color: #000;
+    padding: 0 !important; /* margens ficam no @page */
   }
 
-  /* Parágrafos: justificado + espaçamento entre parágrafos maior que a linha */
+  /* ======================================================================
+     CABEÇALHO INSTITUCIONAL
+     ====================================================================== */
+
+  .report-top {
+    margin: 0 0 14pt 0;
+    padding: 0 0 10pt 0;
+    border-bottom: 1px solid #000;
+  }
+
+  .report-header {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* importantíssimo p/ não “estourar” */
+    margin: 0 0 8pt 0;
+  }
+
+  /* colunas fixas: emblemas não “puxam” o centro */
+  .rh-img {
+    width: 18mm; /* ajuste fino aqui */
+    vertical-align: middle;
+    text-align: center;
+  }
+
+  .rh-center {
+    vertical-align: middle;
+    text-align: center;
+    padding: 0 6mm;
+  }
+
+  .rh-emblem {
+    display: inline-block;
+    width: 16mm;
+    height: 16mm;
+    object-fit: contain;
+  }
+
+  /* Linhas do cabeçalho: menor que o corpo p/ caber */
+  .rh-line {
+    margin: 0;
+    padding: 0;
+    line-height: 1.1;
+    word-wrap: break-word;
+  }
+
+  .rh-1 {
+    font-size: 10pt;
+    font-weight: 700;
+    letter-spacing: 0.2pt;
+    text-transform: uppercase;
+  }
+
+  .rh-2 {
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-top: 2pt;
+  }
+
+  .rh-3 {
+    font-size: 9.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-top: 2pt;
+  }
+
+  .rh-4 {
+    font-size: 9pt;
+    font-style: italic;
+    margin-top: 2pt;
+  }
+
+  .rh-5 {
+    font-size: 9pt;
+    margin-top: 2pt;
+  }
+
+  .report-number {
+    margin-top: 8pt;
+    font-size: 12pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3pt;
+    text-align: center;
+  }
+
+  /* ======================================================================
+     TEXTO / PARÁGRAFOS
+     ====================================================================== */
+
   .report-page p,
   .object-block p {
     text-align: justify;
@@ -49,65 +143,32 @@
     white-space: pre-line;
   }
 
-  /* Títulos (impressão) — use h1/h2/h3 do markdown OU aplique classes .title-1/2/3 */
-  .object-block h1,
-  .title-1 {
-    font-size: 14pt;
-    font-weight: 700;
-    font-style: normal;
-    margin: 18pt 0 10pt 0;
-  }
+  /* ======================================================================
+     TÍTULOS DO CONTEÚDO
+     ====================================================================== */
 
-  .object-block h2,
-  .title-2 {
+  /* Seu template usa section-heading, então garantimos aqui */
+  .section-heading {
     font-size: 12pt;
     font-weight: 700;
-    font-style: normal;
     margin: 14pt 0 8pt 0;
   }
 
-  .object-block h3,
-  .title-3 {
+  /* Subtítulo (seções dentro do objeto) */
+  .object-subtitle {
     font-size: 11pt;
     font-weight: 700;
-    font-style: normal;
-    margin: 12pt 0 6pt 0;
+    margin: 10pt 0 4pt 0;
   }
 
-  /* Evita quebra ruim de figuras */
-  .report-figure {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
+  /* Markdown h1/h2/h3 dentro do conteúdo (quando render_markdown) */
+  .object-block h1 { font-size: 14pt; font-weight: 700; margin: 18pt 0 10pt 0; }
+  .object-block h2 { font-size: 12pt; font-weight: 700; margin: 14pt 0 8pt 0; }
+  .object-block h3 { font-size: 11pt; font-weight: 700; margin: 12pt 0 6pt 0; }
 
-  /* Se houver grid de imagens, imprime em bloco para evitar “sobra”/quebra */
-  .figure-grid {
-    display: block !important;
-  }
-
-  /* Imagens: limite de 14cm na folha A4 */
-  .report-figure img {
-    max-width: 14cm !important;
-    width: auto !important;
-    height: auto !important;
-
-    border: 0 !important;
-    border-radius: 0 !important;
-  }
-
-  /* Legendas: Arial 11, itálico, centralizado */
-  .report-figure figcaption {
-    font-family: Arial, Helvetica, sans-serif !important;
-    font-size: 11pt !important;
-    font-style: italic !important;
-    text-align: center !important;
-    margin-top: 8pt !important;
-    line-height: 1.2 !important;
-    white-space: pre-line;
-  }
-}
-
-@media print {
+  /* ======================================================================
+     FIGURAS
+     ====================================================================== */
 
   .figure-grid {
     display: block !important;
@@ -127,9 +188,18 @@
     max-width: 14cm !important;
     width: auto !important;
     height: auto !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
   }
 
   .report-figure figcaption {
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 11pt !important;
+    font-style: italic !important;
     text-align: center !important;
+    margin-top: 8pt !important;
+    line-height: 1.2 !important;
+    white-space: pre-line;
   }
 }

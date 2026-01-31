@@ -1,5 +1,3 @@
-{# report_maker/templates/report_maker/report_pdf.html #}
-
 {% load static %}
 {% load markdown_extras %}
 
@@ -10,7 +8,6 @@
     <title>Laudo nº {{ report.report_number }}</title>
 
     <link rel="stylesheet" href="{% static 'report_maker/css/report_print.css' %}" />
-    <link rel="stylesheet" href="{% static 'report_maker/css/report_preview.css' %}" />
   </head>
 
   <body>
@@ -18,7 +15,7 @@
       <section class="report-page">
 
         {# ───────────────────────────── Cabeçalho institucional ───────────────────────────── #}
-        <header class="text-center">
+        <header class="report-top">
           <table class="report-header" role="presentation">
             <tr>
               <td class="rh-img rh-left">
@@ -74,7 +71,6 @@
         {% if outline %}
           {% for g in outline %}
 
-            {# Cabeçalho do grupo (quando houver numeração do grupo) #}
             {% if g.number %}
               <section class="report-section group-block">
                 <h2 class="section-heading">{{ g.number }} {{ g.group_label }}</h2>
@@ -87,14 +83,11 @@
               </section>
             {% endif %}
 
-            {# Objetos do grupo #}
             {% for o in g.objects %}
               <section class="report-section object-block">
 
-                {# Título do objeto (pode ser "4" ou "4.1") #}
                 <h2 class="section-heading">{{ o.number }} {{ o.title }}</h2>
 
-                {# Seções (título abaixo do objeto) #}
                 {% for s in o.sections %}
                   {% if s.number or s.label %}
                     <div class="object-subtitle">
@@ -112,7 +105,6 @@
                   {% endif %}
                 {% endfor %}
 
-                {# Figuras contínuas #}
                 {% if o.images %}
                   <div class="figure-grid">
                     {% for it in o.images %}
