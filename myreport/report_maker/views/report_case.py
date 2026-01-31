@@ -67,6 +67,18 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
 
 
 
+# myreport/report_maker/views/reportcase_detail.py
+
+
+
+
+from django.db.models import Count, Prefetch
+# from report_maker.mixins import ReportCaseAuthorQuerySetMixin  # ajuste se seu caminho for outro
+from report_maker.models.exam_base import ExamObjectGroup
+
+
+
+
 class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, DetailView):
     model = ReportCase
     template_name = "report_maker/reportcase_detail.html"
@@ -105,8 +117,25 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
             .values_list("body", flat=True)
             .first()
         )
-
         ctx["preamble"] = (preamble_text or "").strip() or report.preamble
+
+        # ─────────────────────────────────────────────────────────────
+        # Dropdown: "texto comum do grupo" (somente se houver >= 2 objetos)
+        # ─────────────────────────────────────────────────────────────
+        counts = (
+            report.exam_objects
+            .exclude(group_key__isnull=True)
+            .exclude(group_key="")
+            .values("group_key")
+            .annotate(n=Count("id"))
+        )
+        count_map = {row["group_key"]: row["n"] for row in counts}
+
+        ctx["editorial_groups"] = [
+            {"key": key, "label": label}
+            for key, label in ExamObjectGroup.choices
+            if count_map.get(key, 0) >= 2
+        ]
 
         # Outline (agrupamento + numeração relativa por grupo/objeto/seções)
         ctx["outline"] = build_report_outline(
@@ -117,6 +146,7 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         )
 
         return ctx
+
 
 
 

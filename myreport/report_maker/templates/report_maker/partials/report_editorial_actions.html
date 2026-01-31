@@ -1,3 +1,4 @@
+{# myreport/report_maker/templates/report_maker/partials/report_editorial_actions.html #}
 {% comment %}
   Ações editoriais do laudo
   Uso:
@@ -65,30 +66,21 @@
           </a>
         </li>
 
-        <li><hr class="dropdown-divider"></li>
+        {% if editorial_groups %}
+          <li><hr class="dropdown-divider"></li>
 
-        <li>
-          <a class="dropdown-item"
-             href="{% url 'report_maker:text_block_upsert' report.pk 'OBJECT_GROUP_INTRO' %}?group_key=LOCATIONS">
-            Locais – texto comum do grupo
-          </a>
-        </li>
-
-        <li>
-          <a class="dropdown-item"
-             href="{% url 'report_maker:text_block_upsert' report.pk 'OBJECT_GROUP_INTRO' %}?group_key=VEHICLES">
-            Veículos – texto comum do grupo
-          </a>
-        </li>
+          {# Texto comum por grupo (somente se houver >= 2 objetos no grupo) #}
+          {% for g in editorial_groups %}
+            <li>
+              <a class="dropdown-item"
+                 href="{% url 'report_maker:text_block_upsert' report.pk 'OBJECT_GROUP_INTRO' %}?group_key={{ g.key }}">
+                {{ g.label }} – texto comum do grupo
+              </a>
+            </li>
+          {% endfor %}
+        {% endif %}
 
         <li><hr class="dropdown-divider"></li>
-
-        <li>
-          <a class="dropdown-item"
-             href="{% url 'report_maker:text_block_upsert' report.pk 'OBSERVATIONS' %}">
-            Observações
-          </a>
-        </li>
 
         <li>
           <a class="dropdown-item"
@@ -101,15 +93,6 @@
           <a class="dropdown-item"
              href="{% url 'report_maker:text_block_upsert' report.pk 'CONCLUSION' %}">
             Conclusão
-          </a>
-        </li>
-
-        <li><hr class="dropdown-divider"></li>
-
-        <li>
-          <a class="dropdown-item"
-             href="{% url 'report_maker:textblock_list' report.pk %}">
-            Gerenciar textos…
           </a>
         </li>
       </ul>
