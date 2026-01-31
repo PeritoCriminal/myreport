@@ -43,7 +43,7 @@ HOME_ITEMS: list[HomeItem] = [
     HomeItem("posts", "Postagens", "social_net:post_list", allowed_posts),
     HomeItem("groups", "Grupos", "groups:group_list", allowed_groups),
     HomeItem("technical", "Arquivo técnico", "technical_repository:document_list", allowed_technical),
-    HomeItem("reports", "Laudos", "report_maker:report_list", allowed_reports),
+    HomeItem("reports", "Laudos", "report_maker:reportcase_list", allowed_reports),
     HomeItem("zen", "Zen do Laudo", "home:zen_do_laudo", allowed_zen),
 ]
 
