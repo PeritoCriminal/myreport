@@ -30,32 +30,6 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         )
 
     # ─────────────────────────────────────────────────────────────
-    # Helpers
-    # ─────────────────────────────────────────────────────────────
-    def _kv(self, label: str, value) -> dict:
-        return {"label": label, "value": "" if value is None else value}
-
-    def _build_bo_fields(self, report: ReportCase) -> list[dict]:
-        return [
-            self._kv("Boletim de ocorrência", report.police_report),
-            self._kv("Inquérito policial", report.police_inquiry),
-            self._kv("Distrito policial", report.police_station),
-            self._kv("Tipificação penal", report.criminal_typification),
-            self._kv("Data e hora da ocorrência", report.occurrence_datetime),
-            self._kv("Data e hora da designação", report.assignment_datetime),
-            self._kv("Data e hora do exame pericial", report.examination_datetime),
-        ]
-
-    def _build_req_fields(self, report: ReportCase) -> list[dict]:
-        return [
-            self._kv("Autoridade requisitante", report.requesting_authority),
-            self._kv("Objetivo", report.get_objective_display() if report.objective else ""),
-            self._kv("Protocolo", report.protocol),
-            self._kv("Fotografia", report.photography_by),
-            self._kv("Croqui", report.sketch_by),
-        ]
-
-    # ─────────────────────────────────────────────────────────────
     # Header builders
     # ─────────────────────────────────────────────────────────────
     def _build_header_from_user(self) -> dict:
@@ -79,11 +53,10 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         hon_title = (getattr(inst, "honoree_title", "") or "") if inst else ""
         hon_name = (getattr(inst, "honoree_name", "") or "") if inst else ""
 
-        honoree_line = ""
         if hon_title and hon_name:
             honoree_line = f"{hon_title} {hon_name}"
-        elif hon_name:
-            honoree_line = hon_name
+        else:
+            honoree_line = hon_name or ""
 
         unit_line = " - ".join(
             p
@@ -114,11 +87,10 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         hon_title = (report.honoree_title_snapshot or "").strip()
         hon_name = (report.honoree_name_snapshot or "").strip()
 
-        honoree_line = ""
         if hon_title and hon_name:
             honoree_line = f"{hon_title} {hon_name}"
-        elif hon_name:
-            honoree_line = hon_name
+        else:
+            honoree_line = hon_name or ""
 
         unit_line = " - ".join(p for p in [report.nucleus_display, report.team_display] if p)
 
@@ -146,16 +118,14 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         can_edit = bool(getattr(report, "can_edit", False))
         header = self._build_header_from_user() if can_edit else self._build_header_from_snapshots(report)
 
-        # Seções fixas (T1)
-        section_nums = {"bo": 1, "req": 2}
-
         # Textos do laudo (inclui intros de grupo)
         text_blocks_qs = report.text_blocks.all().order_by("placement", "position", "created_at")
         ctx["text_blocks"] = text_blocks_qs
-        ctx["text_blocks_by_placement"] = {
-            k: list(text_blocks_qs.filter(placement=k))
-            for k, _ in ReportTextBlock.Placement.choices
-        }
+
+        by_placement = defaultdict(list)
+        for tb in text_blocks_qs:
+            by_placement[tb.placement].append(tb)
+        ctx["text_blocks_by_placement"] = dict(by_placement)
 
         # Preâmbulo: usuário > sistema (report.preamble)
         preamble_text = (
@@ -170,12 +140,13 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         base_objects = list(report.exam_objects.all().order_by("order", "created_at"))
         concrete_objects = [o.concrete for o in base_objects]
 
-        # Outline (com start_at após BO/REQ)
+        # Outline (inclui metadados do laudo no mesmo pipeline de numeração)
         outline, next_top = build_report_outline(
             report=report,
             exam_objects_qs=base_objects,
             text_blocks_qs=text_blocks_qs,
-            start_at=3,
+            start_at=1,
+            prepend_blocks=report.get_render_blocks(),
         )
 
         # ─────────────────────────────────────────────
@@ -226,18 +197,22 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
 
             for o in g.objects:
                 o_dict = asdict(o)
-                obj = o.obj  # instância concreta
+                obj = o.obj  # instância concreta (ou ReportCase no grupo virtual)
 
-                ct = ct_map.get(obj.__class__)
-                ct_id = ct.id if ct else None
+                if isinstance(obj, ReportCase):
+                    ct_id = None
+                else:
+                    ct = ct_map.get(obj.__class__)
+                    ct_id = ct.id if ct else None
 
                 images_ui = []
-                for img in images_by_key.get((ct_id, obj.pk), []):
-                    images_ui.append({
-                        "img": img,
-                        "figure_label": f"Figura {figure_counter}",
-                    })
-                    figure_counter += 1
+                if ct_id:
+                    for img in images_by_key.get((ct_id, obj.pk), []):
+                        images_ui.append({
+                            "img": img,
+                            "figure_label": f"Figura {figure_counter}",
+                        })
+                        figure_counter += 1
 
                 o_dict["images"] = images_ui
                 g_objects_ui.append(o_dict)
@@ -251,17 +226,11 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         ctx.update({
             "report_number": report.report_number,
             "header": header,
-            "preamble": preamble,  # <- mantém a regra usuário > sistema
-            "bo_fields": self._build_bo_fields(report),
-            "req_fields": self._build_req_fields(report),
-            "section_nums": section_nums,
-
+            "preamble": preamble,  # regra usuário > sistema
             "outline": outline_ui,
-
             "next_top": next_top,
             "conclusion_num": conclusion_num,
             "conclusion_blocks": conclusion_blocks,
-
             "figure_counter_end": figure_counter,
         })
 

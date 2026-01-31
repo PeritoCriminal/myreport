@@ -137,13 +137,15 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
             if count_map.get(key, 0) >= 2
         ]
 
-        # Outline (agrupamento + numeração relativa por grupo/objeto/seções)
+        # Outline (metadados do laudo + objetos + textos) com numeração centralizada no builder
         ctx["outline"] = build_report_outline(
             report=report,
             exam_objects_qs=ctx["exam_objects"],
             text_blocks_qs=text_blocks_qs,
             start_at=1,
+            prepend_blocks=report.get_render_blocks(),
         )
+
 
         return ctx
 

@@ -15,7 +15,7 @@ class OutlineSection:
     number: str
     label: str
     text: str
-    fmt: str  # "text" | "md"
+    fmt: str  # "text" | "md" | "kv"
 
 
 @dataclass(frozen=True)
@@ -46,7 +46,14 @@ def _get_group_intro_map(text_blocks_qs: Iterable[ReportTextBlock]) -> dict[str,
     return intro_by_group
 
 
-def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: int = 1) -> tuple[list[OutlineGroup], int]:
+def build_report_outline(
+    *,
+    report,
+    exam_objects_qs,
+    text_blocks_qs,
+    start_at: int = 1,
+    prepend_blocks: list[dict] | None = None,
+) -> tuple[list[OutlineGroup], int]:
     """
     Monta uma estrutura pronta para renderização:
 
@@ -61,7 +68,7 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
         4.1 - Identificação
         4.2 - Testes operacionais
 
-    Regra ajustada (mix):
+    Regras:
     - Cabeçalho de grupo só aparece quando o grupo "agrupar" de fato:
         * houver 2+ objetos no mesmo group_key, OU
         * existir texto introdutório (OBJECT_GROUP_INTRO) para aquele group_key.
@@ -69,22 +76,101 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
         * NÃO geram cabeçalho,
         * cada objeto consome um número de nível superior (T1).
 
+    prepend_blocks:
+    - Lista de blocos (sem numeração) para entrar antes dos objetos e participar da numeração.
+      Use: report.get_render_blocks() (Dados da Requisição / Atendimento / Objetivo)
+
     Retorna:
         (outline, next_top)
         - next_top é o próximo número disponível de nível superior (T1), útil para Conclusão.
     """
     UNGROUPED = "__UNGROUPED__"
 
-    # Downcast para o concreto (você já tem .concrete no ExamObject)
+    outline: list[OutlineGroup] = []
+    n_top = start_at  # contador de nível superior
+
+    # ------------------------------------------------------------------
+    # 0) Blocos iniciais do laudo (metadados) como T1/T2/T3 (SEM "Dados do Laudo")
+    # ------------------------------------------------------------------
+    if prepend_blocks:
+        pblocks = [b for b in prepend_blocks if isinstance(b, dict)]
+        for b in pblocks:
+            kind = (b.get("kind") or "").strip()
+            label = (b.get("label") or "").strip()
+            if not label:
+                continue
+
+            text = ""
+            fmt = "text"
+
+            if kind == "kv_section":
+                items = b.get("items") or []
+                lines: list[str] = []
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    k = (it.get("label") or "").strip()
+                    v = it.get("value")
+                    if v is None:
+                        continue
+
+                    # datetime/date -> formata já aqui
+                    if hasattr(v, "strftime"):
+                        v_str = v.strftime("%d/%m/%Y %H:%M")
+                    else:
+                        v_str = str(v).strip()
+
+                    if not v_str:
+                        continue
+                    lines.append(f"{k}: {v_str}" if k else v_str)
+
+                text = "\n".join(lines).strip()
+                fmt = (b.get("fmt") or "kv").strip()
+
+            elif kind == "text_section":
+                text = (b.get("value") or "").strip()
+                fmt = (b.get("fmt") or "text").strip()
+
+            # ✅ Só renderiza "Objetivo" se tiver conteúdo (não None e não "")
+            if label == "Objetivo" and not text:
+                continue
+
+            if not text:
+                continue
+
+            outline.append(
+                OutlineGroup(
+                    number="",
+                    group_key="__REPORT__",
+                    group_label="",
+                    intro_text="",
+                    objects=[
+                        OutlineObject(
+                            number=f"{n_top}",
+                            obj=report,
+                            title=label,
+                            sections=[
+                                OutlineSection(
+                                    number="",     # ✅ não mostra 1.1 / 2.1 / 3.1
+                                    label="",
+                                    text=text,
+                                    fmt=fmt,
+                                )
+                            ],
+                        )
+                    ],
+                )
+            )
+            n_top += 1
+
+
+
+    # ------------------------------------------------------------------
+    # 1) Objetos do exame (mantém lógica original)
+    # ------------------------------------------------------------------
     objects = [o.concrete for o in exam_objects_qs]
 
     def _normalize_group_key(raw: Any) -> Any:
-        """
-        Normaliza group_key:
-        - None/"": vira UNGROUPED
-        - strings: strip
-        - demais: retorna como está
-        """
         if raw is None:
             return UNGROUPED
         if isinstance(raw, str):
@@ -92,7 +178,6 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
             return raw or UNGROUPED
         return raw or UNGROUPED
 
-    # Agrupa mantendo a ordem de aparição no laudo
     grouped: "OrderedDict[str, list[Any]]" = OrderedDict()
     for obj in objects:
         raw_gk = getattr(obj, "group_key", None)
@@ -103,20 +188,11 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
     group_counts = {k: len(v) for k, v in grouped.items()}
 
     def group_has_header(group_key: str) -> bool:
-        """
-        Cabeçalho de grupo por group_key (não global).
-        - UNGROUPED nunca gera cabeçalho.
-        - Caso exista intro_text para o grupo, mantém cabeçalho mesmo com 1 objeto.
-        - Caso contrário, só gera cabeçalho se houver 2+ objetos no grupo.
-        """
         if group_key == UNGROUPED:
             return False
         if (intro_by_group.get(group_key) or "").strip():
             return True
         return group_counts.get(group_key, 0) >= 2
-
-    outline: list[OutlineGroup] = []
-    n_top = start_at  # contador de nível superior
 
     for group_key, group_objs in grouped.items():
         use_header = group_has_header(group_key)
@@ -131,23 +207,17 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
             )
 
         intro_text = intro_by_group.get(group_key, "") if group_key != UNGROUPED else ""
-
         group_number = f"{n_top}" if use_header else ""
 
         out_objs: list[OutlineObject] = []
         n_obj = 1
 
         for obj in group_objs:
-            # título do objeto
             title_field = obj.get_object_title_field() if hasattr(obj, "get_object_title_field") else "title"
             title_value = (getattr(obj, title_field, "") or "").strip() or str(obj)
 
-            if use_header:
-                obj_number = f"{n_top}.{n_obj}"
-            else:
-                obj_number = f"{n_top}"
+            obj_number = f"{n_top}.{n_obj}" if use_header else f"{n_top}"
 
-            # seções (label = título abaixo; conteúdo = texto normal)
             blocks = obj.get_render_blocks() if hasattr(obj, "get_render_blocks") else []
             out_sections: list[OutlineSection] = []
 
@@ -176,10 +246,7 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
                 if not text:
                     continue
 
-                if use_header:
-                    sec_number = f"{n_top}.{n_obj}.{n_sec}"
-                else:
-                    sec_number = f"{n_top}.{n_sec}"
+                sec_number = f"{n_top}.{n_obj}.{n_sec}" if use_header else f"{n_top}.{n_sec}"
 
                 out_sections.append(
                     OutlineSection(
@@ -202,7 +269,6 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
             n_obj += 1
 
             if not use_header:
-                # sem cabeçalho de grupo, cada objeto consome um número de nível superior
                 n_top += 1
 
         outline.append(
@@ -216,7 +282,6 @@ def build_report_outline(*, report, exam_objects_qs, text_blocks_qs, start_at: i
         )
 
         if use_header:
-            # com cabeçalho de grupo, cada grupo consome um número de nível superior
             n_top += 1
 
     return outline, n_top

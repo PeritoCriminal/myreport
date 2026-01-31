@@ -1,0 +1,60 @@
+{# report_maker/partials/report_metadata_dl.html #}
+<dl class="row">
+  <dt class="col-sm-4">Autoridade requisitante</dt>
+  <dd class="col-sm-8">{{ report.requesting_authority }}</dd>
+
+  {% if report.police_report %}
+    <dt class="col-sm-4">Boletim de ocorrência</dt>
+    <dd class="col-sm-8">{{ report.police_report }}</dd>
+  {% endif %}
+
+  {% if report.police_inquiry %}
+    <dt class="col-sm-4">Inquérito policial</dt>
+    <dd class="col-sm-8">{{ report.police_inquiry }}</dd>
+  {% endif %}
+
+  {% if report.police_station %}
+    <dt class="col-sm-4">Distrito policial</dt>
+    <dd class="col-sm-8">{{ report.police_station }}</dd>
+  {% endif %}
+
+  {% if report.occurrence_datetime %}
+    <dt class="col-sm-4">Ocorrência</dt>
+    <dd class="col-sm-8">{{ report.occurrence_datetime|date:'d/m/Y H:i' }}</dd>
+  {% endif %}
+
+  {% if report.criminal_typification %}
+    <dt class="col-sm-4">Tipificação penal</dt>
+    <dd class="col-sm-8">{{ report.criminal_typification }}</dd>
+  {% endif %}
+
+  {% if report.protocol %}
+    <dt class="col-sm-4">Protocolo</dt>
+    <dd class="col-sm-8">{{ report.protocol }}</dd>
+  {% endif %}
+
+  {% if report.assignment_datetime %}
+    <dt class="col-sm-4">Designação</dt>
+    <dd class="col-sm-8">{{ report.assignment_datetime|date:'d/m/Y H:i' }}</dd>
+  {% endif %}
+
+  {% if report.examination_datetime %}
+    <dt class="col-sm-4">Exame pericial</dt>
+    <dd class="col-sm-8">{{ report.examination_datetime|date:'d/m/Y H:i' }}</dd>
+  {% endif %}
+
+  {% if report.photography_by %}
+    <dt class="col-sm-4">Fotografia</dt>
+    <dd class="col-sm-8">{{ report.photography_by }}</dd>
+  {% endif %}
+
+  {% if report.sketch_by %}
+    <dt class="col-sm-4">Croqui</dt>
+    <dd class="col-sm-8">{{ report.sketch_by }}</dd>
+  {% endif %}
+
+  {% if report.objective_for_display %}
+    <dt class="col-sm-4">Objetivo</dt>
+    <dd class="col-sm-8">{{ report.objective_for_display }}</dd>
+  {% endif %}
+</dl>

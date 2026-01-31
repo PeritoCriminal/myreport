@@ -16,18 +16,17 @@
   </head>
 
   <body>
-    {# Esse button não estpa funcionando, precisamos restaurar isso #}
+    {# Esse button não está funcionando, precisamos restaurar isso #}
     <button type="button" class="btn btn-light close-btn" data-action="close-preview">
       Fechar
     </button>
 
-    {# Logo abaixo dele, acresncetar o para gerar pdf #}
+    {# Logo abaixo dele, acrescentar o para gerar pdf #}
     <a href="{% url 'report_maker:report_pdf' report.pk %}"
       target="_blank"
       class="btn btn-light pdf-btn">
       PDF
     </a>
-
 
     <main class="report-stage">
       <section class="report-page">
@@ -85,43 +84,7 @@
           </section>
         {% endif %}
 
-        {# ───────────────────────────── Dados do Boletim (T1) ───────────────────────────── #}
-        <section class="report-section">
-          <h2 class="section-heading">{{ section_nums.bo }} Dados do Boletim</h2>
-
-          <dl class="data-list">
-            {% for it in bo_fields %}
-              <dt>{{ it.label }}</dt>
-              <dd>
-                {% if it.value %}
-                  {{ it.value }}
-                {% else %}
-                  —
-                {% endif %}
-              </dd>
-            {% endfor %}
-          </dl>
-        </section>
-
-        {# ───────────────────────────── Dados da Requisição (T1) ───────────────────────────── #}
-        <section class="report-section">
-          <h2 class="section-heading">{{ section_nums.req }} Dados da Requisição</h2>
-
-          <dl class="data-list">
-            {% for it in req_fields %}
-              <dt>{{ it.label }}</dt>
-              <dd>
-                {% if it.value %}
-                  {{ it.value }}
-                {% else %}
-                  —
-                {% endif %}
-              </dd>
-            {% endfor %}
-          </dl>
-        </section>
-
-        {# ───────────────────────────── Objetos de exame (agrupados) ───────────────────────────── #}
+        {# ───────────────────────────── Conteúdo (outline único, já numerado) ───────────────────────────── #}
         {% if outline %}
           {% for g in outline %}
 
@@ -149,8 +112,13 @@
                 {% for s in o.sections %}
                   <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
 
-                  {# Renderiza sempre como Markdown (sanitizado pelo filtro) #}
-                  {{ s.text|render_markdown }}
+                  {% if s.fmt == "kv" %}
+                    <div class="mb-2">
+                      {{ s.text|linebreaksbr }}
+                    </div>
+                  {% else %}
+                    {{ s.text|render_markdown }}
+                  {% endif %}
 
                 {% endfor %}
 
@@ -196,5 +164,14 @@
 
       </section>
     </main>
+
+    <script>
+      // Fechar preview
+      document.addEventListener("click", (ev) => {
+        const btn = ev.target.closest("[data-action='close-preview']");
+        if (!btn) return;
+        window.close();
+      });
+    </script>
   </body>
 </html>

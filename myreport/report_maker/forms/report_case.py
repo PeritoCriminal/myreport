@@ -16,6 +16,7 @@ class ReportCaseForm(BaseModelForm):
     - DateTimeInput com type="datetime-local"
     - Classe JS para padronização automática de campos de protocolo
     - Validação de coerência temporal
+    - Objetivo: choice opcional + texto livre (condicionado)
     """
 
     DATETIME_LOCAL_INPUT_FORMATS = (
@@ -52,6 +53,7 @@ class ReportCaseForm(BaseModelForm):
             "report_number",
             "protocol",
             "objective",
+            "objective_text",
             "institution",
             "nucleus",
             "team",
@@ -66,11 +68,23 @@ class ReportCaseForm(BaseModelForm):
             "photography_by",
             "sketch_by",
         ]
-        # não repete widgets aqui porque já foram definidos nos campos acima
         widgets = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Label mais claro (opcional)
+        if "objective" in self.fields:
+            self.fields["objective"].label = "Objetivo (tipo)"
+            self.fields["objective"].required = False
+
+        if "objective_text" in self.fields:
+            self.fields["objective_text"].label = "Objetivo (descrição livre)"
+            self.fields["objective_text"].required = False
+            self.fields["objective_text"].widget.attrs.setdefault(
+                "placeholder",
+                "Preencha apenas se desejar um objetivo diferente do padrão.",
+            )
 
         # ─────────────────────────────────────
         # Classe JS para ajuste de protocolo
@@ -108,4 +122,19 @@ class ReportCaseForm(BaseModelForm):
                 "A data do exame pericial não pode ser anterior à data da designação."
             )
 
+        # ─────────────────────────────────────
+        # Regras do objetivo
+        # ─────────────────────────────────────
+        objective = cleaned.get("objective") or ""
+        objective_text = (cleaned.get("objective_text") or "").strip()
+
+        # mantém o valor stripado
+        cleaned["objective_text"] = objective_text
+
+        # Se selecionou "Outro", exige texto.
+        if objective == ReportCase.Objective.OTHER and not objective_text:
+            self.add_error("objective_text", "Informe o objetivo quando selecionado 'Outro'.")
+
+        # Se preencheu texto livre, não obriga objective == OTHER.
+        # (Ou seja: texto livre vale por si só.)
         return cleaned

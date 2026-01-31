@@ -168,11 +168,20 @@ class ReportCase(models.Model):
     # Report metadata
     # ---------------------------------------------------------------------
     objective = models.CharField(
-        "Objetivo",
+        "Objetivo (tipo)",
         max_length=40,
         choices=Objective.choices,
-        default=Objective.INITIAL_EXAM,
+        blank=True,
+        default='',
     )
+
+    objective_text = models.CharField(
+        "Objetivo (descrição livre)",
+        max_length=255,
+        blank=True,
+        default='',
+    )
+
 
     requesting_authority = models.CharField("Autoridade requisitante", max_length=120)
     police_report = models.CharField("Boletim de ocorrência", max_length=60, blank=True)
@@ -290,19 +299,101 @@ class ReportCase(models.Model):
         self.organization_frozen_at = timezone.now()
 
     # ---------------------------------------------------------------------
-    # Display helpers (OPEN -> FK, CLOSED -> snapshot)
+    # Display helpers (OPEN -> FK, CLOSED -> snapshot) + metadata do laudo
     # ---------------------------------------------------------------------
+    def get_render_blocks(self) -> list[dict]:
+        """
+        Blocos iniciais do laudo (sem numeração).
+        A view/builder decide numeração (T1/T2/T3...).
+        """
+        return [
+            {
+                "kind": "kv_section",
+                "label": "Dados da Requisição",
+                "items": [
+                    {"label": "Autoridade requisitante", "value": self.requesting_authority},
+                    {"label": "Inquérito policial", "value": self.police_inquiry},
+                    {"label": "Distrito policial", "value": self.police_station},
+                    {"label": "Boletim de ocorrência", "value": self.police_report},
+                    {"label": "Tipificação penal", "value": self.criminal_typification},
+                    {"label": "Data e hora da ocorrência", "value": self.occurrence_datetime},
+                ],
+            },
+            {
+                "kind": "kv_section",
+                "label": "Dados do Atendimento",
+                "items": [
+                    {"label": "Protocolo de atendimento", "value": self.protocol},
+                    {"label": "Data e hora do exame pericial", "value": self.examination_datetime},
+                    {"label": "Perito", "value": self.report_identity_name},
+                    {"label": "Fotografia", "value": self.photography_by},
+                    {"label": "Croqui", "value": self.sketch_by},
+                ],
+            },
+            {
+                "kind": "text_section",
+                "label": "Objetivo",
+                "value": self.objective_for_display,
+                "fmt": "text",
+            },
+        ]
+
+
+
+    @property
+    def objective_for_display(self) -> str:
+        text = (self.objective_text or "").strip()
+        if text:
+            return text
+        return self.get_objective_display() if self.objective else ""
+
+
+    @property
+    def report_identity_name(self) -> str:
+        return (
+            getattr(self.author, "report_signature_name", "")
+            or getattr(self.author, "display_name", "")
+            or str(self.author)
+        )
+
+
+    @property
+    def report_metadata_context(self) -> dict:
+        return {
+            "requisition": {
+                "requesting_authority": self.requesting_authority,
+                "police_inquiry": self.police_inquiry,
+                "police_station": self.police_station,
+                "police_report": self.police_report,
+                "criminal_typification": self.criminal_typification,
+                "occurrence_datetime": self.occurrence_datetime,
+            },
+            "service": {
+                "protocol": self.protocol,
+                "examination_datetime": self.examination_datetime,
+                "author_name": self.report_identity_name,
+                "photography_by": self.photography_by,
+                "sketch_by": self.sketch_by,
+            },
+            "objective": {
+                "objective_text": self.objective_for_display,
+            },
+        }
+
+
     @property
     def institution_name_for_display(self) -> str:
         if self.is_frozen:
             return self.institution_name_snapshot or ""
         return (self.institution.name if self.institution else "") or ""
 
+
     @property
     def institution_acronym_for_display(self) -> str:
         if self.is_frozen:
             return self.institution_acronym_snapshot or ""
         return (self.institution.acronym if self.institution else "") or ""
+
 
     @property
     def institution_display(self) -> str:
@@ -314,9 +405,8 @@ class ReportCase(models.Model):
         """
         name = self.institution_name_for_display
         acr = self.institution_acronym_for_display
-        if name and acr:
-            return f"{name} ({acr})"
-        return name or acr
+        return f"{name} ({acr})" if (name and acr) else (name or acr)
+
 
     @property
     def nucleus_display(self) -> str:
@@ -324,11 +414,13 @@ class ReportCase(models.Model):
             return self.nucleus_name_snapshot or ""
         return (self.nucleus.name if self.nucleus else "") or ""
 
+
     @property
     def team_display(self) -> str:
         if self.is_frozen:
             return self.team_name_snapshot or ""
         return (self.team.name if self.team else "") or ""
+
 
     # ---------------------------------------------------------------------
     # Header helper (OPEN -> FK, CLOSED -> snapshot)
@@ -341,7 +433,7 @@ class ReportCase(models.Model):
         OPEN: dados via FKs (cadastro atual)
         CLOSED: dados via snapshot (imutável)
         """
-        inst = self.institution  # FK continua sendo a fonte dos emblemas
+        inst = self.institution
 
         if self.is_frozen:
             name = self.institution_name_snapshot or ""
@@ -350,39 +442,27 @@ class ReportCase(models.Model):
             hon_name = self.honoree_name_snapshot or ""
             kind_display = self.institution_kind_snapshot or ""
 
-            # 🔹 Emblemas: snapshot se existir, senão fallback para Institution
             emblem_primary = self.emblem_primary_snapshot or (inst.emblem_primary if inst else None)
             emblem_secondary = self.emblem_secondary_snapshot or (inst.emblem_secondary if inst else None)
-
         else:
             name = (inst.name if inst else "") or ""
             acronym = (inst.acronym if inst else "") or ""
             hon_title = (getattr(inst, "honoree_title", "") if inst else "") or ""
             hon_name = (getattr(inst, "honoree_name", "") if inst else "") or ""
 
-            if inst and hasattr(inst, "get_kind_display"):
-                kind_display = inst.get_kind_display()
-            else:
-                kind_display = str(getattr(inst, "kind", "") or "") if inst else ""
+            kind_display = inst.get_kind_display() if (inst and hasattr(inst, "get_kind_display")) else (
+                str(getattr(inst, "kind", "") or "") if inst else ""
+            )
 
             emblem_primary = inst.emblem_primary if (inst and inst.emblem_primary) else None
             emblem_secondary = inst.emblem_secondary if (inst and inst.emblem_secondary) else None
 
-        honoree_line = ""
         if hon_title and hon_name:
             honoree_line = f"{hon_title} {hon_name}"
-        elif hon_name:
-            honoree_line = hon_name
-
-        # 🔹 unit_line: respeita snapshot se frozen, senão FKs
-        if self.is_frozen:
-            unit_line = " - ".join(
-                p for p in [self.nucleus_display, self.team_display] if p
-            )
         else:
-            nucleus_name = self.nucleus.name if self.nucleus else ""
-            team_name = self.team.name if self.team else ""
-            unit_line = " - ".join(p for p in [nucleus_name, team_name] if p)
+            honoree_line = hon_name or ""
+
+        unit_line = " - ".join(p for p in [self.nucleus_display, self.team_display] if p)
 
         return {
             "name": name or None,
@@ -488,6 +568,11 @@ class ReportCase(models.Model):
         """
         Valida regras de negócio centrais do laudo.
         """
+        super().clean()
+
+        if self.objective == self.Objective.OTHER and not (self.objective_text or "").strip():
+            raise ValidationError({"objective_text": "Informe o objetivo quando selecionado 'Outro'."})
+
         self._validate_close_requirements()
         self._validate_organization_consistency()
         self._validate_organization_immutability()

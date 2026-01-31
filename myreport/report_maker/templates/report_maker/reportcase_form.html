@@ -61,6 +61,16 @@
         </div>
 
         <div class="col-12 mb-3">
+          {{ form.objective_text.label_tag }}
+          {{ form.objective_text }}
+          {{ form.objective_text.errors }}
+          <div class="form-text">
+            Preencha apenas se desejar um objetivo diferente do padrão.
+          </div>
+        </div>
+
+
+        <div class="col-12 mb-3">
           {{ form.requesting_authority.label_tag }}
           {{ form.requesting_authority }}
           {{ form.requesting_authority.errors }}
