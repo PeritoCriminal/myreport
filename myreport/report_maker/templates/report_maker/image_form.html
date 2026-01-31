@@ -6,6 +6,10 @@
   {% if object %}Editar imagem{% else %}Adicionar imagem{% endif %}
 {% endblock %}
 
+{% block page_header %}
+  {% include 'headerbars/report_maker.html' %}
+{% endblock %}
+
 {% block content %}
   <div class="container mt-4" style="max-width: 980px;">
     <div class="d-flex justify-content-between align-items-center mb-3">

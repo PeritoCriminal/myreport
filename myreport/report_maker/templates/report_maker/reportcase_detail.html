@@ -7,6 +7,10 @@
   Laudo {{ report.report_number }}
 {% endblock %}
 
+{% block page_header %}
+  {% include 'headerbars/report_maker.html' %}
+{% endblock %}
+
 {% block content %}
   <div class="container mt-4" style="max-width: 980px;">
     {# Cabeçalho do laudo (apenas informativo) #}

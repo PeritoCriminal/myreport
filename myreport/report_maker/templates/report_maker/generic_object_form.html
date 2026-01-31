@@ -5,6 +5,10 @@
   {% if obj %}Editar objeto de exame{% else %}Novo objeto de exame{% endif %}
 {% endblock %}
 
+{% block page_header %}
+  {% include 'headerbars/report_maker.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4" style="max-width: 900px;">
 
