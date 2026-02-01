@@ -128,12 +128,11 @@
                     {% for it in o.images %}
                       <figure class="report-figure">
                         <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
-                        <figcaption>
-                          {{ it.figure_label }}
-                          {% if it.img.caption %}
-                            — {{ it.img.caption }}
-                          {% endif %}
-                        </figcaption>
+                        {% if it.img.caption %}
+                          <figcaption>
+                              {{ it.figure_label }} — {{ it.img.caption }}
+                          </figcaption>
+                        {% endif %}
                       </figure>
                     {% endfor %}
                   </div>

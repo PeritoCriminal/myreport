@@ -177,7 +177,6 @@
   .report-figure {
     display: block !important;
     text-align: center !important;
-    margin: 0 0 14pt 0 !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
@@ -188,8 +187,7 @@
     max-width: 14cm !important;
     width: auto !important;
     height: auto !important;
-
-    border: 0 !important;
+    border: 1 !important;
     border-radius: 0 !important;
   }
 
@@ -198,8 +196,7 @@
     font-size: 11pt !important;
     font-style: italic !important;
     text-align: center !important;
-    margin-top: 8pt !important;
-    line-height: 1.2 !important;
+    line-height: 1.0 !important;
     white-space: pre-line;
   }
 }

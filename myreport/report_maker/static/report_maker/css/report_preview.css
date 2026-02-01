@@ -349,8 +349,7 @@ body {
   font-size: 11pt !important;
   font-style: italic !important;
   text-align: center !important;
-  margin: 8pt 0 0 0 !important;
-  line-height: 1.2 !important;
+  line-height: 1.0 !important;
   white-space: pre-line;
 }
 
@@ -358,6 +357,7 @@ body {
 .report-figure img {
   max-width: 100% !important;
   height: auto !important;
+  margin-top: 20px;
 }
 
 /* Imagens: sempre em coluna (uma abaixo da outra) */
