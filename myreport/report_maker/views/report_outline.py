@@ -55,34 +55,7 @@ def build_report_outline(
     prepend_blocks: list[dict] | None = None,
 ) -> tuple[list[OutlineGroup], int]:
     """
-    Monta uma estrutura pronta para renderização:
-
-    - Se houver cabeçalho de grupo:
-        4 - Veículos
-        4.1 - Honda Fit
-        4.1.1 - Identificação
-        4.1.2 - Testes operacionais
-
-    - Se NÃO houver cabeçalho de grupo:
-        4 - Honda Fit
-        4.1 - Identificação
-        4.2 - Testes operacionais
-
-    Regras:
-    - Cabeçalho de grupo só aparece quando o grupo "agrupar" de fato:
-        * houver 2+ objetos no mesmo group_key, OU
-        * existir texto introdutório (OBJECT_GROUP_INTRO) para aquele group_key.
-    - Objetos "genéricos"/sem classificação podem vir com group_key vazio (None/""):
-        * NÃO geram cabeçalho,
-        * cada objeto consome um número de nível superior (T1).
-
-    prepend_blocks:
-    - Lista de blocos (sem numeração) para entrar antes dos objetos e participar da numeração.
-      Use: report.get_render_blocks() (Dados da Requisição / Atendimento / Objetivo)
-
-    Retorna:
-        (outline, next_top)
-        - next_top é o próximo número disponível de nível superior (T1), útil para Conclusão.
+    (docstring mantida)
     """
     UNGROUPED = "__UNGROUPED__"
 
@@ -151,7 +124,7 @@ def build_report_outline(
                             title=label,
                             sections=[
                                 OutlineSection(
-                                    number="",     # ✅ não mostra 1.1 / 2.1 / 3.1
+                                    number="",  # ✅ não mostra 1.1 / 2.1 / 3.1
                                     label="",
                                     text=text,
                                     fmt=fmt,
@@ -163,10 +136,8 @@ def build_report_outline(
             )
             n_top += 1
 
-
-
     # ------------------------------------------------------------------
-    # 1) Objetos do exame (mantém lógica original)
+    # 1) Objetos do exame (mantém lógica original) + regra global de subtítulos
     # ------------------------------------------------------------------
     objects = [o.concrete for o in exam_objects_qs]
 
@@ -219,21 +190,23 @@ def build_report_outline(
             obj_number = f"{n_top}.{n_obj}" if use_header else f"{n_top}"
 
             blocks = obj.get_render_blocks() if hasattr(obj, "get_render_blocks") else []
-            out_sections: list[OutlineSection] = []
 
-            n_sec = 1
+            # 1) Resolve textos e filtra só as seções preenchidas
+            resolved: list[tuple[str, str, str]] = []  # (label, text, fmt)
+
             for b in blocks:
+                if not isinstance(b, dict):
+                    continue
+
                 kind = (b.get("kind") or "").strip()
                 label = (b.get("label") or "").strip()
                 fmt = (b.get("fmt") or "text").strip()
 
-                if not label:
-                    continue
-
                 text = ""
 
                 if kind == "section_field":
-                    field = b.get("field")
+                    # compatível com "field" e "field_name"
+                    field = b.get("field") or b.get("field_name")
                     if field:
                         text = (getattr(obj, field, "") or "").strip()
 
@@ -246,17 +219,47 @@ def build_report_outline(
                 if not text:
                     continue
 
-                sec_number = f"{n_top}.{n_obj}.{n_sec}" if use_header else f"{n_top}.{n_sec}"
+                resolved.append((label, text, fmt))
 
+            # 2) Regra global:
+            #    - se só 1 seção preenchida => NÃO renderiza label/número de seção (inline)
+            out_sections: list[OutlineSection] = []
+
+            if len(resolved) == 1:
+                _label, text, fmt = resolved[0]
                 out_sections.append(
                     OutlineSection(
-                        number=sec_number,
-                        label=label,
+                        number="",
+                        label="",
                         text=text,
                         fmt=fmt,
                     )
                 )
-                n_sec += 1
+            else:
+                n_sec = 1
+                for label, text, fmt in resolved:
+                    # se não tiver label, não cria "título" de seção (evita subtítulo vazio)
+                    if not (label or "").strip():
+                        out_sections.append(
+                            OutlineSection(
+                                number="",
+                                label="",
+                                text=text,
+                                fmt=fmt,
+                            )
+                        )
+                        continue
+
+                    sec_number = f"{n_top}.{n_obj}.{n_sec}" if use_header else f"{n_top}.{n_sec}"
+                    out_sections.append(
+                        OutlineSection(
+                            number=sec_number,
+                            label=label,
+                            text=text,
+                            fmt=fmt,
+                        )
+                    )
+                    n_sec += 1
 
             out_objs.append(
                 OutlineObject(
@@ -285,3 +288,4 @@ def build_report_outline(
             n_top += 1
 
     return outline, n_top
+

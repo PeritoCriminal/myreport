@@ -1,17 +1,23 @@
 # report_maker/views/report_pdf_generator.py
 from __future__ import annotations
 
+import mimetypes
 from collections import defaultdict
 from dataclasses import asdict
+from pathlib import Path
+from urllib.parse import urlparse
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.staticfiles import finders
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 
 from weasyprint import HTML, CSS
+from weasyprint.urls import default_url_fetcher
 
 from report_maker.models import ReportCase, ReportTextBlock
 from report_maker.models.images import ObjectImage
@@ -39,10 +45,7 @@ def _build_header_from_user(request) -> dict:
     hon_title = (getattr(inst, "honoree_title", "") or "") if inst else ""
     hon_name = (getattr(inst, "honoree_name", "") or "") if inst else ""
 
-    if hon_title and hon_name:
-        honoree_line = f"{hon_title} {hon_name}"
-    else:
-        honoree_line = hon_name or ""
+    honoree_line = f"{hon_title} {hon_name}" if (hon_title and hon_name) else (hon_name or "")
 
     unit_line = " - ".join(
         p
@@ -65,7 +68,7 @@ def _build_header_from_user(request) -> dict:
 
 
 def _build_header_from_snapshots(report: ReportCase) -> dict:
-    inst = report.institution  # fallback opcional (emblemas)
+    inst = report.institution
 
     name = (report.institution_name_snapshot or "").strip()
     acronym = (report.institution_acronym_snapshot or "").strip()
@@ -74,11 +77,7 @@ def _build_header_from_snapshots(report: ReportCase) -> dict:
     hon_title = (report.honoree_title_snapshot or "").strip()
     hon_name = (report.honoree_name_snapshot or "").strip()
 
-    if hon_title and hon_name:
-        honoree_line = f"{hon_title} {hon_name}"
-    else:
-        honoree_line = hon_name or ""
-
+    honoree_line = f"{hon_title} {hon_name}" if (hon_title and hon_name) else (hon_name or "")
     unit_line = " - ".join(p for p in [report.nucleus_display, report.team_display] if p)
 
     emblem_primary = report.emblem_primary_snapshot or (inst.emblem_primary if inst else None)
@@ -95,6 +94,44 @@ def _build_header_from_snapshots(report: ReportCase) -> dict:
     }
 
 
+def django_url_fetcher(url: str):
+    """
+    Resolve /media/... e /static/... (inclusive quando vierem como http://.../media/...).
+    Funciona bem no Windows/local e continua útil em produção.
+    """
+    parsed = urlparse(url)
+    path = parsed.path or ""  # sempre trabalha com o PATH da URL
+
+    media_url = (getattr(settings, "MEDIA_URL", "") or "/media/").rstrip("/") + "/"
+    static_url = (getattr(settings, "STATIC_URL", "") or "/static/").rstrip("/") + "/"
+
+    # Helper: abre arquivo com mime
+    def _open_file(file_path: Path):
+        mime_type, _ = mimetypes.guess_type(str(file_path))
+        return {
+            "file_obj": open(file_path, "rb"),
+            "mime_type": mime_type or "application/octet-stream",
+            "redirected_url": url,
+        }
+
+    # /media/... -> MEDIA_ROOT/...
+    if path.startswith(media_url):
+        rel = path[len(media_url):].lstrip("/")  # sempre POSIX
+        file_path = Path(settings.MEDIA_ROOT) / Path(*rel.split("/"))
+        if file_path.exists():
+            return _open_file(file_path)
+
+    # /static/... -> encontra via finders
+    if path.startswith(static_url):
+        rel = path[len(static_url):].lstrip("/")
+        found = finders.find(rel)
+        if found:
+            return _open_file(Path(found))
+
+    # fallback padrão (http/https/file/…)
+    return default_url_fetcher(url)
+
+
 @login_required
 def reportPDFGenerator(request, pk):
     report = get_object_or_404(
@@ -103,7 +140,6 @@ def reportPDFGenerator(request, pk):
         author=request.user,
     )
 
-    # Header: mesma regra do showpage
     can_edit = bool(getattr(report, "can_edit", False))
     header = _build_header_from_user(request) if can_edit else _build_header_from_snapshots(report)
 
@@ -131,6 +167,7 @@ def reportPDFGenerator(request, pk):
     conclusion_blocks = list(text_blocks_qs.filter(placement=ReportTextBlock.Placement.CONCLUSION))
     conclusion_num = next_top if conclusion_blocks else None
 
+    # imagens por ContentType do concreto
     models_set = {o.__class__ for o in concrete_objects}
     ct_map = ContentType.objects.get_for_models(*models_set) if models_set else {}
 
@@ -155,6 +192,7 @@ def reportPDFGenerator(request, pk):
         for img in imgs:
             images_by_key[(img.content_type_id, img.object_id)].append(img)
 
+    # outline UI com figuras contínuas
     figure_counter = 1
     outline_ui: list[dict] = []
 
@@ -166,8 +204,11 @@ def reportPDFGenerator(request, pk):
             o_dict = asdict(o)
             obj = o.obj
 
-            ct = ct_map.get(obj.__class__)
-            ct_id = ct.id if ct else None
+            if isinstance(obj, ReportCase):
+                ct_id = None
+            else:
+                ct = ct_map.get(obj.__class__)
+                ct_id = ct.id if ct else None
 
             images_ui = []
             if ct_id:
@@ -185,7 +226,7 @@ def reportPDFGenerator(request, pk):
         "report_maker/report_pdf.html",
         {
             "report": report,
-            "header": header,        # ✅ agora bate com o template
+            "header": header,
             "preamble": preamble,
             "outline": outline_ui,
             "conclusion_num": conclusion_num,
@@ -195,16 +236,20 @@ def reportPDFGenerator(request, pk):
         request=request,
     )
 
+    css_path = finders.find("report_maker/css/report_pdf.css")
+    if not css_path:
+        raise FileNotFoundError("CSS do PDF não encontrado: report_maker/css/report_pdf.css")
+
+    # base_url como URL do site ajuda a normalizar links absolutos e relativos
     base_url = request.build_absolute_uri("/")
 
-    pdf_bytes = HTML(string=html, base_url=base_url).write_pdf(
-        stylesheets=[
-            CSS(url=f"{base_url}static/report_maker/css/report_print.css"),
-            # ✅ NÃO carregar report_preview.css no PDF
-        ]
-    )
+    pdf_bytes = HTML(
+        string=html,
+        base_url=base_url,
+        url_fetcher=django_url_fetcher,
+    ).write_pdf(stylesheets=[CSS(filename=css_path)])
 
     filename = f"laudo_{report.report_number}".replace("/", "-").replace(".", "_")
-    response = HttpResponse(pdf_bytes, content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="{filename}.pdf"'
-    return response
+    resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+    resp["Content-Disposition"] = f'inline; filename="{filename}.pdf"'
+    return resp

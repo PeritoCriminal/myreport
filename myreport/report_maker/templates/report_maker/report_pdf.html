@@ -1,3 +1,5 @@
+{# report_maker/templates/report_maker/report_pdf.html #}
+
 {% load static %}
 {% load markdown_extras %}
 
@@ -7,139 +9,139 @@
     <meta charset="utf-8" />
     <title>Laudo nº {{ report.report_number }}</title>
 
-    <link rel="stylesheet" href="{% static 'report_maker/css/report_print.css' %}" />
+    {# CSS específico do WeasyPrint #}
+    <link rel="stylesheet" href="{% static 'report_maker/css/report_pdf.css' %}" />
   </head>
 
   <body>
-    <main class="report-stage">
-      <section class="report-page">
+    {% comment %}
+      Cabeçalho
+    {% endcomment %}
+    <header class="header-running">
+      <table class="report-header" role="presentation">
+        <tr>
+          <td class="rh-img rh-left">
+            {% if header.emblem_primary %}
+              <img src="{{ header.emblem_primary.url }}" alt="Emblema" class="rh-emblem" />
+            {% endif %}
+          </td>
 
-        {# ───────────────────────────── Cabeçalho institucional ───────────────────────────── #}
-        <header class="report-top">
-          <table class="report-header" role="presentation">
-            <tr>
-              <td class="rh-img rh-left">
-                {% if header.emblem_primary %}
-                  <img src="{{ header.emblem_primary.url }}" alt="Emblema" class="rh-emblem" />
+          <td class="rh-center">
+            <div class="rh-line rh-1">SECRETARIA DA SEGURANÇA PÚBLICA</div>
+
+            {% if header.name or header.acronym %}
+              <div class="rh-line rh-2">
+                {{ header.name|default:'' }}
+                {% if header.acronym %}
+                  ({{ header.acronym }})
                 {% endif %}
-              </td>
-
-              <td class="rh-center">
-                <div class="rh-line rh-1">SECRETARIA DA SEGURANÇA PÚBLICA</div>
-
-                {% if header.name or header.acronym %}
-                  <div class="rh-line rh-2">
-                    {{ header.name|default:'' }}
-                    {% if header.acronym %}
-                      ({{ header.acronym }})
-                    {% endif %}
-                  </div>
-                {% endif %}
-
-                {% if header.kind_display %}
-                  <div class="rh-line rh-3">{{ header.kind_display }}</div>
-                {% endif %}
-
-                {% if header.honoree_line %}
-                  <div class="rh-line rh-4">"{{ header.honoree_line|upper }}"</div>
-                {% endif %}
-
-                {% if header.unit_line %}
-                  <div class="rh-line rh-5">{{ header.unit_line }}</div>
-                {% endif %}
-              </td>
-
-              <td class="rh-img rh-right">
-                {% if header.emblem_secondary %}
-                  <img src="{{ header.emblem_secondary.url }}" alt="Emblema" class="rh-emblem" />
-                {% endif %}
-              </td>
-            </tr>
-          </table>
-
-          <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
-        </header>
-
-        {# ───────────────────────────── Preâmbulo ───────────────────────────── #}
-        {% if preamble %}
-          <section class="report-section preamble">
-            {{ preamble|linebreaks }}
-          </section>
-        {% endif %}
-
-        {# ───────────────────────────── Conteúdo (outline único, já numerado) ───────────────────────────── #}
-        {% if outline %}
-          {% for g in outline %}
-
-            {% if g.number %}
-              <section class="report-section group-block">
-                <h2 class="section-heading">{{ g.number }} {{ g.group_label }}</h2>
-
-                {% if g.intro_text %}
-                  <div class="mb-3">
-                    {{ g.intro_text|linebreaks }}
-                  </div>
-                {% endif %}
-              </section>
+              </div>
             {% endif %}
 
-            {% for o in g.objects %}
-              <section class="report-section object-block">
+            {% if header.kind_display %}
+              <div class="rh-line rh-3">{{ header.kind_display }}</div>
+            {% endif %}
 
-                <h2 class="section-heading">{{ o.number }} {{ o.title }}</h2>
+            {% if header.honoree_line %}
+              <div class="rh-line rh-4">"{{ header.honoree_line|upper }}"</div>
+            {% endif %}
 
-                {% for s in o.sections %}
-                  {% if s.number or s.label %}
-                    <div class="object-subtitle">
-                      {% if s.number %}{{ s.number }}{% endif %}
-                      {% if s.label %} {{ s.label }}{% endif %}
-                    </div>
-                  {% endif %}
+            {% if header.unit_line %}
+              <div class="rh-line rh-5">{{ header.unit_line }}</div>
+            {% endif %}
+          </td>
 
-                  {% if s.fmt == "kv" %}
-                    <div class="mb-2">
-                      {{ s.text|linebreaksbr }}
-                    </div>
-                  {% else %}
-                    {{ s.text|render_markdown }}
-                  {% endif %}
-                {% endfor %}
+          <td class="rh-img rh-right">
+            {% if header.emblem_secondary %}
+              <img src="{{ header.emblem_secondary.url }}" alt="Emblema" class="rh-emblem" />
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </header>
 
-                {% if o.images %}
-                  <div class="figure-grid">
-                    {% for it in o.images %}
-                      <figure class="report-figure">
-                        <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
-                        {% if it.img.caption %}
-                          <figcaption>                          
-                          {{ it.figure_label }} — {{ it.img.caption }}
-                        </figcaption>
-                        {% endif %}
-                      </figure>
-                    {% endfor %}
-                  </div>
-                {% endif %}
+    {% comment %}RODAPÉ (repetido em todas as páginas via running element){% endcomment %}
+    <footer class="footer-running">
+      <span class="footer-line">LAUDO Nº {{ report.report_number }} — <span class="page-count"></span></span>
+    </footer>
 
-              </section>
-            {% endfor %}
+    {% comment %}
+      CONTEÚDO
+    {% endcomment %}
+    <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
 
-          {% endfor %}
-        {% endif %}
+    {# Preâmbulo #}
+    {% if preamble %}
+      <section class="report-section preamble">{{ preamble|linebreaks }}</section>
+    {% endif %}
 
-        {# ───────────────────────────── Conclusão (último T1) ───────────────────────────── #}
-        {% if conclusion_blocks %}
-          <section class="report-section">
-            <h2 class="section-heading">{{ conclusion_num }} Conclusão</h2>
+    {# Conteúdo (outline único, já numerado) #}
+    {% if outline %}
+      {% for g in outline %}
+        {# Cabeçalho do grupo (quando houver numeração do grupo) #}
+        {% if g.number %}
+          <section class="report-section group-block">
+            <h2 class="section-heading">{{ g.number }} {{ g.group_label }}</h2>
 
-            {% for block in conclusion_blocks %}
-              <div class="mb-3">
-                {{ block.body|render_markdown }}
-              </div>
-            {% endfor %}
+            {% if g.intro_text %}
+              <div class="mb-3">{{ g.intro_text|linebreaks }}</div>
+            {% endif %}
           </section>
         {% endif %}
 
+        {# Objetos do grupo #}
+        {% for o in g.objects %}
+          <section class="report-section object-block">
+            <h2 class="section-heading">{{ o.number }} {{ o.title }}</h2>
+
+            {# Seções #}
+            {% for s in o.sections %}
+              {% if s.text %}
+                {% if s.number and s.label %}
+                  <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
+                {% endif %}
+
+                {% if s.fmt == 'kv' %}
+                  <div class="mb-2">{{ s.text|linebreaksbr }}</div>
+                {% else %}
+                  {{ s.text|render_markdown }}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+
+            {# Figuras contínuas #}
+            {% if o.images %}
+              <div class="figure-grid">
+                {% for it in o.images %}
+                  <figure class="report-figure">
+                    <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
+                    <figcaption>
+                      {{ it.figure_label }}{% if it.img.caption %}
+                        — {{ it.img.caption }}
+                      {% endif %}
+                    </figcaption>
+                  </figure>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </section>
+        {% endfor %}
+      {% endfor %}
+    {% else %}
+      <section class="report-section">
+        <p class="text-muted small mb-0">Nenhum objeto de exame cadastrado.</p>
       </section>
-    </main>
+    {% endif %}
+
+    {# Conclusão (último T1) #}
+    {% if conclusion_blocks %}
+      <section class="report-section">
+        <h2 class="section-heading">{{ conclusion_num }} Conclusão</h2>
+
+        {% for block in conclusion_blocks %}
+          <div class="mb-3">{{ block.body|render_markdown }}</div>
+        {% endfor %}
+      </section>
+    {% endif %}
   </body>
 </html>

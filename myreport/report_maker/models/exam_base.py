@@ -9,6 +9,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.db.models import Max
 from django.urls import reverse
+from django.utils.html import strip_tags
 from django.utils.translation import gettext_lazy as _
 
 
@@ -114,6 +115,68 @@ class ExamObject(models.Model):
                 name="uq_examobject_reportcase_order",
             )
         ]
+
+    def _is_filled(self, value) -> bool:
+        """
+        Considera preenchido quando há conteúdo útil.
+        Se vier HTML, strip_tags evita contar '<p><br></p>' como texto.
+        """
+        if value is None:
+            return False
+        if not isinstance(value, str):
+            return bool(value)
+        text = strip_tags(value).strip()
+        return bool(text)
+
+    def get_render_sections(self):
+        """
+        Se o objeto concreto/mixin definir RENDER_SECTIONS, usa.
+        Caso contrário, fica no padrão: somente description.
+        Estrutura esperada: [(field_name, label), ...]
+        """
+        sections = getattr(self, "RENDER_SECTIONS", None)
+        if sections:
+            return sections
+        return [("description", "Descrição")]
+
+    def get_render_blocks(self):
+        """
+        Regra global:
+        - Se só 1 campo renderizável estiver preenchido, não renderiza label de seção.
+        - Se 2+ estiverem preenchidos, renderiza labels normalmente.
+        """
+        sections = self.get_render_sections()
+
+        filled = []
+        for field_name, label in sections:
+            value = getattr(self, field_name, None)
+            if self._is_filled(value):
+                filled.append((field_name, label, value))
+
+        if not filled:
+            return []
+
+        # Apenas um campo preenchido => bloco inline (sem subtítulo)
+        if len(filled) == 1:
+            field_name, _label, _value = filled[0]
+            return [{
+                "kind": "section_field",
+                "field_name": field_name,
+                "label": "",          # ou None
+                "inline": True,       # <- sinal para template/view
+            }]
+
+        # Dois ou mais => seções normais
+        blocks = []
+        for field_name, label, _value in filled:
+            blocks.append({
+                "kind": "section_field",
+                "field_name": field_name,
+                "label": label,
+                "inline": False,
+            })
+        return blocks
+
 
     def save(self, *args, **kwargs):
         # trava consistência do grupo com base na classe concreta

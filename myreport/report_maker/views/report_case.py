@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Count
 from django.http import Http404
 from django.urls import reverse_lazy
 from django.views.generic import (
@@ -15,14 +15,15 @@ from django.views.generic import (
     UpdateView,
 )
 
-from report_maker.models import ReportCase, ObjectImage, ReportTextBlock
+from report_maker.models import ReportCase, ObjectImage, ReportTextBlock, ExamObjectGroup
 from report_maker.forms.report_case import ReportCaseForm
 from report_maker.models.images import ObjectImage
 
 from report_maker.views.report_outline import build_report_outline
 
-
-
+# ─────────────────────────────────────────────────────────────
+# Mixin
+# ─────────────────────────────────────────────────────────────
 
 class ReportCaseAuthorQuerySetMixin:
     """
@@ -64,19 +65,6 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
             .select_related("institution", "nucleus", "team", "author")
             .order_by("-updated_at")
         ) 
-
-
-
-# myreport/report_maker/views/reportcase_detail.py
-
-
-
-
-from django.db.models import Count, Prefetch
-# from report_maker.mixins import ReportCaseAuthorQuerySetMixin  # ajuste se seu caminho for outro
-from report_maker.models.exam_base import ExamObjectGroup
-
-
 
 
 class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, DetailView):
@@ -148,9 +136,6 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
 
 
         return ctx
-
-
-
 
 
 # ─────────────────────────────────────────────────────────────

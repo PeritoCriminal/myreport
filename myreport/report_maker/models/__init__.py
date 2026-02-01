@@ -1,7 +1,7 @@
 # myreport/report_maker/models/__init__.py
 
 from .report_case import ReportCase
-from .exam_base import ExamObject
+from .exam_base import ExamObject, ExamObjectGroup
 from .generic_object import GenericExamObject
 from .exam_public_road import PublicRoadExamObject
 from .images import ObjectImage

@@ -8,7 +8,7 @@
   /* A4 e margens */
   @page {
     size: A4;
-    margin: 3cm 2cm 2cm 3cm; /* sup dir inf esq */
+    margin: 6cm 2cm 2cm 3cm; /* sup dir inf esq */
   }
 
   html, body {
@@ -27,6 +27,19 @@
     color: #000;
   }
 
+  header {
+    top: -5cm;
+    left: 0;
+    right: 0;
+    height: 4cm;
+
+  }
+
+  header,
+    .report-header {
+      page-break-inside: avoid;
+    }
+
   .close-btn {
     display: none !important;
   }
@@ -43,7 +56,7 @@
     border: none !important;
     border-radius: 0 !important;
     max-width: none !important;
-    padding: 0 !important; /* margens ficam no @page */
+    padding: 0 !important;
   }
 
   /* ======================================================================

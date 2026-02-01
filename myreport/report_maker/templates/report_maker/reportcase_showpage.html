@@ -17,20 +17,13 @@
 
   <body>
     {# Esse button não está funcionando, precisamos restaurar isso #}
-    <button type="button" class="btn btn-light close-btn" data-action="close-preview">
-      Fechar
-    </button>
+    <button type="button" class="btn btn-light close-btn" data-action="close-preview">Fechar</button>
 
     {# Logo abaixo dele, acrescentar o para gerar pdf #}
-    <a href="{% url 'report_maker:report_pdf' report.pk %}"
-      target="_blank"
-      class="btn btn-light pdf-btn">
-      PDF
-    </a>
+    <a href="{% url 'report_maker:report_pdf' report.pk %}" target="_blank" class="btn btn-light pdf-btn">PDF</a>
 
     <main class="report-stage">
       <section class="report-page">
-
         {# ───────────────────────────── Cabeçalho institucional ───────────────────────────── #}
         <header class="text-center">
           <table class="report-header" role="presentation">
@@ -79,24 +72,19 @@
 
         {# ───────────────────────────── Preâmbulo ───────────────────────────── #}
         {% if preamble %}
-          <section class="report-section preamble">
-            {{ preamble|linebreaks }}
-          </section>
+          <section class="report-section preamble">{{ preamble|linebreaks }}</section>
         {% endif %}
 
         {# ───────────────────────────── Conteúdo (outline único, já numerado) ───────────────────────────── #}
         {% if outline %}
           {% for g in outline %}
-
             {# Cabeçalho do grupo (quando houver numeração do grupo) #}
             {% if g.number %}
               <section class="report-section group-block">
                 <h2 class="section-heading">{{ g.number }} {{ g.group_label }}</h2>
 
                 {% if g.intro_text %}
-                  <div class="mb-3">
-                    {{ g.intro_text|linebreaks }}
-                  </div>
+                  <div class="mb-3">{{ g.intro_text|linebreaks }}</div>
                 {% endif %}
               </section>
             {% endif %}
@@ -104,22 +92,21 @@
             {# Objetos do grupo #}
             {% for o in g.objects %}
               <section class="report-section object-block">
-
                 {# Título do objeto (pode ser "4" ou "4.1") #}
                 <h2 class="section-heading">{{ o.number }} {{ o.title }}</h2>
 
                 {# Seções (título abaixo do objeto) #}
                 {% for s in o.sections %}
-                  <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
+                  {# ✅ Só exibe subtítulo quando houver numeração e label (2+ campos preenchidos) #}
+                  {% if s.number and s.label %}
+                    <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
+                  {% endif %}
 
-                  {% if s.fmt == "kv" %}
-                    <div class="mb-2">
-                      {{ s.text|linebreaksbr }}
-                    </div>
+                  {% if s.fmt == 'kv' %}
+                    <div class="mb-2">{{ s.text|linebreaksbr }}</div>
                   {% else %}
                     {{ s.text|render_markdown }}
                   {% endif %}
-
                 {% endfor %}
 
                 {# Figuras contínuas #}
@@ -128,19 +115,15 @@
                     {% for it in o.images %}
                       <figure class="report-figure">
                         <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
-                        {% if it.img.caption %}
-                          <figcaption>
-                              {{ it.figure_label }} — {{ it.img.caption }}
-                          </figcaption>
-                        {% endif %}
+                        <figcaption>
+                          {{ it.figure_label }}{% if it.img.caption %} — {{ it.img.caption }}{% endif %}
+                        </figcaption>
                       </figure>
                     {% endfor %}
                   </div>
                 {% endif %}
-
               </section>
             {% endfor %}
-
           {% endfor %}
         {% else %}
           <section class="report-section">
@@ -154,23 +137,20 @@
             <h2 class="section-heading">{{ conclusion_num }} Conclusão</h2>
 
             {% for block in conclusion_blocks %}
-              <div class="mb-3">
-                {{ block.body|render_markdown }}
-              </div>
+              <div class="mb-3">{{ block.body|render_markdown }}</div>
             {% endfor %}
           </section>
         {% endif %}
-
       </section>
     </main>
 
     <script>
       // Fechar preview
-      document.addEventListener("click", (ev) => {
-        const btn = ev.target.closest("[data-action='close-preview']");
-        if (!btn) return;
-        window.close();
-      });
+      document.addEventListener('click', (ev) => {
+        const btn = ev.target.closest("[data-action='close-preview']")
+        if (!btn) return
+        window.close()
+      })
     </script>
   </body>
 </html>

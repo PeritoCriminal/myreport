@@ -1,0 +1,257 @@
+/* ==========================================================================
+   Report Maker — PDF (WeasyPrint)
+   Arquivo: static/report_maker/css/report_pdf.css
+   Objetivo: cabeçalho/rodapé em todas as páginas + tipografia do laudo
+   ========================================================================== */
+
+/* ---------------------------
+   PÁGINA (A4) + HEADER/FOOTER
+   --------------------------- */
+
+@page {
+  size: A4;
+  margin: 3cm 2cm 2.2cm 3cm; /* sup dir inf esq */
+
+  /* WeasyPrint: elementos "running" viram header/footer de página */
+  @top-center {
+    content: element(doc_header);
+  }
+  @bottom-center {
+    content: element(doc_footer);
+  }
+}
+
+/* registra os elementos que serão repetidos */
+.header-running {
+  position: running(doc_header);
+}
+
+.footer-running {
+  position: running(doc_footer);
+}
+
+/* ---------------------------
+   BASE
+   --------------------------- */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #fff;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12pt;
+  line-height: 1.5;
+  color: #000;
+}
+
+/* Evita “quebras feias” em títulos/figuras */
+h1, h2, h3,
+.report-figure,
+.report-header {
+  break-inside: avoid;
+}
+
+/* ---------------------------
+   CABEÇALHO INSTITUCIONAL
+   --------------------------- */
+
+.header-running {
+  padding: 0 0 8pt 0;
+  border-bottom: 1px solid #000;
+}
+
+.report-header {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 0 0 8pt 0;
+}
+
+.rh-img {
+  width: 18mm;
+  vertical-align: middle;
+  text-align: center;
+}
+
+.rh-center {
+  vertical-align: middle;
+  text-align: center;
+  padding: 0 6mm;
+}
+
+.rh-emblem {
+  display: inline-block;
+  width: 16mm;
+  height: 16mm;
+  object-fit: contain;
+}
+
+/* Linhas do header: menor que corpo */
+.rh-line {
+  margin: 0;
+  padding: 0;
+  line-height: 1.1;
+  word-wrap: break-word;
+}
+
+.rh-1 {
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.2pt;
+  text-transform: uppercase;
+}
+
+.rh-2 {
+  font-size: 10pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 2pt;
+}
+
+.rh-3 {
+  font-size: 9.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 2pt;
+}
+
+.rh-4 {
+  font-size: 9pt;
+  font-style: italic;
+  margin-top: 2pt;
+}
+
+.rh-5 {
+  font-size: 9pt;
+  margin-top: 2pt;
+}
+
+.report-number {
+  margin-top: 8pt;
+  font-size: 12pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3pt;
+  text-align: center;
+}
+
+/* ---------------------------
+   RODAPÉ (PAGINAÇÃO)
+   --------------------------- */
+
+.footer-running {
+  padding: 6pt 0 0 0;
+  border-top: 1px solid #000;
+  font-size: 10pt;
+}
+
+.footer-running .footer-line {
+  display: block;
+  text-align: center;
+  line-height: 1.1;
+}
+
+/* "Página X de Y" */
+.footer-running .page-count::before {
+  content: "Página " counter(page) " de " counter(pages);
+}
+
+/* ---------------------------
+   CONTEÚDO
+   --------------------------- */
+
+.report-section {
+  margin: 0 0 10pt 0;
+}
+
+/* Parágrafos (inclui texto vindo do markdown renderizado) */
+p {
+  text-align: justify;
+  margin: 0 0 12pt 0;
+  white-space: pre-line;
+}
+
+/* Listas (markdown) */
+ul, ol {
+  margin: 0 0 12pt 18pt;
+  padding: 0;
+}
+
+li {
+  margin: 0 0 4pt 0;
+}
+
+/* Títulos do conteúdo */
+.section-heading {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 14pt 0 8pt 0;
+}
+
+.object-subtitle {
+  font-size: 11pt;
+  font-weight: 700;
+  margin: 10pt 0 4pt 0;
+}
+
+/* Markdown headings dentro do bloco (quando render_markdown) */
+h1 {
+  font-size: 14pt;
+  font-weight: 700;
+  margin: 18pt 0 10pt 0;
+}
+
+h2 {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 14pt 0 8pt 0;
+}
+
+h3 {
+  font-size: 11pt;
+  font-weight: 700;
+  margin: 12pt 0 6pt 0;
+}
+
+/* ---------------------------
+   FIGURAS
+   --------------------------- */
+
+.figure-grid {
+  display: block;
+}
+
+.report-figure {
+  display: block;
+  text-align: center;
+  margin: 0 0 12pt 0;
+  break-inside: avoid;
+}
+
+.report-figure img {
+  display: inline-block;
+  max-width: 14cm;
+  width: auto;
+  height: auto;
+}
+
+.report-figure figcaption {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11pt;
+  font-style: italic;
+  text-align: center;
+  line-height: 1.0;
+  white-space: pre-line;
+}
+
+/* ---------------------------
+   QUEBRAS DE PÁGINA (opcional)
+   --------------------------- */
+
+/* Você pode aplicar class="page-break" em pontos estratégicos, se quiser */
+.page-break {
+  break-before: page;
+}
