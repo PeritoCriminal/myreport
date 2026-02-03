@@ -60,6 +60,36 @@
 
     {% comment %}
     ─────────────────────────────────────
+    Localização geográfica (Google Maps)
+    ─────────────────────────────────────
+    {% endcomment %}
+    <div class="mb-4">
+      <label for="{{ form.geo_location.id_for_label }}" class="form-label fw-semibold">
+        {{ form.geo_location.label }}
+      </label>
+
+      {{ form.geo_location }}
+
+      {% if form.geo_location.help_text %}
+        <div class="form-text">{{ form.geo_location.help_text }}</div>
+      {% endif %}
+
+      {% for error in form.geo_location.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+
+      {# Preview (apenas no update e quando existir link) #}
+      {% if object and object.geo_maps_url %}
+        <div class="mt-2 d-flex gap-2 flex-wrap">
+          <a class="btn btn-sm btn-outline-primary" href="{{ object.geo_maps_url }}" target="_blank" rel="noopener">
+            Abrir no Google Maps
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    {% comment %}
+    ─────────────────────────────────────
     Descrição (Markdown)
     ─────────────────────────────────────
     {% endcomment %}

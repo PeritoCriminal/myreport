@@ -250,6 +250,10 @@ def reportPDFGenerator(request, pk):
     ).write_pdf(stylesheets=[CSS(filename=css_path)])
 
     filename = f"laudo_{report.report_number}".replace("/", "-").replace(".", "_")
+
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'inline; filename="{filename}.pdf"'
+    resp["Content-Disposition"] = f'attachment; filename="{filename}.pdf"'
+    resp["X-Content-Type-Options"] = "nosniff"
+    resp["Content-Length"] = str(len(pdf_bytes))
     return resp
+

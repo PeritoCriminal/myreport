@@ -10,6 +10,7 @@ class PublicRoadExamObjectForm(BaseModelForm):
         model = PublicRoadExamObject
         fields = (
             "title",
+            "geo_location",
             "description",
             "weather_conditions",
             "road_conditions",

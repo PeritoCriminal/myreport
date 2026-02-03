@@ -19,8 +19,8 @@
     {# Esse button não está funcionando, precisamos restaurar isso #}
     <button type="button" class="btn btn-light close-btn" data-action="close-preview">Fechar</button>
 
-    {# Logo abaixo dele, acrescentar o para gerar pdf #}
-    <a href="{% url 'report_maker:report_pdf' report.pk %}" target="_blank" class="btn btn-light pdf-btn">PDF</a>
+    {# Ao invés de gerar o pdf em outra guia, fornecer o arquivo para o usuário baixar  #}
+    <a href="{% url 'report_maker:report_pdf' report.pk %}" class="btn btn-light pdf-btn">PDF</a>
 
     <main class="report-stage">
       <section class="report-page">
