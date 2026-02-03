@@ -14,9 +14,7 @@
   </head>
 
   <body>
-    {% comment %}
-      Cabeçalho
-    {% endcomment %}
+    {% comment %}Cabeçalho{% endcomment %}
     <header class="header-running">
       <table class="report-header" role="presentation">
         <tr>
@@ -62,12 +60,13 @@
 
     {% comment %}RODAPÉ (repetido em todas as páginas via running element){% endcomment %}
     <footer class="footer-running">
-      <span class="footer-line">LAUDO Nº {{ report.report_number }} — <span class="page-count"></span></span>
+      <div class="footer-meta">Laudo {{ report.report_number }} | Boletim {{ report.police_report }} - {{ report.police_station }}</div>
+      <div class="footer-page">
+        <span class="page-count"></span>
+      </div>
     </footer>
 
-    {% comment %}
-      CONTEÚDO
-    {% endcomment %}
+    {% comment %}CONTEÚDO{% endcomment %}
     <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
 
     {# Preâmbulo #}
@@ -115,11 +114,7 @@
                 {% for it in o.images %}
                   <figure class="report-figure">
                     <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
-                    <figcaption>
-                      {{ it.figure_label }}{% if it.img.caption %}
-                        — {{ it.img.caption }}
-                      {% endif %}
-                    </figcaption>
+                    <figcaption>{{ it.figure_label }} — {{ it.img.caption|default:'' }}</figcaption>
                   </figure>
                 {% endfor %}
               </div>
