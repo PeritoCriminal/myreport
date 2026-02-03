@@ -59,20 +59,25 @@
         {% include "report_maker/partials/report_editorial_actions.html" with report=report %}
       </div>
 
-      {% if exam_objects %}
-        {% regroup exam_objects by group_key as exam_groups %}
-
-        {% for g in exam_groups %}
+      {% if exam_groups_ui %}
+        {% for g in exam_groups_ui %}
           <div class="mb-3">
             <div class="text-muted small fw-semibold mb-2">
-              {{ g.grouper|default:"OUTROS" }}
+              {{ g.label|default:"Outros" }}
             </div>
+
+            {% if g.intro_text %}
+              <div class="mb-2">
+                {{ g.intro_text|linebreaks }}
+              </div>
+            {% endif %}
 
             <div class="list-group js-exam-objects-list"
                  data-report-id="{{ report.pk }}"
-                 data-group-key="{{ g.grouper|default:'' }}"
+                 data-group-key="{{ g.key|default:'' }}"
                  data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}">
-              {% for obj in g.list %}
+
+              {% for obj in g.objects %}
                 {% with obj_edit_url=obj.edit_url obj_delete_url=obj.delete_url %}
                   <div class="list-group-item d-flex align-items-start gap-2" data-id="{{ obj.pk }}">
 
@@ -85,10 +90,14 @@
                     {% endif %}
 
                     <div class="flex-grow-1">
-                      <div class="fw-semibold">{{ obj.title|default:"Objeto sem título" }} - Classe {{ obj.group_key|default:"Nulo"}} </div>
+                      <div class="fw-semibold">
+                        {{ obj.title|default:"Objeto sem título" }} - Classe {{ obj.group_key|default:"Nulo" }}
+                      </div>
 
                       {% if obj.description %}
-                        <div class="text-muted small">{{ obj.order }} - {{ obj.description|truncatechars:120 }}</div>
+                        <div class="text-muted small">
+                          {{ obj.order }} - {{ obj.description|truncatechars:120 }}
+                        </div>
                       {% endif %}
 
                       {% include "report_maker/partials/image_card_list.html" with obj=obj report=report %}
@@ -129,7 +138,6 @@
             </div>
           </div>
         {% endfor %}
-
       {% else %}
         <p class="text-muted small mb-0">Nenhum objeto de exame cadastrado.</p>
       {% endif %}

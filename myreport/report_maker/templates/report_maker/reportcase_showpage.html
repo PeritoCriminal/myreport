@@ -76,7 +76,7 @@
         {% endif %}
 
         {# ───────────────────────────── Conteúdo (outline único, já numerado) ───────────────────────────── #}
-        {% if outline %}
+        {% if outline %}  {# outline é passado no contexto #}
           {% for g in outline %}
             {# Cabeçalho do grupo (quando houver numeração do grupo) #}
             {% if g.number %}

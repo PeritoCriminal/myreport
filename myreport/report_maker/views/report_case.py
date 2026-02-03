@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch, Count
@@ -67,6 +69,8 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
         ) 
 
 
+
+
 class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, DetailView):
     model = ReportCase
     template_name = "report_maker/reportcase_detail.html"
@@ -79,16 +83,15 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
 
         images_qs = ObjectImage.objects.order_by("index", "id")
 
-        ctx["exam_objects"] = (
+        exam_objects_qs = (
             report.exam_objects.all()
             .prefetch_related(Prefetch("images", queryset=images_qs))
             .order_by("order", "created_at")
         )
+        ctx["exam_objects"] = exam_objects_qs
 
-        # Textos do laudo (por placement + ordem)
-        text_blocks_qs = report.text_blocks.all().order_by(
-            "placement", "position", "created_at"
-        )
+        # Textos do laudo
+        text_blocks_qs = report.text_blocks.all().order_by("placement", "position", "created_at")
         ctx["text_blocks"] = text_blocks_qs
 
         ctx["text_blocks_by_placement"] = {
@@ -96,9 +99,7 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
             for k, _ in ReportTextBlock.Placement.choices
         }
 
-        # Preâmbulo:
-        # 1) se o usuário cadastrou PREAMBLE, usa ele
-        # 2) senão, usa report.preamble (@property do model)
+        # Preâmbulo: usuário > sistema
         preamble_text = (
             text_blocks_qs
             .filter(placement=ReportTextBlock.Placement.PREAMBLE)
@@ -107,9 +108,7 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         )
         ctx["preamble"] = (preamble_text or "").strip() or report.preamble
 
-        # ─────────────────────────────────────────────────────────────
-        # Dropdown: "texto comum do grupo" (somente se houver >= 2 objetos)
-        # ─────────────────────────────────────────────────────────────
+        # Dropdown: "texto comum do grupo" (>=2 objetos)
         counts = (
             report.exam_objects
             .exclude(group_key__isnull=True)
@@ -125,17 +124,45 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
             if count_map.get(key, 0) >= 2
         ]
 
-        # Outline (metadados do laudo + objetos + textos) com numeração centralizada no builder
+        # Outline (você já usa no showpage)
         ctx["outline"] = build_report_outline(
             report=report,
-            exam_objects_qs=ctx["exam_objects"],
+            exam_objects_qs=exam_objects_qs,
             text_blocks_qs=text_blocks_qs,
             start_at=1,
             prepend_blocks=report.get_render_blocks(),
         )
 
+        # ─────────────────────────────────────────────────────────────
+        # Intros por grupo (OBJECT_GROUP_INTRO) — ESTE é o texto do "4 Locais"
+        # ─────────────────────────────────────────────────────────────
+        intro_rows = (
+            text_blocks_qs
+            .filter(placement=ReportTextBlock.Placement.OBJECT_GROUP_INTRO)
+            .values_list("group_key", "body")
+        )
+        intro_by_key = {k: (b or "").strip() for k, b in intro_rows if k}
+
+        # Labels por grupo (choices)
+        label_by_key = {k: lbl for k, lbl in ExamObjectGroup.choices}
+
+        # Monta grupos “prontos” para o template (sem regroup + sem get_item)
+        groups = OrderedDict()
+        for obj in list(exam_objects_qs):
+            key = (obj.group_key or "") or "OTHER"
+            if key not in groups:
+                groups[key] = {
+                    "key": key,
+                    "label": label_by_key.get(key, "Outros"),
+                    "intro_text": intro_by_key.get(key, ""),
+                    "objects": [],
+                }
+            groups[key]["objects"].append(obj)
+
+        ctx["exam_groups_ui"] = list(groups.values())
 
         return ctx
+
 
 
 # ─────────────────────────────────────────────────────────────
