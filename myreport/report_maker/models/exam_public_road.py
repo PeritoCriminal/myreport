@@ -44,7 +44,7 @@ class PublicRoadExamObject(GoogleMapsLocationMixin, HasObservedElementsMixin, Ex
         A view decide o nível absoluto.
         """
         return [
-            {"kind": "section_field", "label": "Localização", "field": "geo_location", "fmt": "text"},
+            {"kind": "geo_location", "label": "Localização", "field": "geo_location"},
             {"kind": "section_field", "label": "Descrição", "field": "description", "fmt": "text"},
             {"kind": "section_field", "label": "Sinalização viária", "field": "traffic_signage", "fmt": "text"},
             {"kind": "section_field", "label": "Condições da via", "field": "road_conditions", "fmt": "text"},

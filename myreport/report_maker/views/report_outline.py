@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import base64
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 from report_maker.models import ReportTextBlock
 from report_maker.models.exam_base import ExamObjectGroup
@@ -16,6 +17,9 @@ class OutlineSection:
     label: str
     text: str
     fmt: str  # "text" | "md" | "kv"
+    kind: str = "section_field"  # "section_field" | "render_section" | "geo_location"
+    maps_url: Optional[str] = None
+    qr_data_uri: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -33,6 +37,11 @@ class OutlineGroup:
     group_label: str
     intro_text: str
     objects: list[OutlineObject]
+
+
+def _png_bytes_to_data_uri(png_bytes: bytes) -> str:
+    b64 = base64.b64encode(png_bytes).decode("ascii")
+    return f"data:image/png;base64,{b64}"
 
 
 def _get_group_intro_map(text_blocks_qs: Iterable[ReportTextBlock]) -> dict[str, str]:
@@ -192,7 +201,8 @@ def build_report_outline(
             blocks = obj.get_render_blocks() if hasattr(obj, "get_render_blocks") else []
 
             # 1) Resolve textos e filtra só as seções preenchidas
-            resolved: list[tuple[str, str, str]] = []  # (label, text, fmt)
+            # (kind, label, text, fmt, maps_url, qr_data_uri)
+            resolved: list[tuple[str, str, str, str, str | None, str | None]] = []
 
             for b in blocks:
                 if not isinstance(b, dict):
@@ -203,8 +213,31 @@ def build_report_outline(
                 fmt = (b.get("fmt") or "text").strip()
 
                 text = ""
+                maps_url: str | None = None
+                qr_data_uri: str | None = None
 
-                if kind == "section_field":
+                if kind == "geo_location":
+                    field = b.get("field") or b.get("field_name") or "geo_location"
+                    raw = (getattr(obj, field, "") or "").strip()
+                    if not raw:
+                        continue
+
+                    text = raw
+                    fmt = "text"
+
+                    try:
+                        parser = getattr(obj, "parse_location_line", None)
+                        if callable(parser):
+                            data = parser(raw) or {}
+                            maps_url = data.get("maps_url")
+                            png = data.get("qrcode_png")
+                            if png:
+                                qr_data_uri = _png_bytes_to_data_uri(png)
+                    except Exception:
+                        # não quebra o outline se vier entrada ruim
+                        pass
+
+                elif kind == "section_field":
                     # compatível com "field" e "field_name"
                     field = b.get("field") or b.get("field_name")
                     if field:
@@ -219,25 +252,31 @@ def build_report_outline(
                 if not text:
                     continue
 
-                resolved.append((label, text, fmt))
+                resolved.append((kind, label, text, fmt, maps_url, qr_data_uri))
 
             # 2) Regra global:
             #    - se só 1 seção preenchida => NÃO renderiza label/número de seção (inline)
+            #      EXCEÇÃO: geo_location sozinho mantém label (melhor UX)
             out_sections: list[OutlineSection] = []
 
             if len(resolved) == 1:
-                _label, text, fmt = resolved[0]
+                kind, label, text, fmt, maps_url, qr_data_uri = resolved[0]
+                keep_label = (kind == "geo_location" and bool(label.strip()))
+
                 out_sections.append(
                     OutlineSection(
                         number="",
-                        label="",
+                        label=label if keep_label else "",
                         text=text,
                         fmt=fmt,
+                        kind=kind,
+                        maps_url=maps_url,
+                        qr_data_uri=qr_data_uri,
                     )
                 )
             else:
                 n_sec = 1
-                for label, text, fmt in resolved:
+                for kind, label, text, fmt, maps_url, qr_data_uri in resolved:
                     # se não tiver label, não cria "título" de seção (evita subtítulo vazio)
                     if not (label or "").strip():
                         out_sections.append(
@@ -246,6 +285,9 @@ def build_report_outline(
                                 label="",
                                 text=text,
                                 fmt=fmt,
+                                kind=kind,
+                                maps_url=maps_url,
+                                qr_data_uri=qr_data_uri,
                             )
                         )
                         continue
@@ -257,6 +299,9 @@ def build_report_outline(
                             label=label,
                             text=text,
                             fmt=fmt,
+                            kind=kind,
+                            maps_url=maps_url,
+                            qr_data_uri=qr_data_uri,
                         )
                     )
                     n_sec += 1
@@ -288,4 +333,3 @@ def build_report_outline(
             n_top += 1
 
     return outline, n_top
-

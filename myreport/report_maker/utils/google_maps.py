@@ -82,8 +82,27 @@ class GoogleMapsLocationMixin:
         return text.strip()
 
     def _parse_decimal(self, text: str):
-        m = re.search(r"(-?\d+(?:\.\d+)?)\s*,?\s*(-?\d+(?:\.\d+)?)", text)
-        return (float(m.group(1)), float(m.group(2))) if m else None
+        # exige separador real entre os dois números (vírgula ou espaço)
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)", text)
+        if not m:
+            return None
+
+        a_raw = m.group(1)
+        b_raw = m.group(2)
+
+        # ✅ heurística: coordenada “de verdade” quase sempre tem sinal ou decimal
+        if not (any(ch in a_raw for ch in ".-+") or any(ch in b_raw for ch in ".-+")):
+            return None
+
+        lat = float(a_raw)
+        lng = float(b_raw)
+
+        # valida faixa (extra segurança)
+        if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            return None
+
+        return lat, lng
+
 
     def _parse_decimal_hemisphere(self, text: str):
         m = re.search(
