@@ -69,7 +69,6 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
         ) 
 
 
-
 class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, DetailView):
     model = ReportCase
     template_name = "report_maker/reportcase_detail.html"

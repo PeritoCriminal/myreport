@@ -35,11 +35,23 @@
       </div>
     {% endif %}
 
-    {% if text_blocks_by_placement.BEFORE_OBJECTS %}
+    {% if text_blocks_by_placement.SUMMARY %} 
       <div class="mb-5">
         <h5>Resumo</h5>
 
-        {% for block in text_blocks_by_placement.BEFORE_OBJECTS %}
+        {% for block in text_blocks_by_placement.SUMMARY %}
+          <div class="mb-3">
+            {{ block.body|linebreaks }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if text_blocks_by_placement.TOC %} 
+      <div class="mb-5">
+        <h5>Sumário</h5>
+
+        {% for block in text_blocks_by_placement.TOC %}
           <div class="mb-3">
             {{ block.body|linebreaks }}
           </div>

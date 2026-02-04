@@ -8,8 +8,6 @@
   <head>
     <meta charset="utf-8" />
     <title>Laudo nº {{ report.report_number }}</title>
-
-    {# CSS específico do WeasyPrint #}
     <link rel="stylesheet" href="{% static 'report_maker/css/report_pdf.css' %}" />
   </head>
 
@@ -30,9 +28,7 @@
             {% if header.name or header.acronym %}
               <div class="rh-line rh-2">
                 {{ header.name|default:'' }}
-                {% if header.acronym %}
-                  ({{ header.acronym }})
-                {% endif %}
+                {% if header.acronym %}({{ header.acronym }}){% endif %}
               </div>
             {% endif %}
 
@@ -58,27 +54,26 @@
       </table>
     </header>
 
-    {% comment %}RODAPÉ (repetido em todas as páginas via running element){% endcomment %}
+    {% comment %}Rodapé{% endcomment %}
     <footer class="footer-running">
-      <div class="footer-meta">Laudo {{ report.report_number }} | Boletim {{ report.police_report }} - {{ report.police_station }}</div>
+      <div class="footer-meta">
+        Laudo {{ report.report_number }} | Boletim {{ report.police_report }} - {{ report.police_station }}
+      </div>
       <div class="footer-page">
         <span class="page-count"></span>
       </div>
     </footer>
 
-    {% comment %}CONTEÚDO{% endcomment %}
     <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
 
-    {# Preâmbulo #}
     {% if preamble %}
       <section class="report-section preamble">{{ preamble|linebreaks }}</section>
     {% endif %}
 
-    {# Conteúdo (outline único, já numerado) #}
     {% if outline %}
       {% for g in outline %}
-        {# Cabeçalho do grupo (quando houver numeração do grupo) #}
-        {% if g.number %}
+
+        {% if g.number and g.group_label %}
           <section class="report-section group-block">
             <h2 class="section-heading">{{ g.number }} {{ g.group_label }}</h2>
 
@@ -88,12 +83,10 @@
           </section>
         {% endif %}
 
-        {# Objetos do grupo #}
         {% for o in g.objects %}
           <section class="report-section object-block">
             <h2 class="section-heading">{{ o.number }} {{ o.title }}</h2>
 
-            {# Seções #}
             {% for s in o.sections %}
               {% if s.number and s.label %}
                 <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
@@ -104,20 +97,18 @@
                   {% if s.maps_url %}
                     <div class="mb-2">
                       <span class="fw-semibold">Acesso via Google Maps:</span>
-                      <a href="{{ s.maps_url }}" target="_blank" rel="noopener"
-                        class="text-decoration-underline">
+                      <a href="{{ s.maps_url }}" target="_blank" rel="noopener" class="text-decoration-underline">
                         {{ s.maps_url }}
                       </a>
                     </div>
                   {% endif %}
                   {% if s.qr_data_uri %}
                     <div class="mt-2">
-                      <img src="{{ s.qr_data_uri }}" alt="QR Code Google Maps"
-                          style="width: 120px; height: 120px;" />
+                      <img src="{{ s.qr_data_uri }}" alt="QR Code Google Maps" style="width: 120px; height: 120px;" />
                     </div>
                   {% endif %}
                 </div>
-              <div class="mb-2">Coordendas: {{ s.text|linebreaksbr }}</div>
+                <div class="mb-2">Coordenadas: {{ s.text|linebreaksbr }}</div>
 
               {% elif s.fmt == 'kv' %}
                 <div class="mb-2">{{ s.text|linebreaksbr }}</div>
@@ -126,13 +117,14 @@
               {% endif %}
             {% endfor %}
 
-            {# Figuras contínuas #}
             {% if o.images %}
               <div class="figure-grid">
                 {% for it in o.images %}
                   <figure class="report-figure">
                     <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
-                    <figcaption>{{ it.figure_label }} — {{ it.img.caption|default:'' }}</figcaption>
+                    <figcaption>
+                      {{ it.figure_label }}{% if it.img.caption %} — {{ it.img.caption }}{% endif %}
+                    </figcaption>
                   </figure>
                 {% endfor %}
               </div>
@@ -146,11 +138,9 @@
       </section>
     {% endif %}
 
-    {# Conclusão (último T1) #}
     {% if conclusion_blocks %}
       <section class="report-section">
         <h2 class="section-heading">{{ conclusion_num }} Conclusão</h2>
-
         {% for block in conclusion_blocks %}
           <div class="mb-3">{{ block.body|render_markdown }}</div>
         {% endfor %}

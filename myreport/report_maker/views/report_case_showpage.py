@@ -140,13 +140,70 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         base_objects = list(report.exam_objects.all().order_by("order", "created_at"))
         concrete_objects = [o.concrete for o in base_objects]
 
-        # Outline (inclui metadados do laudo no mesmo pipeline de numeração)
+        # ─────────────────────────────────────────────
+        # Blocos iniciais (ANTES do conteúdo) — ordem editorial fixa:
+        # Resumo, Glossário, Dados da Requisição, Dados do Atendimento, ...
+        # ─────────────────────────────────────────────
+        meta_blocks = list(report.get_render_blocks() or [])  # Dados da Requisição / Atendimento / Objetivo...
+        prepend_blocks: list[dict] = []
+
+        # Resumo
+        summary_text = (
+            text_blocks_qs
+            .filter(placement=ReportTextBlock.Placement.SUMMARY)
+            .values_list("body", flat=True)
+            .first()
+        )
+        if (summary_text or "").strip():
+            prepend_blocks.append({
+                "kind": "text_section",
+                "label": "Resumo",
+                "value": summary_text,
+                "fmt": "md",
+            })
+
+        # Glossário (se existir no enum; se não existir, ignora)
+        glossary_placement = getattr(ReportTextBlock.Placement, "GLOSSARY", None)
+        if glossary_placement:
+            glossary_text = (
+                text_blocks_qs
+                .filter(placement=glossary_placement)
+                .values_list("body", flat=True)
+                .first()
+            )
+            if (glossary_text or "").strip():
+                prepend_blocks.append({
+                    "kind": "text_section",
+                    "label": "Glossário",
+                    "value": glossary_text,
+                    "fmt": "md",
+                })
+
+        # Sumário (manual)
+        toc_text = (
+            text_blocks_qs
+            .filter(placement=ReportTextBlock.Placement.TOC)
+            .values_list("body", flat=True)
+            .first()
+        )
+        if (toc_text or "").strip():
+            prepend_blocks.append({
+                "kind": "text_section",
+                "label": "Sumário",
+                "value": toc_text,
+                "fmt": "md",
+            })
+
+        # Metadados (requisição/atendimento/objetivo etc.) vêm DEPOIS
+        prepend_blocks.extend(meta_blocks)
+
+        # Outline (inclui blocos iniciais + objetos do exame)
         outline, next_top = build_report_outline(
             report=report,
             exam_objects_qs=base_objects,
             text_blocks_qs=text_blocks_qs,
             start_at=1,
-            prepend_blocks=report.get_render_blocks(),
+            prepend_blocks=prepend_blocks,
         )
 
         # ─────────────────────────────────────────────
@@ -235,3 +292,4 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         })
 
         return ctx
+

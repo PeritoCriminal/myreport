@@ -16,15 +16,18 @@
   </head>
 
   <body>
-    {# Esse button não está funcionando, precisamos restaurar isso #}
-    <button type="button" class="btn btn-light close-btn" data-action="close-preview">Fechar</button>
+    <button type="button" class="btn btn-light close-btn" data-action="close-preview">
+      Fechar
+    </button>
 
-    {# Ao invés de gerar o pdf em outra guia, fornecer o arquivo para o usuário baixar  #}
-    <a href="{% url 'report_maker:report_pdf' report.pk %}" class="btn btn-light pdf-btn">PDF</a>
+    <a href="{% url 'report_maker:report_pdf' report.pk %}" class="btn btn-light pdf-btn">
+      PDF
+    </a>
 
     <main class="report-stage">
       <section class="report-page">
-        {# ───────────────────────────── Cabeçalho institucional ───────────────────────────── #}
+
+        {# ───────────────────────── Cabeçalho institucional ───────────────────────── #}
         <header class="text-center">
           <table class="report-header" role="presentation">
             <tr>
@@ -40,9 +43,7 @@
                 {% if header.name or header.acronym %}
                   <div class="rh-line rh-2">
                     {{ header.name|default:'' }}
-                    {% if header.acronym %}
-                      ({{ header.acronym }})
-                    {% endif %}
+                    {% if header.acronym %}({{ header.acronym }}){% endif %}
                   </div>
                 {% endif %}
 
@@ -70,16 +71,19 @@
           <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
         </header>
 
-        {# ───────────────────────────── Preâmbulo ───────────────────────────── #}
+        {# ───────────────────────── Preâmbulo ───────────────────────── #}
         {% if preamble %}
-          <section class="report-section preamble">{{ preamble|linebreaks }}</section>
+          <section class="report-section preamble">
+            {{ preamble|linebreaks }}
+          </section>
         {% endif %}
 
-        {# ───────────────────────────── Conteúdo (outline único, já numerado) ───────────────────────────── #}
-        {% if outline %}  {# outline é passado no contexto #}
+        {# ───────────────────────── Conteúdo estruturado (outline) ───────────────────────── #}
+        {% if outline %}
           {% for g in outline %}
-            {# Cabeçalho do grupo (quando houver numeração do grupo) #}
-            {% if g.number %}
+
+            {# Cabeçalho de grupo (apenas quando existir label) #}
+            {% if g.number and g.group_label %}
               <section class="report-section group-block">
                 <h2 class="section-heading">{{ g.number }} {{ g.group_label }}</h2>
 
@@ -89,16 +93,19 @@
               </section>
             {% endif %}
 
-            {# Objetos do grupo #}
+            {# Objetos (inclui Resumo e Sumário como objetos virtuais) #}
             {% for o in g.objects %}
               <section class="report-section object-block">
-                {# Título do objeto (pode ser "4" ou "4.1") #}
-                <h2 class="section-heading">{{ o.number }} {{ o.title }}</h2>
 
-                {# Seções (título abaixo do objeto) #}
+                <h2 class="section-heading">
+                  {{ o.number }} {{ o.title }}
+                </h2>
+
                 {% for s in o.sections %}
                   {% if s.number and s.label %}
-                    <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
+                    <div class="object-subtitle">
+                      {{ s.number }} {{ s.label }}
+                    </div>
                   {% endif %}
 
                   {% if s.kind == "geo_location" %}
@@ -107,27 +114,31 @@
                         <div class="mb-2">
                           <span class="fw-semibold">Acesso via Google Maps:</span>
                           <a href="{{ s.maps_url }}" target="_blank" rel="noopener"
-                            class="text-decoration-underline">
+                             class="text-decoration-underline">
                             {{ s.maps_url }}
                           </a>
                         </div>
                       {% endif %}
+
                       {% if s.qr_data_uri %}
                         <div class="mt-2">
-                          <img src="{{ s.qr_data_uri }}" alt="QR Code Google Maps"
-                              style="width: 120px; height: 120px;" />
+                          <img src="{{ s.qr_data_uri }}"
+                               alt="QR Code Google Maps"
+                               style="width: 120px; height: 120px;" />
                         </div>
                       {% endif %}
                     </div>
-                  <div class="mb-2">Coordendas: {{ s.text|linebreaksbr }}</div>
 
-                  {% elif s.fmt == 'kv' %}
+                    <div class="mb-2">
+                      Coordenadas: {{ s.text|linebreaksbr }}
+                    </div>
+
+                  {% elif s.fmt == "kv" %}
                     <div class="mb-2">{{ s.text|linebreaksbr }}</div>
                   {% else %}
                     {{ s.text|render_markdown }}
                   {% endif %}
                 {% endfor %}
-
 
                 {# Figuras contínuas #}
                 {% if o.images %}
@@ -151,7 +162,7 @@
           </section>
         {% endif %}
 
-        {# ───────────────────────────── Conclusão (último T1) ───────────────────────────── #}
+        {# ───────────────────────── Conclusão (fora do outline) ───────────────────────── #}
         {% if conclusion_blocks %}
           <section class="report-section">
             <h2 class="section-heading">{{ conclusion_num }} Conclusão</h2>
@@ -161,12 +172,12 @@
             {% endfor %}
           </section>
         {% endif %}
+
       </section>
     </main>
 
     <script>
-      // Fechar preview
-      document.addEventListener('click', (ev) => {
+      document.addEventListener("click", (ev) => {
         const btn = ev.target.closest("[data-action='close-preview']")
         if (!btn) return
         window.close()

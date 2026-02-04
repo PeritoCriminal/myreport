@@ -156,12 +156,49 @@ def reportPDFGenerator(request, pk):
     base_objects = list(report.exam_objects.all().order_by("order", "created_at"))
     concrete_objects = [o.concrete for o in base_objects]
 
+    # ─────────────────────────────────────────────
+    # PREPEND (mesma ordem do showpage):
+    # Resumo, Sumário, Metadados (Dados Requisição/Atendimento/Objetivo...)
+    # ─────────────────────────────────────────────
+    meta_blocks = list(report.get_render_blocks() or [])
+    prepend_blocks: list[dict] = []
+
+    summary_text = (
+        text_blocks_qs
+        .filter(placement=ReportTextBlock.Placement.SUMMARY)
+        .values_list("body", flat=True)
+        .first()
+    )
+    if (summary_text or "").strip():
+        prepend_blocks.append({
+            "kind": "text_section",
+            "label": "Resumo",
+            "value": summary_text,
+            "fmt": "md",
+        })
+
+    toc_text = (
+        text_blocks_qs
+        .filter(placement=ReportTextBlock.Placement.TOC)
+        .values_list("body", flat=True)
+        .first()
+    )
+    if (toc_text or "").strip():
+        prepend_blocks.append({
+            "kind": "text_section",
+            "label": "Sumário",
+            "value": toc_text,
+            "fmt": "md",
+        })
+
+    prepend_blocks.extend(meta_blocks)
+
     outline, next_top = build_report_outline(
         report=report,
         exam_objects_qs=base_objects,
         text_blocks_qs=text_blocks_qs,
         start_at=1,
-        prepend_blocks=report.get_render_blocks(),
+        prepend_blocks=prepend_blocks,
     )
 
     conclusion_blocks = list(text_blocks_qs.filter(placement=ReportTextBlock.Placement.CONCLUSION))
@@ -240,7 +277,6 @@ def reportPDFGenerator(request, pk):
     if not css_path:
         raise FileNotFoundError("CSS do PDF não encontrado: report_maker/css/report_pdf.css")
 
-    # base_url como URL do site ajuda a normalizar links absolutos e relativos
     base_url = request.build_absolute_uri("/")
 
     pdf_bytes = HTML(
