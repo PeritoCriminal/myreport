@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  {% if object %}Editar{% else %}Nova{% endif %} vistoria de veículo — Laudo {{ report.report_number }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 980px;">
+
+  <div class="mb-4">
+    <h4 class="mb-1">
+      {% if object %}Editar{% else %}Nova{% endif %} vistoria de veículo
+    </h4>
+    <div class="text-muted small">Laudo nº {{ report.report_number }}</div>
+  </div>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    {{ form.title.label_tag }}
+    {{ form.title }}
+    {{ form.title.errors }}
+
+    {{ form.methodology_kind.label_tag }}
+    {{ form.methodology_kind }}
+    {{ form.methodology_kind.errors }}
+
+    {% include "report_maker/partials/text_block_editor.html" with field_name="description" label="Descrição" value=form.description.value rows=4 %}
+    {{ form.description.errors }}
+
+    {% include "report_maker/partials/text_block_editor.html" with field_name="methodology" label="Metodologia" value=form.methodology.value rows=5 %}
+    {{ form.methodology.errors }}
+
+    {% include "report_maker/partials/text_block_editor.html" with field_name="observed_elements" label="Elementos observados" value=form.observed_elements.value rows=7 %}
+    {{ form.observed_elements.errors }}
+
+    {% include "report_maker/partials/text_block_editor.html" with field_name="operational_tests" label="Testes operacionais" value=form.operational_tests.value rows=4 %}
+    {{ form.operational_tests.errors }}
+
+    {% include "report_maker/partials/text_block_editor.html" with field_name="tire_conditions" label="Condições dos pneus" value=form.tire_conditions.value rows=3 %}
+    {{ form.tire_conditions.errors }}
+
+    {% include "report_maker/partials/text_block_editor.html" with field_name="optional_notes" label="Texto opcional" value=form.optional_notes.value rows=3 %}
+    {{ form.optional_notes.errors }}
+
+    <div class="mt-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary">
+        Salvar
+      </button>
+      <a href="{% url 'report_maker:reportcase_detail' report.pk %}" class="btn btn-light">
+        Cancelar
+      </a>
+    </div>
+
+  </form>
+
+</div>
+{% endblock %}

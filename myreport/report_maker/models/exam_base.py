@@ -250,6 +250,7 @@ class ExamObject(models.Model):
         for rel in (
             "publicroadexamobject",
             "genericexamobject",
+            "vehicleinspectionexamobject",
             # "cadaverexamobject",  # inclua quando criar
         ):
             if hasattr(self, rel):

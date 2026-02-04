@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  Vistorias de Veículos — Laudo {{ report.report_number }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 980px;">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="mb-1">Vistorias de Veículos</h4>
+      <div class="text-muted small">Laudo nº {{ report.report_number }}</div>
+    </div>
+
+    <a href="{% url 'report_maker:vehicle_inspection_create' report.pk %}"
+       class="btn btn-sm btn-primary">
+      Nova vistoria
+    </a>
+  </div>
+
+  {% if objects %}
+    <ul class="list-group">
+      {% for obj in objects %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ obj.title|default:"Vistoria de Veículo" }}</strong>
+          </div>
+          <a href="{% url 'report_maker:vehicle_inspection_detail' report.pk obj.pk %}"
+             class="btn btn-sm btn-outline-secondary">
+            Abrir
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="alert alert-light text-muted">
+      Nenhuma vistoria de veículo cadastrada.
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

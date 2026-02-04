@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  {{ object.title|default:"Vistoria de Veículo" }} — Laudo {{ report.report_number }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 980px;">
+
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <h4 class="mb-1">{{ object.title|default:"Vistoria de Veículo" }}</h4>
+      <div class="text-muted small">Laudo nº {{ report.report_number }}</div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="{% url 'report_maker:vehicle_inspection_update' report.pk object.pk %}"
+         class="btn btn-sm btn-outline-primary">
+        Editar
+      </a>
+      <a href="{% url 'report_maker:vehicle_inspection_delete' report.pk object.pk %}"
+         class="btn btn-sm btn-outline-danger">
+        Excluir
+      </a>
+    </div>
+  </div>
+
+  {% include "report_maker/partials/exam_object_render_blocks.html" with object=object %}
+
+</div>
+{% endblock %}

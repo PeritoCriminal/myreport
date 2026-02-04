@@ -40,5 +40,12 @@ class ExamObjectDashboardView(LoginRequiredMixin, TemplateView):
                 "url": reverse("report_maker:public_road_object_create", kwargs={"report_pk": report.pk}),
                 "enabled": report.can_edit,
             },
+            {
+                "title": "Vistoria de veículo",
+                "description": "Descrição do veículo, metodologia aplicada, elementos observados e testes operacionais.",
+                "icon": "bi-car-front",
+                "url": reverse("report_maker:vehicle_inspection_create", kwargs={"report_pk": report.pk}),
+                "enabled": report.can_edit,
+            },
         ]
         return context

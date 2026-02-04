@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  Excluir vistoria de veículo — Laudo {{ report.report_number }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 720px;">
+
+  <h4 class="mb-3">Excluir vistoria de veículo</h4>
+
+  <p>
+    Tem certeza que deseja excluir a vistoria
+    <strong>{{ object.title|default:"Vistoria de Veículo" }}</strong>?
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-danger">
+        Excluir
+      </button>
+      <a href="{% url 'report_maker:vehicle_inspection_detail' report.pk object.pk %}"
+         class="btn btn-light">
+        Cancelar
+      </a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
