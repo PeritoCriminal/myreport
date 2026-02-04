@@ -249,8 +249,8 @@ class ExamObject(models.Model):
         """
         for rel in (
             "publicroadexamobject",
-            "genericexamobject",
             "vehicleinspectionexamobject",
+            "genericexamobject",
             # "cadaverexamobject",  # inclua quando criar
         ):
             if hasattr(self, rel):

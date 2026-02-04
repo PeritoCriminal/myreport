@@ -160,7 +160,7 @@
     <div class="mt-5 d-flex justify-content-between align-items-center">
       <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-outline-secondary">Voltar à lista</a>
 
-      <a href="{% url 'report_maker:reportcase_showpage' report.pk %}"
+      <a href="{% url 'report_maker:reportcase_showpage' object.pk %}"
          class="btn btn-outline-secondary"
          target="_blank"
          rel="noopener noreferrer">

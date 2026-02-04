@@ -68,6 +68,29 @@ def build_report_outline(
     """
     UNGROUPED = "__UNGROUPED__"
 
+        # Ordem editorial fixa dos grupos (laudo)
+    GROUP_ORDER = [
+        ExamObjectGroup.LOCATIONS,
+        ExamObjectGroup.VEHICLES,
+        ExamObjectGroup.PARTS,
+        ExamObjectGroup.CADAVERS,
+        ExamObjectGroup.OTHER,  # sempre por último
+    ]
+    GROUP_RANK = {g.value: i for i, g in enumerate(GROUP_ORDER)}
+
+    def _group_sort_key(gk: str) -> tuple[int, str]:
+        # UNGROUPED: objetos "sem grupo" (T1 direto) -> penúltimos, antes de "Outros"
+        if gk == UNGROUPED:
+            return (9_500, "")
+
+        # grupos conhecidos pela enum -> ordem fixa
+        if gk in GROUP_RANK:
+            return (GROUP_RANK[gk], gk)
+
+        # fallback (caso apareça algum grupo futuro/inesperado)
+        return (9_000, gk)
+
+
     outline: list[OutlineGroup] = []
     n_top = start_at  # contador de nível superior
 
@@ -174,7 +197,8 @@ def build_report_outline(
             return True
         return group_counts.get(group_key, 0) >= 2
 
-    for group_key, group_objs in grouped.items():
+    for group_key in sorted(grouped.keys(), key=_group_sort_key):
+        group_objs = grouped[group_key]
         use_header = group_has_header(group_key)
 
         if group_key == UNGROUPED:

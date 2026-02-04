@@ -70,7 +70,6 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
 
 
 
-
 class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, DetailView):
     model = ReportCase
     template_name = "report_maker/reportcase_detail.html"
@@ -101,8 +100,7 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
 
         # Preâmbulo: usuário > sistema
         preamble_text = (
-            text_blocks_qs
-            .filter(placement=ReportTextBlock.Placement.PREAMBLE)
+            text_blocks_qs.filter(placement=ReportTextBlock.Placement.PREAMBLE)
             .values_list("body", flat=True)
             .first()
         )
@@ -110,8 +108,7 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
 
         # Dropdown: "texto comum do grupo" (>=2 objetos)
         counts = (
-            report.exam_objects
-            .exclude(group_key__isnull=True)
+            report.exam_objects.exclude(group_key__isnull=True)
             .exclude(group_key="")
             .values("group_key")
             .annotate(n=Count("id"))
@@ -124,21 +121,21 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
             if count_map.get(key, 0) >= 2
         ]
 
-        # Outline (você já usa no showpage)
-        ctx["outline"] = build_report_outline(
+        # Outline (showpage/pdf)  ✅ build_report_outline retorna (outline, n_top)
+        outline, _n_top = build_report_outline(
             report=report,
             exam_objects_qs=exam_objects_qs,
             text_blocks_qs=text_blocks_qs,
             start_at=1,
             prepend_blocks=report.get_render_blocks(),
         )
+        ctx["outline"] = outline
 
         # ─────────────────────────────────────────────────────────────
-        # Intros por grupo (OBJECT_GROUP_INTRO) — ESTE é o texto do "4 Locais"
+        # Intros por grupo (OBJECT_GROUP_INTRO)
         # ─────────────────────────────────────────────────────────────
         intro_rows = (
-            text_blocks_qs
-            .filter(placement=ReportTextBlock.Placement.OBJECT_GROUP_INTRO)
+            text_blocks_qs.filter(placement=ReportTextBlock.Placement.OBJECT_GROUP_INTRO)
             .values_list("group_key", "body")
         )
         intro_by_key = {k: (b or "").strip() for k, b in intro_rows if k}
@@ -149,17 +146,34 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         # Monta grupos “prontos” para o template (sem regroup + sem get_item)
         groups = OrderedDict()
         for obj in list(exam_objects_qs):
-            key = (obj.group_key or "") or "OTHER"
-            if key not in groups:
-                groups[key] = {
+            key = (obj.group_key or "").strip() or ExamObjectGroup.OTHER
+            groups.setdefault(
+                key,
+                {
                     "key": key,
                     "label": label_by_key.get(key, "Outros"),
                     "intro_text": intro_by_key.get(key, ""),
                     "objects": [],
-                }
+                },
+            )
             groups[key]["objects"].append(obj)
 
-        ctx["exam_groups_ui"] = list(groups.values())
+        # ✅ Ordem editorial fixa dos grupos (detail)
+        GROUP_ORDER = [
+            ExamObjectGroup.LOCATIONS,
+            ExamObjectGroup.VEHICLES,
+            ExamObjectGroup.PARTS,
+            ExamObjectGroup.CADAVERS,
+            ExamObjectGroup.OTHER,  # sempre por último
+        ]
+        GROUP_RANK = {k: i for i, k in enumerate(GROUP_ORDER)}
+
+        def _group_sort_key(k: str) -> tuple[int, str]:
+            if k in GROUP_RANK:
+                return (GROUP_RANK[k], k)
+            return (9_000, k)  # fallback p/ grupos inesperados
+
+        ctx["exam_groups_ui"] = [groups[k] for k in sorted(groups.keys(), key=_group_sort_key)]
 
         return ctx
 
