@@ -163,6 +163,18 @@
         {% endif %}
 
         {# ───────────────────────── Conclusão (fora do outline) ───────────────────────── #}
+
+        {% if final_considerations_blocks %}
+          <section class="report-section">
+            <h2 class="section-heading">{{ final_considerations_num }} Observações Finais</h2>
+
+            {% for block in final_considerations_blocks %}
+              <div class="mb-3">{{ block.body|render_markdown }}</div>
+            {% endfor %}
+          </section>
+        {% endif %}
+
+
         {% if conclusion_blocks %}
           <section class="report-section">
             <h2 class="section-heading">{{ conclusion_num }} Conclusão</h2>

@@ -201,8 +201,17 @@ def reportPDFGenerator(request, pk):
         prepend_blocks=prepend_blocks,
     )
 
-    conclusion_blocks = list(text_blocks_qs.filter(placement=ReportTextBlock.Placement.CONCLUSION))
-    conclusion_num = next_top if conclusion_blocks else None
+    final_considerations_blocks = list(
+        text_blocks_qs.filter(placement=ReportTextBlock.Placement.FINAL_CONSIDERATIONS)
+    )
+    final_considerations_num = next_top if final_considerations_blocks else None
+    next_after_final = next_top + (1 if final_considerations_blocks else 0)
+
+    conclusion_blocks = list(
+        text_blocks_qs.filter(placement=ReportTextBlock.Placement.CONCLUSION)
+    )
+    conclusion_num = next_after_final if conclusion_blocks else None
+
 
     # imagens por ContentType do concreto
     models_set = {o.__class__ for o in concrete_objects}
@@ -266,6 +275,8 @@ def reportPDFGenerator(request, pk):
             "header": header,
             "preamble": preamble,
             "outline": outline_ui,
+            "final_considerations_num": final_considerations_num,
+            "final_considerations_blocks": final_considerations_blocks,
             "conclusion_num": conclusion_num,
             "conclusion_blocks": conclusion_blocks,
             "is_pdf": True,

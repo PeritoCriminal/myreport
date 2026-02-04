@@ -206,13 +206,16 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
             prepend_blocks=prepend_blocks,
         )
 
-        # ─────────────────────────────────────────────
-        # Conclusão (último T1)
-        # ─────────────────────────────────────────────
+        final_considerations_blocks = list(
+            text_blocks_qs.filter(placement=ReportTextBlock.Placement.FINAL_CONSIDERATIONS)
+        )
+        final_considerations_num = next_top if final_considerations_blocks else None
+        next_after_final = next_top + (1 if final_considerations_blocks else 0)
+
         conclusion_blocks = list(
             text_blocks_qs.filter(placement=ReportTextBlock.Placement.CONCLUSION)
         )
-        conclusion_num = next_top if conclusion_blocks else None
+        conclusion_num = next_after_final if conclusion_blocks else None
 
         # ─────────────────────────────────────────────
         # Imagens em lote por ContentType do CONCRETO
@@ -283,9 +286,11 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         ctx.update({
             "report_number": report.report_number,
             "header": header,
-            "preamble": preamble,  # regra usuário > sistema
+            "preamble": preamble,
             "outline": outline_ui,
             "next_top": next_top,
+            "final_considerations_num": final_considerations_num,
+            "final_considerations_blocks": final_considerations_blocks,
             "conclusion_num": conclusion_num,
             "conclusion_blocks": conclusion_blocks,
             "figure_counter_end": figure_counter,

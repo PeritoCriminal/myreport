@@ -20,8 +20,8 @@ class VehicleInspectionExamObject(HasMethodologyMixin, HasObservedElementsMixin,
     delete_url_name = "report_maker:vehicle_inspection_delete"
 
     class MethodologyChoices(models.TextChoices):
-        VISUAL_INSPECTION = "VISUAL_INSPECTION", "Vistoria (inspeção visual)"
-        LUMINOL = "LUMINOL", "Luminol (pesquisa de sangue latente)"
+        VISUAL_INSPECTION = "Vistoria Veicular", "Vistoria (inspeção visual)"
+        LUMINOL = "Sangue Latente", "Luminol (pesquisa de sangue latente)"
         FORENSIC_LIGHTS = "FORENSIC_LIGHTS", "Busca por vestígios latentes com luzes forenses"
 
     methodology_kind = models.CharField(

@@ -155,6 +155,18 @@
       {% endif %}
     </div>
 
+    {% if text_blocks_by_placement.FINAL_CONSIDERATIONS %}
+      <div class="mb-5">
+        <h5>Considerações Finais</h5>
+
+        {% for block in text_blocks_by_placement.FINAL_CONSIDERATIONS %}
+          <div class="mb-3">
+            {{ block.body|linebreaks }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     {# Conclusão #}
     {% if text_blocks_by_placement.CONCLUSION %}
       <div class="mb-5">
