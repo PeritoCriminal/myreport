@@ -251,6 +251,7 @@ class ExamObject(models.Model):
             "publicroadexamobject",
             "vehicleinspectionexamobject",
             "genericexamobject",
+            "genericlocationexamobject",
             # "cadaverexamobject",  # inclua quando criar
         ):
             if hasattr(self, rel):

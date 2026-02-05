@@ -1,0 +1,108 @@
+{# report_maker/templates/report_maker/exam_generic_location_form.html #}
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  Local genérico
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 980px;">
+
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <h4 class="mb-1">{{ object.title|default:"Local genérico" }}</h4>
+      {% if object.description %}
+        <div class="text-muted small">{{ object.description|truncatechars:160 }}</div>
+      {% endif %}
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <a href="{% url 'report_maker:reportcase_detail' report.pk %}" class="btn btn-sm btn-outline-secondary">
+        Voltar ao laudo
+      </a>
+
+      {% if report.can_edit and object.pk %}
+        <a href="{% url 'report_maker:generic_location_update' report_pk=report.pk pk=object.pk %}" class="btn btn-sm btn-outline-primary">
+          Editar
+        </a>
+        <a href="{% url 'report_maker:generic_location_delete' report_pk=report.pk pk=object.pk %}" class="btn btn-sm btn-outline-danger">
+          Excluir
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="mb-4">
+      <label for="{{ form.title.id_for_label }}" class="form-label fw-semibold">
+        {{ form.title.label }}
+      </label>
+
+      {{ form.title }}
+
+      {% if form.title.help_text %}
+        <div class="form-text">{{ form.title.help_text }}</div>
+      {% endif %}
+
+      {% for error in form.title.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.geo_location.id_for_label }}" class="form-label fw-semibold">
+        {{ form.geo_location.label }}
+      </label>
+
+      {{ form.geo_location }}
+
+      {% if form.geo_location.help_text %}
+        <div class="form-text">{{ form.geo_location.help_text }}</div>
+      {% endif %}
+
+      {% for error in form.geo_location.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+
+      {% if object and object.geo_maps_url %}
+        <div class="mt-2 d-flex gap-2 flex-wrap">
+          <a class="btn btn-sm btn-outline-primary" href="{{ object.geo_maps_url }}" target="_blank" rel="noopener">
+            Abrir no Google Maps
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    {% with field_name=form.description.name label=form.description.label value=form.description.value help_text=form.description.help_text rows=8 %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
+
+    {% with field_name=form.observed_elements.name label=form.observed_elements.label value=form.observed_elements.value help_text=form.observed_elements.help_text rows=12 %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
+
+    <div class="d-flex justify-content-end gap-2 mt-4">
+      <a href="{% url 'report_maker:reportcase_detail' report.pk %}" class="btn btn-outline-secondary">
+        Cancelar
+      </a>
+
+      <button type="submit" class="btn btn-primary">
+        {% if object.pk %}Salvar alterações{% else %}Criar local{% endif %}
+      </button>
+    </div>
+  </form>
+
+  {% include "report_maker/partials/images_block.html" with can_edit=report.can_edit %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'report_maker/js/markdown_editor.js' %}"></script>
+{% endblock %}

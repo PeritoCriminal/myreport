@@ -29,6 +29,12 @@ from report_maker.views.exam_public_road import (
     PublicRoadExamObjectDeleteView,
 )
 
+from report_maker.views.exam_generic_location import(
+    GenericLocationExamObjectCreateView,
+    GenericLocationExamObjectUpdateView,
+    GenericLocationExamObjectDeleteView,
+)
+
 from report_maker.views.vehicle_inspection_views import (
     # VehicleInspectionListView,
     # VehicleInspectionDetailView,
@@ -148,6 +154,25 @@ urlpatterns = [
         "reports/<uuid:report_pk>/objects/public-road/<uuid:pk>/delete/",
         PublicRoadExamObjectDeleteView.as_view(),
         name="public_road_object_delete",
+    ),
+
+    # ─────────────────────────────────────
+    # Objetos de exame (Via Pública)
+    # ─────────────────────────────────────
+    path(
+        "reports/<uuid:report_pk>/objects/generic-location/create/",
+        GenericLocationExamObjectCreateView.as_view(),
+        name="generic_exam_location_object_create",
+    ),
+    path(
+        "reports/<uuid:report_pk>/objects/generic-location/<uuid:pk>/edit/",
+        GenericLocationExamObjectUpdateView.as_view(),
+        name="generic_location_update",
+    ),
+    path(
+        "reports/<uuid:report_pk>/objects/generic-location/<uuid:pk>/delete/",
+        GenericLocationExamObjectDeleteView.as_view(),
+        name="generic_location_delete",
     ),
 
     # ─────────────────────────────────────

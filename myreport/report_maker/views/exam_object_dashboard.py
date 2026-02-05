@@ -30,21 +30,40 @@ class ExamObjectDashboardView(LoginRequiredMixin, TemplateView):
                 "title": "Objeto genérico",
                 "description": "Use para itens diversos do exame.",
                 "icon": "bi-box",
-                "url": reverse("report_maker:generic_object_create", kwargs={"report_pk": report.pk}),
+                "url": reverse(
+                    "report_maker:generic_object_create",
+                    kwargs={"report_pk": report.pk},
+                ),
+                "enabled": report.can_edit,
+            },
+            {
+                "title": "Local genérico",
+                "description": "Descrição e geolocalização de qualquer tipo de local examinável.",
+                "icon": "bi-geo-alt",
+                "url": reverse(
+                    "report_maker:generic_exam_location_object_create",
+                    kwargs={"report_pk": report.pk},
+                ),
                 "enabled": report.can_edit,
             },
             {
                 "title": "Exame de via pública",
                 "description": "Condições climáticas, condições da via e sinalização viária.",
                 "icon": "bi-signpost-2",
-                "url": reverse("report_maker:public_road_object_create", kwargs={"report_pk": report.pk}),
+                "url": reverse(
+                    "report_maker:public_road_object_create",
+                    kwargs={"report_pk": report.pk},
+                ),
                 "enabled": report.can_edit,
             },
             {
                 "title": "Vistoria de veículo",
                 "description": "Descrição do veículo, metodologia aplicada, elementos observados e testes operacionais.",
                 "icon": "bi-car-front",
-                "url": reverse("report_maker:vehicle_inspection_create", kwargs={"report_pk": report.pk}),
+                "url": reverse(
+                    "report_maker:vehicle_inspection_create",
+                    kwargs={"report_pk": report.pk},
+                ),
                 "enabled": report.can_edit,
             },
         ]

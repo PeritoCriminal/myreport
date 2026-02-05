@@ -123,6 +123,8 @@
                              title="Editar">
                             <i class="bi bi-pencil"></i>
                           </a>
+                          {% else %}
+                          <h1>Não tem objt_edit_url</h1>
                         {% endif %}
 
                         {# IMPORTANT: usa o CONCRETO para montar a URL de image_add #}
@@ -140,6 +142,8 @@
                              title="Excluir">
                             <i class="bi bi-trash"></i>
                           </a>
+                          {% else %}
+                          <h1>Não tem objt_delete_url</h1>
                         {% endif %}
                       </div>
                     {% endif %}
