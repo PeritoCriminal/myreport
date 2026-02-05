@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -32,7 +33,7 @@ class ReportCaseContextMixin:
         ctx["report"] = self.report
         return ctx
 
-
+"""
 class VehicleInspectionListView(CanEditReportsRequiredMixin, ReportCaseContextMixin, ListView):
     model = VehicleInspectionExamObject
     template_name = "report_maker/vehicle_inspection/object_list.html"
@@ -49,7 +50,7 @@ class VehicleInspectionDetailView(CanEditReportsRequiredMixin, ReportCaseContext
 
     def get_queryset(self):
         return VehicleInspectionExamObject.objects.filter(report_case=self.report)
-
+"""
 
 class VehicleInspectionCreateView(
     CanEditReportsRequiredMixin,
@@ -59,7 +60,7 @@ class VehicleInspectionCreateView(
 ):
     model = VehicleInspectionExamObject
     form_class = VehicleInspectionExamObjectForm
-    template_name = "report_maker/vehicle_inspection/object_form.html"
+    template_name = "report_maker/vehicle_inspection_form.html"
 
     # injeta classes Bootstrap no form
     form_base_class = BootstrapFormMixin
@@ -80,7 +81,7 @@ class VehicleInspectionUpdateView(
 ):
     model = VehicleInspectionExamObject
     form_class = VehicleInspectionExamObjectForm
-    template_name = "report_maker/vehicle_inspection/object_form.html"
+    template_name = "report_maker/vehicle_inspection_form.html"
 
     form_base_class = BootstrapFormMixin
 
@@ -91,13 +92,13 @@ class VehicleInspectionUpdateView(
         return reverse("report_maker:reportcase_detail", args=[self.report.pk])
 
 
-class VehicleInspectionDeleteView(CanEditReportsRequiredMixin, ReportCaseContextMixin, DeleteView):
+class VehicleInspectionDeleteView(LoginRequiredMixin, CanEditReportsRequiredMixin, ReportCaseContextMixin, DeleteView):
     model = VehicleInspectionExamObject
-    template_name = "report_maker/vehicle_inspection/object_confirm_delete.html"
+    template_name = "report_maker/object_confirm_delete.html"
     context_object_name = "object"
 
     def get_queryset(self):
         return VehicleInspectionExamObject.objects.filter(report_case=self.report)
 
     def get_success_url(self):
-        return reverse("report_maker:vehicle_inspection_list", args=[self.report.pk])
+        return reverse("report_maker:reportcase_detail", args=[self.report.pk])

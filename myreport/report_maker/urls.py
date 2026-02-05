@@ -30,8 +30,8 @@ from report_maker.views.exam_public_road import (
 )
 
 from report_maker.views.vehicle_inspection_views import (
-    VehicleInspectionListView,
-    VehicleInspectionDetailView,
+    # VehicleInspectionListView,
+    # VehicleInspectionDetailView,
     VehicleInspectionCreateView,
     VehicleInspectionUpdateView,
     VehicleInspectionDeleteView,
@@ -153,21 +153,21 @@ urlpatterns = [
     # ─────────────────────────────────────
     # Objetos de exame (Vistoria de Veículo)
     # ─────────────────────────────────────
-    path(
-        "reports/<uuid:report_pk>/objects/vehicles/",
-        VehicleInspectionListView.as_view(),
-        name="vehicle_inspection_list",
-    ),
+    #path(
+    #    "reports/<uuid:report_pk>/objects/vehicles/",
+    #    VehicleInspectionListView.as_view(),
+    #    name="vehicle_inspection_list",
+    #),
     path(
         "reports/<uuid:report_pk>/objects/vehicles/create/",
         VehicleInspectionCreateView.as_view(),
         name="vehicle_inspection_create",
     ),
-    path(
-        "reports/<uuid:report_pk>/objects/vehicles/<uuid:pk>/",
-        VehicleInspectionDetailView.as_view(),
-        name="vehicle_inspection_detail",
-    ),
+    #path(
+    #    "reports/<uuid:report_pk>/objects/vehicles/<uuid:pk>/",
+    #    VehicleInspectionDetailView.as_view(),
+    #    name="vehicle_inspection_detail",
+    #),
     path(
         "reports/<uuid:report_pk>/objects/vehicles/<uuid:pk>/edit/",
         VehicleInspectionUpdateView.as_view(),
