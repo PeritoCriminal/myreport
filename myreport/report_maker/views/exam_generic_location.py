@@ -28,6 +28,7 @@ class GenericLocationExamObjectOwnedQuerySetMixin:
 class GenericLocationExamObjectCreateView(
     CanEditReportRequiredMixin,
     ReportCaseContextMixin,
+    ExamObjectImagesContextMixin,  # opcional
     CreateView,
 ):
     model = GenericLocationExamObject

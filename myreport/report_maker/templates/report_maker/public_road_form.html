@@ -88,6 +88,15 @@
       {% endif %}
     </div>
 
+        {% comment %}
+    ─────────────────────────────────────
+    Contexto do atendimento (Markdown)
+    ─────────────────────────────────────
+    {% endcomment %}
+    {% with field_name=form.service_context.name label=form.service_context.label value=form.service_context.value help_text=form.service_context.help_text rows=6 %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
+    
     {% comment %}
     ─────────────────────────────────────
     Descrição (Markdown)

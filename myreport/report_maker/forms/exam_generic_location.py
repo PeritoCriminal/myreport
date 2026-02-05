@@ -11,6 +11,7 @@ class GenericLocationExamObjectForm(BaseModelForm):
         fields = (
             "title",
             "geo_location",
+            "service_context",
             "description",
             "observed_elements",
         )

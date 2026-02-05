@@ -5,11 +5,16 @@ from __future__ import annotations
 from django.db import models
 
 from .exam_base import ExamObject, ExamObjectGroup, RenderBlock
-from .mixins import HasObservedElementsMixin
+from .mixins import HasObservedElementsMixin, HasServiceContextMixin
 from report_maker.utils import GoogleMapsLocationMixin
 
 
-class PublicRoadExamObject(GoogleMapsLocationMixin, HasObservedElementsMixin, ExamObject):
+class PublicRoadExamObject(
+    GoogleMapsLocationMixin,
+    HasServiceContextMixin,
+    HasObservedElementsMixin,
+    ExamObject,
+):
     """
     Objeto de exame: Via Pública.
     """
@@ -19,7 +24,6 @@ class PublicRoadExamObject(GoogleMapsLocationMixin, HasObservedElementsMixin, Ex
     edit_url_name = "report_maker:public_road_object_update"
     delete_url_name = "report_maker:public_road_object_delete"
 
-    # 🔽 NOVO: localização geográfica (1 linha, qualquer formato)
     geo_location = models.CharField(
         "Localização geográfica (Google Maps)",
         max_length=255,
@@ -46,15 +50,12 @@ class PublicRoadExamObject(GoogleMapsLocationMixin, HasObservedElementsMixin, Ex
         return [
             {"kind": "geo_location", "label": "Localização", "field": "geo_location"},
             {"kind": "section_field", "label": "Descrição", "field": "description", "fmt": "text"},
+            {"kind": "section_field", "label": "Contexto do atendimento", "field": "service_context", "fmt": "text"},
             {"kind": "section_field", "label": "Sinalização viária", "field": "traffic_signage", "fmt": "text"},
             {"kind": "section_field", "label": "Condições da via", "field": "road_conditions", "fmt": "text"},
             {"kind": "section_field", "label": "Condições climáticas", "field": "weather_conditions", "fmt": "text"},
             {"kind": "section_field", "label": "Elementos observados", "field": "observed_elements", "fmt": "text"},
         ]
-
-    # ─────────────────────────────────────────
-    # Propriedades derivadas (não persistem)
-    # ─────────────────────────────────────────
 
     @property
     def geo_data(self) -> dict | None:
@@ -73,7 +74,6 @@ class PublicRoadExamObject(GoogleMapsLocationMixin, HasObservedElementsMixin, Ex
         try:
             return self.parse_location_line(value)
         except Exception:
-            # não explode template/admin se usuário colar algo ruim
             return None
 
     @property

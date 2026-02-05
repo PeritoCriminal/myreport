@@ -12,6 +12,7 @@ class PublicRoadExamObjectForm(BaseModelForm):
             "title",
             "geo_location",
             "description",
+            "service_context",
             "weather_conditions",
             "road_conditions",
             "traffic_signage",

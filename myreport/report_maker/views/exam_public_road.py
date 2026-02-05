@@ -32,6 +32,7 @@ class PublicRoadExamObjectOwnedQuerySetMixin:
 class PublicRoadExamObjectCreateView(
     CanEditReportRequiredMixin,
     ReportCaseContextMixin,
+    ExamObjectImagesContextMixin,  # opcional
     CreateView,
 ):
     model = PublicRoadExamObject

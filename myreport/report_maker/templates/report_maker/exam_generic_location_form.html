@@ -78,6 +78,17 @@
       {% endif %}
     </div>
 
+    {# Contexto do atendimento #}
+    <div class="mb-4">
+      <label for="{{ form.service_context.id_for_label }}" class="form-label fw-semibold">
+        {{ form.service_context.label }}
+      </label>
+
+    {% with field_name=form.service_context.name label=form.service_context.label value=form.service_context.value help_text=form.service_context.help_text rows=6 %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
+
+
     {% with field_name=form.description.name label=form.description.label value=form.description.value help_text=form.description.help_text rows=8 %}
       {% include "report_maker/partials/text_block_editor.html" %}
     {% endwith %}

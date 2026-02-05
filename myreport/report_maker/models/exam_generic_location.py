@@ -5,17 +5,23 @@ from __future__ import annotations
 from django.db import models
 
 from .exam_base import ExamObject, ExamObjectGroup, RenderBlock
-from .mixins import HasObservedElementsMixin
-from report_maker.utils import GoogleMapsLocationMixin # Esse é o import correto.
+from .mixins import HasObservedElementsMixin, HasServiceContextMixin
+from report_maker.utils import GoogleMapsLocationMixin
 
 
-class GenericLocationExamObject(GoogleMapsLocationMixin, HasObservedElementsMixin, ExamObject):
+class GenericLocationExamObject(
+    GoogleMapsLocationMixin,
+    HasServiceContextMixin,
+    HasObservedElementsMixin,
+    ExamObject,
+):
     """
     Objeto de exame: Local genérico.
 
     Representa qualquer tipo de local de interesse pericial, mantendo identificação,
-    descrição do local, referência de geolocalização (Google Maps) e elementos
-    observados vinculados ao exame, para composição do laudo.
+    descrição do local, referência de geolocalização (Google Maps), contexto do atendimento
+    (preservação, presença da autoridade requisitante etc.) e elementos observados vinculados
+    ao exame, para composição do laudo.
     """
 
     GROUP_KEY = ExamObjectGroup.LOCATIONS
@@ -40,6 +46,7 @@ class GenericLocationExamObject(GoogleMapsLocationMixin, HasObservedElementsMixi
     def get_render_blocks(cls) -> list[RenderBlock]:
         return [
             {"kind": "section_field", "label": "Descrição", "field": "description", "fmt": "text"},
+            {"kind": "section_field", "label": "Contexto do atendimento", "field": "service_context", "fmt": "text"},
             {"kind": "section_field", "label": "Google Maps", "field": "maps_url", "fmt": "text"},
             {"kind": "section_field", "label": "Elementos observados", "field": "observed_elements", "fmt": "text"},
         ]
@@ -75,4 +82,4 @@ class GenericLocationExamObject(GoogleMapsLocationMixin, HasObservedElementsMixi
         return d.get("qrcode_png") if d else None
 
     def __str__(self) -> str:
-        return self.title or f"Exame de Via Pública ({self.pk})"
+        return self.title or f"Local (genérico) ({self.pk})"

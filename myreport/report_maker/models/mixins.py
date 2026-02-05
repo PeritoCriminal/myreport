@@ -36,6 +36,28 @@ class HasResultsMixin(models.Model):
         abstract = True
 
 
+class HasServiceContextMixin(models.Model):
+    """
+    Adiciona campo de contexto do atendimento pericial.
+
+    Destina-se ao registro de informações circunstanciais do atendimento,
+    como preservação do local, presença da autoridade requisitante,
+    isolamento, intervenções prévias, entre outros dados relevantes.
+    """
+    service_context = models.TextField(
+        "Contexto do atendimento",
+        blank=True,
+        help_text=(
+            "Informações sobre preservação do local, presença da autoridade "
+            "requisitante, isolamento, intervenções prévias etc."
+        ),
+    )
+
+    class Meta:
+        abstract = True
+
+
+
 class HasObservedElementsMixin(models.Model):
     """
     Placeholder para 'Elementos Observados'.
