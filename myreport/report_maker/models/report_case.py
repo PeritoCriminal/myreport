@@ -131,7 +131,7 @@ class ReportCase(models.Model):
         upload_to=report_header_emblem_upload_path,
         null=True,
         blank=True,
-    )
+    ) 
     emblem_secondary_snapshot = models.ImageField(
         "Emblema secundário (snapshot)",
         upload_to=report_header_emblem_upload_path,
@@ -692,3 +692,27 @@ class ReportCase(models.Model):
             f"{d_examiner} {examiner} para proceder ao exame pericial "
             f"em atendimento à requisição expedida {d_authority} {authority}."
         )
+    
+    @property
+    def report_closing(self):
+        return 'Esse laudo foi assinado digitalmente e encontra-se arquivado no sistema GDL da Superintendência da Polícia Técnico-Científica do Estado de São Paulo.'
+
+    @property
+    def report_signature_block(self) -> dict:
+        """
+        Bloco de assinatura do perito ao final do laudo.
+        """
+        name = self.report_identity_name
+
+        role = self._gendered_roles_from_name(
+            name=name,
+            masculine="Perito Criminal",
+            feminine="Perita Criminal",
+            neutral="Perito Criminal",
+        )
+
+        return {
+            "name": name,
+            "role": role,
+        }
+    

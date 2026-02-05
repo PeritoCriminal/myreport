@@ -252,6 +252,21 @@ h3 {
 }
 
 /* ===========================
+   ASSINATURA DO PERITO
+   =========================== */
+
+.report-signature {
+  break-before: avoid;
+  margin-top: 36pt;        /* espaço maior antes da assinatura */
+  text-align: right;
+  line-height: 1.4;
+}
+
+.report-signature strong {
+  font-weight: 700;
+}
+
+/* ===========================
    QUEBRA DE PÁGINA (opcional)
    =========================== */
 

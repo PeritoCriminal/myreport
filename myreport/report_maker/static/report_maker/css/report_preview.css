@@ -383,3 +383,13 @@ body {
 .report-figure figcaption {
   text-align: center !important;
 }
+
+/* ===========================
+   ASSINATURA DO PERITO (PREVIEW)
+   =========================== */
+
+.report-signature {
+  margin-top: 3rem;       /* espaço visual maior na tela */
+  text-align: right;
+  line-height: 1.4;
+}
