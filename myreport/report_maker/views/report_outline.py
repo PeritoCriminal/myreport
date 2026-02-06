@@ -1,5 +1,4 @@
 # report_maker/views/report_outline.py
-
 from __future__ import annotations
 
 import base64
@@ -13,6 +12,21 @@ from report_maker.models.exam_base import ExamObjectGroup
 
 @dataclass(frozen=True)
 class OutlineSection:
+    """
+    Sub-seção renderizável dentro de um objeto do laudo.
+
+    Campos:
+    - number: numeração hierárquica (ex.: "3.1.2") ou "" quando omitida por regra editorial.
+    - label:  rótulo da seção (ex.: "Elementos Observados") ou "" quando renderização “inline”.
+    - text:   conteúdo textual da seção.
+    - fmt:    formato do texto: "text" | "md" | "kv".
+    - kind:   tipo de seção:
+        - "section_field": texto vindo de um field do model;
+        - "render_section": texto vindo de getter/serviço do objeto;
+        - "geo_location": campo especial que pode gerar maps_url e QR.
+    - maps_url: URL pronta para abrir no Google Maps (quando kind == "geo_location").
+    - qr_data_uri: PNG (data URI) do QR Code do Maps (quando disponível).
+    """
     number: str
     label: str
     text: str
@@ -24,15 +38,38 @@ class OutlineSection:
 
 @dataclass(frozen=True)
 class OutlineObject:
+    """
+    Um objeto do laudo (instância concreta de ExamObject ou similar), já pronto para render.
+
+    Campos:
+    - number: numeração do objeto (ex.: "3.1" ou "4" quando não há cabeçalho de grupo).
+    - obj: instância concreta (usada no showpage para puxar imagens, ids, etc.).
+    - title: título do objeto (derivado do field indicado por get_object_title_field()).
+    - sections: lista de OutlineSection já filtradas e numeradas.
+    """
     number: str
-    obj: Any  # instância concreta
+    obj: Any
     title: str
     sections: list[OutlineSection]
 
 
 @dataclass(frozen=True)
 class OutlineGroup:
-    number: str  # pode ser "" quando não há cabeçalho de grupo
+    """
+    Agrupamento editorial de objetos do laudo.
+
+    Um grupo pode ter cabeçalho (T1) ou não:
+    - number == "" -> grupo sem cabeçalho (objetos aparecem direto no nível superior).
+    - number != "" -> grupo com cabeçalho (objetos numerados como n_top.n_obj).
+
+    Campos:
+    - number: numeração do cabeçalho do grupo (ex.: "3") ou "".
+    - group_key: chave do grupo (enum ExamObjectGroup.value) ou "" para "sem grupo".
+    - group_label: rótulo humano do grupo.
+    - intro_text: texto introdutório do grupo (ReportTextBlock OBJECT_GROUP_INTRO), se existir.
+    - objects: lista de OutlineObject.
+    """
+    number: str
     group_key: str
     group_label: str
     intro_text: str
@@ -40,6 +77,7 @@ class OutlineGroup:
 
 
 def _png_bytes_to_data_uri(png_bytes: bytes) -> str:
+    """Converte bytes PNG em data URI para embutir no HTML/PDF sem arquivo separado."""
     b64 = base64.b64encode(png_bytes).decode("ascii")
     return f"data:image/png;base64,{b64}"
 
@@ -47,6 +85,10 @@ def _png_bytes_to_data_uri(png_bytes: bytes) -> str:
 def _get_group_intro_map(text_blocks_qs: Iterable[ReportTextBlock]) -> dict[str, str]:
     """
     Mapeia group_key -> body do texto introdutório do grupo, quando existir.
+
+    Considera apenas:
+    - placement == OBJECT_GROUP_INTRO
+    - group_key preenchido
     """
     intro_by_group: dict[str, str] = {}
     for tb in text_blocks_qs:
@@ -64,11 +106,56 @@ def build_report_outline(
     prepend_blocks: list[dict] | None = None,
 ) -> tuple[list[OutlineGroup], int]:
     """
-    (docstring mantida)
+    Constrói a OUTLINE editorial do laudo (estrutura única para showpage/preview/pdf).
+
+    O que esta função entrega:
+    - outline: lista de OutlineGroup, cada um contendo objetos e suas seções prontas para render;
+    - next_top: próximo número “T1” disponível após renderizar toda a outline.
+
+    Entradas:
+    - report: ReportCase do laudo.
+    - exam_objects_qs: queryset/lista dos objetos do exame (ordem já definida pelo laudo).
+      Importante: cada item deve expor `.concrete` (instância concreta do ExamObject).
+    - text_blocks_qs: textos do laudo (ReportTextBlock) usados para:
+        - intros de grupo (OBJECT_GROUP_INTRO)
+        - outros placements não são consumidos aqui (somente enviados pela view via prepend_blocks).
+    - start_at: número inicial do contador de nível superior (padrão: 1).
+    - prepend_blocks: blocos iniciais do laudo (Resumo, Sumário, metadados etc.).
+      Estes blocos são convertidos em “grupos virtuais” com um único objeto (obj=report),
+      usando numeração de nível superior.
+
+    Regras editoriais importantes:
+    0) Blocos iniciais (prepend_blocks):
+       - viram entradas T1 (number="1", "2", "3"...), SEM subdivisões (sem "1.1").
+       - "Objetivo" só é renderizado se houver conteúdo.
+    1) Agrupamento dos objetos:
+       - group_key None/"" -> UNGROUPED (sem cabeçalho de grupo).
+       - grupos “conhecidos” seguem ordem fixa (LOCATIONS, VEHICLES, PARTS, CADAVERS, OTHER).
+       - grupos inesperados entram por fallback, mantendo previsibilidade.
+    2) Cabeçalho de grupo (T1) só aparece se:
+       - houver intro_text para o grupo, OU
+       - o grupo tiver 2+ objetos.
+       Caso contrário, objetos do grupo aparecem direto no nível superior (T1).
+    3) Subtítulos (seções dentro de um objeto):
+       - se o objeto tem apenas 1 seção preenchida, o rótulo e numeração da seção são omitidos
+         (render “inline”), para evitar subtítulo inútil.
+       - exceção: geo_location sozinho pode manter label (melhor UX e legibilidade).
+    4) Numeração:
+       - com cabeçalho de grupo:
+           Grupo: n_top
+           Objeto: n_top.n_obj
+           Seção: n_top.n_obj.n_sec
+       - sem cabeçalho de grupo:
+           Objeto: n_top
+           Seção: n_top.n_sec
+
+    Observação:
+    - Esta função não lida com imagens. As views (showpage/pdf) fazem isso em lote
+      para manter performance e controle de “Figura X”.
     """
     UNGROUPED = "__UNGROUPED__"
 
-        # Ordem editorial fixa dos grupos (laudo)
+    # Ordem editorial fixa dos grupos (laudo)
     GROUP_ORDER = [
         ExamObjectGroup.LOCATIONS,
         ExamObjectGroup.VEHICLES,
@@ -90,12 +177,11 @@ def build_report_outline(
         # fallback (caso apareça algum grupo futuro/inesperado)
         return (9_000, gk)
 
-
     outline: list[OutlineGroup] = []
     n_top = start_at  # contador de nível superior
 
     # ------------------------------------------------------------------
-    # 0) Blocos iniciais do laudo (metadados) como T1/T2/T3 (SEM "Dados do Laudo")
+    # 0) Blocos iniciais do laudo (metadados) como T1 (SEM "Dados do Laudo")
     # ------------------------------------------------------------------
     if prepend_blocks:
         pblocks = [b for b in prepend_blocks if isinstance(b, dict)]
@@ -119,7 +205,7 @@ def build_report_outline(
                     if v is None:
                         continue
 
-                    # datetime/date -> formata já aqui
+                    # datetime/date -> formata aqui para padronizar saída
                     if hasattr(v, "strftime"):
                         v_str = v.strftime("%d/%m/%Y %H:%M")
                     else:
@@ -136,7 +222,7 @@ def build_report_outline(
                 text = (b.get("value") or "").strip()
                 fmt = (b.get("fmt") or "text").strip()
 
-            # ✅ Só renderiza "Objetivo" se tiver conteúdo (não None e não "")
+            # Só renderiza "Objetivo" se tiver conteúdo
             if label == "Objetivo" and not text:
                 continue
 
@@ -156,7 +242,7 @@ def build_report_outline(
                             title=label,
                             sections=[
                                 OutlineSection(
-                                    number="",  # ✅ não mostra 1.1 / 2.1 / 3.1
+                                    number="",  # não cria "1.1"
                                     label="",
                                     text=text,
                                     fmt=fmt,
@@ -169,7 +255,7 @@ def build_report_outline(
             n_top += 1
 
     # ------------------------------------------------------------------
-    # 1) Objetos do exame (mantém lógica original) + regra global de subtítulos
+    # 1) Objetos do exame + regra global de subtítulos
     # ------------------------------------------------------------------
     objects = [o.concrete for o in exam_objects_qs]
 
@@ -224,7 +310,6 @@ def build_report_outline(
 
             blocks = obj.get_render_blocks() if hasattr(obj, "get_render_blocks") else []
 
-            # 1) Resolve textos e filtra só as seções preenchidas
             # (kind, label, text, fmt, maps_url, qr_data_uri)
             resolved: list[tuple[str, str, str, str, str | None, str | None]] = []
 
@@ -258,11 +343,10 @@ def build_report_outline(
                             if png:
                                 qr_data_uri = _png_bytes_to_data_uri(png)
                     except Exception:
-                        # não quebra o outline se vier entrada ruim
+                        # não quebra a outline se vier entrada ruim
                         pass
 
                 elif kind == "section_field":
-                    # compatível com "field" e "field_name"
                     field = b.get("field") or b.get("field_name")
                     if field:
                         text = (getattr(obj, field, "") or "").strip()
@@ -278,9 +362,7 @@ def build_report_outline(
 
                 resolved.append((kind, label, text, fmt, maps_url, qr_data_uri))
 
-            # 2) Regra global:
-            #    - se só 1 seção preenchida => NÃO renderiza label/número de seção (inline)
-            #      EXCEÇÃO: geo_location sozinho mantém label (melhor UX)
+            # Regra global de “subtítulo”
             out_sections: list[OutlineSection] = []
 
             if len(resolved) == 1:
@@ -301,7 +383,6 @@ def build_report_outline(
             else:
                 n_sec = 1
                 for kind, label, text, fmt, maps_url, qr_data_uri in resolved:
-                    # se não tiver label, não cria "título" de seção (evita subtítulo vazio)
                     if not (label or "").strip():
                         out_sections.append(
                             OutlineSection(
@@ -340,6 +421,7 @@ def build_report_outline(
             )
             n_obj += 1
 
+            # Se não existe cabeçalho de grupo, cada objeto “consome” um T1
             if not use_header:
                 n_top += 1
 
@@ -353,6 +435,7 @@ def build_report_outline(
             )
         )
 
+        # Se existe cabeçalho de grupo, o grupo “consome” um T1 ao final
         if use_header:
             n_top += 1
 

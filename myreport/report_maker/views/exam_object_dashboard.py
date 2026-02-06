@@ -7,10 +7,24 @@ from django.urls import reverse
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
+from accounts.mixins import CanEditReportsRequiredMixin
+
 from report_maker.models import ReportCase
 
 
-class ExamObjectDashboardView(LoginRequiredMixin, TemplateView):
+class ExamObjectDashboardView(
+    LoginRequiredMixin,
+    CanEditReportsRequiredMixin,
+    TemplateView,
+):
+    """
+    Dashboard de inclusão de objetos de exame em um laudo existente.
+
+    Exige:
+    - usuário autenticado;
+    - permissão efetiva para editar laudos (nível usuário);
+    - autoria do laudo (checagem local).
+    """
     template_name = "report_maker/exam_object_dashboard.html"
     pk_url_kwarg = "pk"
 

@@ -14,12 +14,14 @@ from django.views.generic import CreateView, DeleteView, UpdateView
 
 from PIL import Image
 
+from accounts.mixins import CanEditReportsRequiredMixin
+
 from report_maker.forms import ObjectImageForm
 from report_maker.models import ObjectImage
 from report_maker.views.mixins import NextUrlMixin
 
 
-class _ImageAccessMixin(LoginRequiredMixin):
+class _ImageAccessMixin(LoginRequiredMixin, CanEditReportsRequiredMixin):
     """
     Resolve o objeto-alvo (content_object) e valida acesso:
     - objeto existe
@@ -27,6 +29,9 @@ class _ImageAccessMixin(LoginRequiredMixin):
     - possui report_case
     - report_case pertence ao usuário
     - report_case está editável (can_edit)
+
+    Também exige permissão efetiva do usuário para editar laudos
+    (CanEditReportsRequiredMixin).
 
     Faz cache em self._target_cache.
     Retorno: (content_type, target_obj, report_case)
@@ -102,7 +107,6 @@ class _ImageAccessMixin(LoginRequiredMixin):
 # ─────────────────────────────────────────────────────────────
 # Create
 # ─────────────────────────────────────────────────────────────
-
 class ObjectImageCreateView(NextUrlMixin, _ImageAccessMixin, CreateView):
     model = ObjectImage
     template_name = "report_maker/image_form.html"
@@ -144,7 +148,6 @@ class ObjectImageCreateView(NextUrlMixin, _ImageAccessMixin, CreateView):
 # ─────────────────────────────────────────────────────────────
 # Update
 # ─────────────────────────────────────────────────────────────
-
 class ObjectImageUpdateView(NextUrlMixin, _ImageAccessMixin, UpdateView):
     model = ObjectImage
     template_name = "report_maker/image_form.html"
@@ -183,7 +186,6 @@ class ObjectImageUpdateView(NextUrlMixin, _ImageAccessMixin, UpdateView):
 # ─────────────────────────────────────────────────────────────
 # Delete
 # ─────────────────────────────────────────────────────────────
-
 class ObjectImageDeleteView(NextUrlMixin, _ImageAccessMixin, DeleteView):
     model = ObjectImage
     template_name = "report_maker/image_confirm_delete.html"
@@ -209,12 +211,15 @@ class ObjectImageDeleteView(NextUrlMixin, _ImageAccessMixin, DeleteView):
 
 
 # ─────────────────────────────────────────────────────────────
-# Reorder
+# Reorder (function-based)
 # ─────────────────────────────────────────────────────────────
-
 @login_required
 @require_POST
 def images_reorder(request):
+    # ✅ permissão efetiva do usuário (validade/vínculo)
+    if not request.user.can_edit_reports_effective:
+        return HttpResponseForbidden("Sem permissão")
+
     try:
         data = json.loads(request.body.decode("utf-8") or "{}")
         ordered_ids = data.get("ordered_ids", [])

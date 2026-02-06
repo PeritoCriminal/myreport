@@ -12,11 +12,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.staticfiles import finders
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 
-from weasyprint import HTML, CSS
+from weasyprint import CSS, HTML
 from weasyprint.urls import default_url_fetcher
 
 from report_maker.models import ReportCase, ReportTextBlock
@@ -25,6 +25,12 @@ from report_maker.views.report_outline import build_report_outline
 
 
 def _build_header_from_user(request) -> dict:
+    """
+    Monta o cabeçalho institucional a partir do vínculo ATUAL do usuário.
+
+    Usado quando o laudo está editável (report.can_edit == True), pois o laudo ainda pode
+    acompanhar o contexto vigente do autor (instituição/equipe/núcleo).
+    """
     user = request.user
 
     aia = getattr(user, "active_institution_assignment", None)
@@ -44,7 +50,6 @@ def _build_header_from_user(request) -> dict:
 
     hon_title = (getattr(inst, "honoree_title", "") or "") if inst else ""
     hon_name = (getattr(inst, "honoree_name", "") or "") if inst else ""
-
     honoree_line = f"{hon_title} {hon_name}" if (hon_title and hon_name) else (hon_name or "")
 
     unit_line = " - ".join(
@@ -68,6 +73,12 @@ def _build_header_from_user(request) -> dict:
 
 
 def _build_header_from_snapshots(report: ReportCase) -> dict:
+    """
+    Monta o cabeçalho institucional usando snapshots persistidos no ReportCase.
+
+    Usado quando o laudo está concluído/bloqueado, garantindo coerência histórica:
+    - mudanças futuras no vínculo do usuário não alteram o documento.
+    """
     inst = report.institution
 
     name = (report.institution_name_snapshot or "").strip()
@@ -96,16 +107,33 @@ def _build_header_from_snapshots(report: ReportCase) -> dict:
 
 def django_url_fetcher(url: str):
     """
-    Resolve /media/... e /static/... (inclusive quando vierem como http://.../media/...).
-    Funciona bem no Windows/local e continua útil em produção.
+    URL fetcher para o WeasyPrint com suporte a /media/ e /static/.
+
+    Por que existe:
+    - O WeasyPrint resolve recursos (imagens/CSS/fonts) usando URLs.
+    - Em desenvolvimento local (Windows/Linux) e em produção, os recursos podem
+      chegar como:
+        - "/media/..." (path relativo)
+        - "http(s)://.../media/..." (url absoluta)
+        - "/static/..." (path relativo)
+        - "http(s)://.../static/..." (url absoluta)
+
+    Estratégia:
+    - Extrai o path da URL (parsed.path) e tenta resolver:
+      1) /media/...   -> MEDIA_ROOT
+      2) /static/...  -> django.contrib.staticfiles.finders
+    - Se não resolver, cai no default_url_fetcher (http/https/file/...).
+
+    Observação:
+    - Retorna dict no formato esperado pelo WeasyPrint:
+      {"file_obj": <file>, "mime_type": "...", "redirected_url": url}
     """
     parsed = urlparse(url)
-    path = parsed.path or ""  # sempre trabalha com o PATH da URL
+    path = parsed.path or ""
 
     media_url = (getattr(settings, "MEDIA_URL", "") or "/media/").rstrip("/") + "/"
     static_url = (getattr(settings, "STATIC_URL", "") or "/static/").rstrip("/") + "/"
 
-    # Helper: abre arquivo com mime
     def _open_file(file_path: Path):
         mime_type, _ = mimetypes.guess_type(str(file_path))
         return {
@@ -116,7 +144,7 @@ def django_url_fetcher(url: str):
 
     # /media/... -> MEDIA_ROOT/...
     if path.startswith(media_url):
-        rel = path[len(media_url):].lstrip("/")  # sempre POSIX
+        rel = path[len(media_url):].lstrip("/")
         file_path = Path(settings.MEDIA_ROOT) / Path(*rel.split("/"))
         if file_path.exists():
             return _open_file(file_path)
@@ -128,12 +156,27 @@ def django_url_fetcher(url: str):
         if found:
             return _open_file(Path(found))
 
-    # fallback padrão (http/https/file/…)
     return default_url_fetcher(url)
 
 
 @login_required
 def reportPDFGenerator(request, pk):
+    """
+    Gera o PDF do laudo via WeasyPrint.
+
+    Controle de acesso:
+    - usuário autenticado;
+    - apenas o autor do laudo pode gerar o PDF (filtrado por author=request.user).
+
+    Conceito:
+    - PDF é artefato derivado; pode ser gerado a qualquer momento.
+    - Quando o laudo está editável (report.can_edit == True), cabeçalho usa contexto atual do usuário.
+    - Quando o laudo está concluído/bloqueado, cabeçalho usa snapshots do ReportCase.
+
+    Observação:
+    - A numeração de figuras (Figura 1, Figura 2, ...) é contínua no documento e é
+      calculada aqui, porque depende do conjunto completo de imagens do laudo.
+    """
     report = get_object_or_404(
         ReportCase.objects.select_related("author", "institution", "nucleus", "team"),
         pk=pk,
@@ -145,6 +188,7 @@ def reportPDFGenerator(request, pk):
 
     text_blocks_qs = report.text_blocks.all().order_by("placement", "position", "created_at")
 
+    # Preâmbulo: usuário > sistema
     preamble_text = (
         text_blocks_qs
         .filter(placement=ReportTextBlock.Placement.PREAMBLE)
@@ -153,12 +197,13 @@ def reportPDFGenerator(request, pk):
     )
     preamble = (preamble_text or "").strip() or report.preamble
 
+    # Objetos do laudo (ordem global) + concretos (para ContentType/images)
     base_objects = list(report.exam_objects.all().order_by("order", "created_at"))
     concrete_objects = [o.concrete for o in base_objects]
 
     # ─────────────────────────────────────────────
-    # PREPEND (mesma ordem do showpage):
-    # Resumo, Sumário, Metadados (Dados Requisição/Atendimento/Objetivo...)
+    # PREPEND (mesma ordem do showpage)
+    # Resumo, Sumário, Metadados
     # ─────────────────────────────────────────────
     meta_blocks = list(report.get_render_blocks() or [])
     prepend_blocks: list[dict] = []
@@ -201,6 +246,7 @@ def reportPDFGenerator(request, pk):
         prepend_blocks=prepend_blocks,
     )
 
+    # Observações finais / Conclusão (numeração no nível superior)
     final_considerations_blocks = list(
         text_blocks_qs.filter(placement=ReportTextBlock.Placement.FINAL_CONSIDERATIONS)
     )
@@ -212,12 +258,13 @@ def reportPDFGenerator(request, pk):
     )
     conclusion_num = next_after_final if conclusion_blocks else None
 
-
-    # imagens por ContentType do concreto
+    # ─────────────────────────────────────────────
+    # Imagens em lote por ContentType do CONCRETO
+    # ─────────────────────────────────────────────
     models_set = {o.__class__ for o in concrete_objects}
     ct_map = ContentType.objects.get_for_models(*models_set) if models_set else {}
 
-    ids_by_ct = defaultdict(list)
+    ids_by_ct = defaultdict(list)  # {ct_id: [uuid...]}
     for o in concrete_objects:
         ct = ct_map.get(o.__class__)
         if ct:
@@ -227,7 +274,7 @@ def reportPDFGenerator(request, pk):
     for ct_id, ids in ids_by_ct.items():
         q |= Q(content_type_id=ct_id, object_id__in=ids)
 
-    images_by_key = defaultdict(list)
+    images_by_key = defaultdict(list)  # {(ct_id, obj_id): [ObjectImage]}
     if q:
         imgs = (
             ObjectImage.objects
@@ -238,7 +285,9 @@ def reportPDFGenerator(request, pk):
         for img in imgs:
             images_by_key[(img.content_type_id, img.object_id)].append(img)
 
-    # outline UI com figuras contínuas
+    # ─────────────────────────────────────────────
+    # Monta outline UI com figuras contínuas
+    # ─────────────────────────────────────────────
     figure_counter = 1
     outline_ui: list[dict] = []
 
@@ -248,7 +297,7 @@ def reportPDFGenerator(request, pk):
 
         for o in g.objects:
             o_dict = asdict(o)
-            obj = o.obj
+            obj = o.obj  # concreto (ou ReportCase nos blocos prepend)
 
             if isinstance(obj, ReportCase):
                 ct_id = None
@@ -259,7 +308,10 @@ def reportPDFGenerator(request, pk):
             images_ui = []
             if ct_id:
                 for img in images_by_key.get((ct_id, obj.pk), []):
-                    images_ui.append({"img": img, "figure_label": f"Figura {figure_counter}"})
+                    images_ui.append({
+                        "img": img,
+                        "figure_label": f"Figura {figure_counter}",
+                    })
                     figure_counter += 1
 
             o_dict["images"] = images_ui
@@ -286,6 +338,7 @@ def reportPDFGenerator(request, pk):
 
     css_path = finders.find("report_maker/css/report_pdf.css")
     if not css_path:
+        # Este erro é de infraestrutura; não faz sentido devolver 404.
         raise FileNotFoundError("CSS do PDF não encontrado: report_maker/css/report_pdf.css")
 
     base_url = request.build_absolute_uri("/")
@@ -303,4 +356,3 @@ def reportPDFGenerator(request, pk):
     resp["X-Content-Type-Options"] = "nosniff"
     resp["Content-Length"] = str(len(pdf_bytes))
     return resp
-

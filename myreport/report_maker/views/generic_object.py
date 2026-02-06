@@ -4,9 +4,10 @@ from __future__ import annotations
 from django.urls import reverse
 from django.views.generic import CreateView, UpdateView, DeleteView
 
+from accounts.mixins import CanEditReportsRequiredMixin
+
 from report_maker.forms import GenericExamObjectForm
 from report_maker.models import GenericExamObject
-
 from report_maker.views.mixins import (
     CanEditReportRequiredMixin,
     ReportCaseContextMixin,
@@ -19,6 +20,7 @@ class GenericExamObjectOwnedQuerySetMixin:
     """
     Garante que o objeto pertence ao usuário via report_case.author.
     """
+
     def get_queryset(self):
         return (
             super()
@@ -29,7 +31,8 @@ class GenericExamObjectOwnedQuerySetMixin:
 
 
 class GenericExamObjectCreateView(
-    CanEditReportRequiredMixin,
+    CanEditReportsRequiredMixin,  # ✅ nível usuário (validade/assinatura/vínculo)
+    CanEditReportRequiredMixin,   # ✅ nível laudo (ReportCase.can_edit)
     ReportCaseContextMixin,
     CreateView,
 ):
@@ -49,7 +52,8 @@ class GenericExamObjectCreateView(
 
 
 class GenericExamObjectUpdateView(
-    CanEditReportRequiredMixin,
+    CanEditReportsRequiredMixin,  # ✅ nível usuário
+    CanEditReportRequiredMixin,   # ✅ nível laudo
     ReportCaseObjectGuardMixin,
     GenericExamObjectOwnedQuerySetMixin,
     ReportCaseContextMixin,
@@ -68,7 +72,8 @@ class GenericExamObjectUpdateView(
 
 
 class GenericExamObjectDeleteView(
-    CanEditReportRequiredMixin,
+    CanEditReportsRequiredMixin,  # ✅ nível usuário
+    CanEditReportRequiredMixin,   # ✅ nível laudo
     ReportCaseObjectGuardMixin,
     GenericExamObjectOwnedQuerySetMixin,
     ReportCaseContextMixin,

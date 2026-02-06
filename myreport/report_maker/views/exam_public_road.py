@@ -4,9 +4,10 @@ from __future__ import annotations
 from django.urls import reverse
 from django.views.generic import CreateView, UpdateView, DeleteView
 
+from accounts.mixins import CanEditReportsRequiredMixin
+
 from report_maker.forms import PublicRoadExamObjectForm
 from report_maker.models import PublicRoadExamObject
-
 from report_maker.views.mixins import (
     CanEditReportRequiredMixin,
     ReportCaseContextMixin,
@@ -20,6 +21,7 @@ class PublicRoadExamObjectOwnedQuerySetMixin:
     Garante que o objeto pertence ao usuário via report_case.author.
     (cinto e suspensório: o guard já garante pertencer ao report_pk)
     """
+
     def get_queryset(self):
         return (
             super()
@@ -30,7 +32,8 @@ class PublicRoadExamObjectOwnedQuerySetMixin:
 
 
 class PublicRoadExamObjectCreateView(
-    CanEditReportRequiredMixin,
+    CanEditReportsRequiredMixin,   # ✅ nível usuário (validade/assinatura/vínculo)
+    CanEditReportRequiredMixin,    # ✅ nível laudo (ReportCase.can_edit)
     ReportCaseContextMixin,
     ExamObjectImagesContextMixin,  # opcional
     CreateView,
@@ -51,7 +54,8 @@ class PublicRoadExamObjectCreateView(
 
 
 class PublicRoadExamObjectUpdateView(
-    CanEditReportRequiredMixin,
+    CanEditReportsRequiredMixin,   # ✅ nível usuário
+    CanEditReportRequiredMixin,    # ✅ nível laudo
     ReportCaseObjectGuardMixin,
     PublicRoadExamObjectOwnedQuerySetMixin,
     ReportCaseContextMixin,
@@ -70,7 +74,8 @@ class PublicRoadExamObjectUpdateView(
 
 
 class PublicRoadExamObjectDeleteView(
-    CanEditReportRequiredMixin,
+    CanEditReportsRequiredMixin,   # ✅ nível usuário
+    CanEditReportRequiredMixin,    # ✅ nível laudo
     ReportCaseObjectGuardMixin,
     PublicRoadExamObjectOwnedQuerySetMixin,
     ReportCaseContextMixin,

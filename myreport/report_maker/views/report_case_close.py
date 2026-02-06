@@ -8,19 +8,31 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import UpdateView
 
-from report_maker.models import ReportCase
+from accounts.mixins import CanEditReportsRequiredMixin
+
 from report_maker.forms.report_case_close import ReportCaseCloseForm
+from report_maker.models import ReportCase
 
 
-class ReportCaseCloseView(LoginRequiredMixin, UpdateView):
+class ReportCaseCloseView(
+    LoginRequiredMixin,
+    CanEditReportsRequiredMixin,
+    UpdateView,
+):
     """
     View responsável pela CONCLUSÃO do laudo pericial.
 
+    Conceito atual:
+    - concluir o laudo significa CONGELAR seu estado lógico;
+    - após a conclusão, o laudo não pode mais ser editado;
+    - o PDF é um ARTEFATO DERIVADO e pode ser gerado a qualquer momento,
+      não sendo mais exigido no fluxo de conclusão.
+
     Responsabilidades:
-    - permitir o upload do PDF final;
-    - acionar o método de domínio `ReportCase.close()` (via form.save());
-    - congelar organização (snapshot);
-    - impedir conclusão duplicada.
+    - validar acesso do autor;
+    - impedir conclusão duplicada;
+    - acionar a regra de domínio `ReportCase.close()` (via form.save());
+    - preservar snapshots institucionais associados ao laudo.
     """
 
     model = ReportCase
@@ -28,7 +40,7 @@ class ReportCaseCloseView(LoginRequiredMixin, UpdateView):
     template_name = "report_maker/reportcase_close.html"
     pk_url_kwarg = "pk"
 
-    def get_object(self, queryset=None):
+    def get_object(self, queryset=None) -> ReportCase:
         report = get_object_or_404(ReportCase, pk=self.kwargs[self.pk_url_kwarg])
 
         # acesso restrito ao autor

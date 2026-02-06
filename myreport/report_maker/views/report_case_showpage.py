@@ -1,5 +1,4 @@
 # myreport/report_maker/views/report_case_showpage.py
-
 from __future__ import annotations
 
 from collections import defaultdict
@@ -16,12 +15,37 @@ from report_maker.views.report_outline import build_report_outline
 
 
 class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
+    """
+    Renderização “showpage” do laudo (HTML em formato de documento).
+
+    Controle de acesso:
+    - usuário autenticado;
+    - apenas o autor do laudo (filtrado em get_queryset).
+
+    Regras de cabeçalho:
+    - Se o laudo estiver editável (report.can_edit == True), o cabeçalho é montado a partir do
+      contexto ATUAL do usuário (vínculo institucional/Equipe/Núcleo).
+    - Se o laudo estiver concluído/bloqueado, o cabeçalho é montado a partir dos snapshots
+      armazenados no próprio ReportCase, garantindo consistência histórica.
+
+    Conteúdo:
+    - Textos do laudo vêm de ReportTextBlock, agrupados por placement.
+    - O preâmbulo prioriza o bloco PREAMBLE do usuário; se vazio, usa report.preamble.
+    - A outline do laudo é construída por build_report_outline(), com blocos iniciais (Resumo,
+      Glossário, Sumário e metadados) e, depois, os objetos de exame.
+    - Imagens são carregadas em lote (por ContentType do objeto concreto) e numeradas como
+      Figuras contínuas (Figura 1, Figura 2, ...).
+    """
     model = ReportCase
     template_name = "report_maker/reportcase_showpage.html"
     context_object_name = "report"
     pk_url_kwarg = "pk"
 
     def get_queryset(self):
+        """
+        Restringe a leitura ao autor do laudo e carrega relações úteis
+        para evitar N+1 no template.
+        """
         return (
             super()
             .get_queryset()
@@ -33,6 +57,12 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
     # Header builders
     # ─────────────────────────────────────────────────────────────
     def _build_header_from_user(self) -> dict:
+        """
+        Monta o cabeçalho institucional a partir do vínculo ATUAL do usuário.
+
+        Usado apenas quando o laudo está editável (report.can_edit == True), pois o laudo
+        ainda “acompanha” o contexto vigente do perito.
+        """
         user = self.request.user
 
         aia = getattr(user, "active_institution_assignment", None)
@@ -78,6 +108,13 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         }
 
     def _build_header_from_snapshots(self, report: ReportCase) -> dict:
+        """
+        Monta o cabeçalho institucional usando snapshots persistidos no ReportCase.
+
+        Usado quando o laudo está concluído/bloqueado. Isso garante que:
+        - o cabeçalho não muda se o usuário trocar de equipe/núcleo/instituição;
+        - o documento mantém coerência histórica.
+        """
         inst = report.institution  # fallback opcional só para emblemas
 
         name = (report.institution_name_snapshot or "").strip()
@@ -111,10 +148,18 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
     # Context
     # ─────────────────────────────────────────────────────────────
     def get_context_data(self, **kwargs):
+        """
+        Monta o context completo do laudo (cabeçalho + blocos + outline + figuras).
+
+        O template espera:
+        - header, preamble
+        - outline (lista de grupos com objetos já enriquecidos com imagens + rótulos de figura)
+        - numerações para Observações Finais e Conclusão (quando existirem)
+        """
         ctx = super().get_context_data(**kwargs)
         report: ReportCase = ctx["report"]
 
-        # Header: regra combinada
+        # Header: regra combinada (atual x snapshot)
         can_edit = bool(getattr(report, "can_edit", False))
         header = self._build_header_from_user() if can_edit else self._build_header_from_snapshots(report)
 
@@ -127,7 +172,7 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
             by_placement[tb.placement].append(tb)
         ctx["text_blocks_by_placement"] = dict(by_placement)
 
-        # Preâmbulo: usuário > sistema (report.preamble)
+        # Preâmbulo: usuário > sistema
         preamble_text = (
             text_blocks_qs
             .filter(placement=ReportTextBlock.Placement.PREAMBLE)
@@ -142,9 +187,9 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
 
         # ─────────────────────────────────────────────
         # Blocos iniciais (ANTES do conteúdo) — ordem editorial fixa:
-        # Resumo, Glossário, Dados da Requisição, Dados do Atendimento, ...
+        # Resumo, Glossário, Sumário, Metadados (requisição/atendimento/objetivo etc.)
         # ─────────────────────────────────────────────
-        meta_blocks = list(report.get_render_blocks() or [])  # Dados da Requisição / Atendimento / Objetivo...
+        meta_blocks = list(report.get_render_blocks() or [])
         prepend_blocks: list[dict] = []
 
         # Resumo
@@ -194,10 +239,10 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
                 "fmt": "md",
             })
 
-        # Metadados (requisição/atendimento/objetivo etc.) vêm DEPOIS
+        # Metadados (requisição/atendimento/objetivo etc.) vêm depois
         prepend_blocks.extend(meta_blocks)
 
-        # Outline (inclui blocos iniciais + objetos do exame)
+        # Outline principal
         outline, next_top = build_report_outline(
             report=report,
             exam_objects_qs=base_objects,
@@ -206,6 +251,7 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
             prepend_blocks=prepend_blocks,
         )
 
+        # Numeração de Observações Finais e Conclusão (se existirem)
         final_considerations_blocks = list(
             text_blocks_qs.filter(placement=ReportTextBlock.Placement.FINAL_CONSIDERATIONS)
         )
@@ -280,9 +326,7 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
             g_dict["objects"] = g_objects_ui
             outline_ui.append(g_dict)
 
-        # ─────────────────────────────────────────────
         # Context final
-        # ─────────────────────────────────────────────
         ctx.update({
             "report_number": report.report_number,
             "header": header,
@@ -297,4 +341,3 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         })
 
         return ctx
-

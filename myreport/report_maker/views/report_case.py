@@ -1,5 +1,4 @@
 # report_maker/views/report_case.py
-
 from __future__ import annotations
 
 from collections import OrderedDict
@@ -7,7 +6,6 @@ from collections import OrderedDict
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch, Count
-from django.http import Http404
 from django.urls import reverse_lazy
 from django.views.generic import (
     CreateView,
@@ -17,20 +15,22 @@ from django.views.generic import (
     UpdateView,
 )
 
-from report_maker.models import ReportCase, ObjectImage, ReportTextBlock, ExamObjectGroup
-from report_maker.forms.report_case import ReportCaseForm
-from report_maker.models.images import ObjectImage
+from accounts.mixins import CanCreateReportsRequiredMixin, CanEditReportsRequiredMixin
 
+from report_maker.forms.report_case import ReportCaseForm
+from report_maker.models import ExamObjectGroup, ReportCase, ReportTextBlock
+from report_maker.models.images import ObjectImage
 from report_maker.views.report_outline import build_report_outline
 
-# ─────────────────────────────────────────────────────────────
-# Mixin
-# ─────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────
+# Mixins (ReportCase)
+# ─────────────────────────────────────────────────────────────
 class ReportCaseAuthorQuerySetMixin:
     """
     Garante que o usuário só enxergue/manipule laudos próprios.
     """
+
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(author=self.request.user)
@@ -39,8 +39,10 @@ class ReportCaseAuthorQuerySetMixin:
 class ReportCaseCanEditRequiredMixin:
     """
     Bloqueia edição/exclusão quando o laudo não puder ser editado.
-    Usa a regra de domínio: ReportCase.can_edit.
+
+    Regra de domínio: ReportCase.can_edit.
     """
+
     def dispatch(self, request, *args, **kwargs):
         obj = self.get_object()
         if not obj.can_edit:
@@ -51,9 +53,6 @@ class ReportCaseCanEditRequiredMixin:
 # ─────────────────────────────────────────────────────────────
 # LIST / DETAIL
 # ─────────────────────────────────────────────────────────────
-
-# Se na view abaixo eu puder filtrar e criar uma lista com os laudos,
-# la no template poderei iterar sobre essa lista? Isso já é feito aqui mas eu não vejo?
 class ReportCaseListView(LoginRequiredMixin, ListView):
     model = ReportCase
     template_name = "report_maker/reportcase_list.html"
@@ -62,11 +61,10 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return (
-            ReportCase.objects
-            .filter(author=self.request.user)
+            ReportCase.objects.filter(author=self.request.user)
             .select_related("institution", "nucleus", "team", "author")
             .order_by("-updated_at")
-        ) 
+        )
 
 
 class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, DetailView):
@@ -120,7 +118,7 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
             if count_map.get(key, 0) >= 2
         ]
 
-        # Outline (showpage/pdf)  ✅ build_report_outline retorna (outline, n_top)
+        # Outline (showpage/pdf) ✅ build_report_outline retorna (outline, n_top)
         outline, _n_top = build_report_outline(
             report=report,
             exam_objects_qs=exam_objects_qs,
@@ -177,12 +175,10 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         return ctx
 
 
-
 # ─────────────────────────────────────────────────────────────
 # CREATE / UPDATE / DELETE
 # ─────────────────────────────────────────────────────────────
-
-class ReportCaseCreateView(LoginRequiredMixin, CreateView):
+class ReportCaseCreateView(LoginRequiredMixin, CanCreateReportsRequiredMixin, CreateView):
     model = ReportCase
     template_name = "report_maker/reportcase_form.html"
     form_class = ReportCaseForm
@@ -226,6 +222,7 @@ class ReportCaseCreateView(LoginRequiredMixin, CreateView):
 
 class ReportCaseUpdateView(
     LoginRequiredMixin,
+    CanEditReportsRequiredMixin,
     ReportCaseAuthorQuerySetMixin,
     ReportCaseCanEditRequiredMixin,
     UpdateView,
@@ -269,20 +266,17 @@ class ReportCaseUpdateView(
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy(
-            "report_maker:reportcase_detail",
-            kwargs={"pk": self.object.pk},
-        )
-
+        return reverse_lazy("report_maker:reportcase_detail", kwargs={"pk": self.object.pk})
 
 
 class ReportCaseDeleteView(
     LoginRequiredMixin,
+    CanEditReportsRequiredMixin,
     ReportCaseAuthorQuerySetMixin,
     ReportCaseCanEditRequiredMixin,
     DeleteView,
 ):
-    model = ReportCase 
+    model = ReportCase
     template_name = "report_maker/reportcase_confirm_delete.html"
     context_object_name = "report"
     pk_url_kwarg = "pk"

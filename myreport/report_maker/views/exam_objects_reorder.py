@@ -17,6 +17,22 @@ from report_maker.models import ExamObject, ReportCase
 @login_required
 @require_POST
 def exam_objects_reorder(request, pk):
+    """
+    Reordena objetos de exame dentro de um laudo, preservando a ordem global.
+
+    Regras de autorização:
+    - usuário precisa ser o autor do laudo;
+    - usuário precisa ter permissão efetiva para editar laudos (nível User);
+    - o laudo precisa estar editável (ReportCase.can_edit).
+
+    Observação:
+    - Aqui não usamos mixin (função-based view).
+    - A regra de expiração permanece centralizada em User.can_edit_reports_effective.
+    """
+    # ✅ autorização (nível usuário: assinatura/validade/vínculo)
+    if not request.user.can_edit_reports_effective:
+        raise PermissionDenied("Acesso negado.")
+
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -32,6 +48,7 @@ def exam_objects_reorder(request, pk):
         pk=pk,
     )
 
+    # ✅ autorização (nível laudo: autoria + estado do laudo)
     if report.author_id != request.user.id:
         raise PermissionDenied("Acesso negado.")
     if not report.can_edit:
@@ -73,8 +90,6 @@ def exam_objects_reorder(request, pk):
 
     target_group_key = next(iter(group_keys))  # None OU string
 
-    "target_group_key"
-
     # 2) Monta o estado atual global (ordem do laudo) e agrupa preservando a sequência dos grupos
     all_rows = list(
         ExamObject.objects.filter(report_case=report)
@@ -109,7 +124,6 @@ def exam_objects_reorder(request, pk):
         )
 
     if set(ids) != expected_set:
-        # ids contém itens de fora ou faltando itens do grupo
         return JsonResponse(
             {
                 "ok": False,

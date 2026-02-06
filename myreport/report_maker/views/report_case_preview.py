@@ -1,66 +1,72 @@
 # report_maker/views/report_case_preview.py
 from __future__ import annotations
 
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse
+from django.http import Http404
 from django.views.generic import DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-from report_maker.models import ReportCase, GenericExamObject  # + seu outro model aqui
-from report_maker.utils.enumerator import TitleEnumerator
+from report_maker.models import ReportCase
+from report_maker.views.report_case import ReportCaseAuthorQuerySetMixin
+from report_maker.views.report_outline import build_report_outline
 
 
-class ReportCasePreviewView(LoginRequiredMixin, DetailView):
+class ReportCasePreviewView(
+    LoginRequiredMixin,
+    ReportCaseAuthorQuerySetMixin,
+    DetailView,
+):
+    """
+    Preview (HTML) do laudo em formato de “documento”.
+
+    Finalidade:
+    - Renderizar o laudo de forma contínua (sem botões/UX de editor), simulando o layout final.
+    - Reusar a mesma “outline” utilizada no showpage/PDF para garantir consistência editorial.
+
+    Controle de acesso:
+    - usuário autenticado;
+    - apenas o autor do laudo (ReportCaseAuthorQuerySetMixin).
+
+    Observação:
+    - Preview não altera dados; portanto não exige permissões de edição (can_edit_reports_effective).
+    - Caso o usuário não seja autor, o queryset filtrado fará o DetailView responder 404.
+    """
     model = ReportCase
     template_name = "report_maker/reportcase_preview.html"
     context_object_name = "report"
     pk_url_kwarg = "pk"
 
+    def get_object(self, queryset=None) -> ReportCase:
+        """
+        Mantém o comportamento padrão do DetailView com queryset filtrado.
+        Se o objeto não existir (ou não pertencer ao autor), retorna 404.
+        """
+        obj = super().get_object(queryset=queryset)
+        if not obj:
+            raise Http404("Laudo não encontrado.")
+        return obj
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         report: ReportCase = ctx["report"]
 
-        # ⚠️ Ajuste/adicione os outros models que também são “objetos de exame”
-        generic_qs = (
-            GenericExamObject.objects
-            .filter(report_case=report)
+        # O próprio report_detail já resolve objetos e blocos; aqui mantemos o preview
+        # consistente com showpage/pdf.
+        exam_objects_qs = (
+            report.exam_objects.all()
             .prefetch_related("images")
-            .order_by("order", "pk")  # ajuste se seu campo for outro
+            .order_by("order", "created_at")
         )
 
-        # Exemplo: se você tem um model “Via Pública” separado, carregue aqui:
-        # public_road_qs = (
-        #     PublicRoadExamObject.objects
-        #     .filter(report_case=report)
-        #     .prefetch_related("images")
-        #     .order_by("order", "pk")
-        # )
+        text_blocks_qs = report.text_blocks.all().order_by("placement", "position", "created_at")
 
-        items = []
+        # ✅ outline unificada (preview/showpage/pdf)
+        outline, _n_top = build_report_outline(
+            report=report,
+            exam_objects_qs=exam_objects_qs,
+            text_blocks_qs=text_blocks_qs,
+            start_at=1,
+            prepend_blocks=report.get_render_blocks(),
+        )
+        ctx["outline"] = outline
 
-        for obj in generic_qs:
-            items.append({
-                "type": "GENERIC",
-                "obj": obj,
-                "detail_url": reverse("report_maker:generic_object_detail", args=[obj.pk]),
-                "order": getattr(obj, "order", 0),
-            })
-
-        # for obj in public_road_qs:
-        #     items.append({
-        #         "type": "PUBLIC_ROAD",
-        #         "obj": obj,
-        #         "detail_url": reverse("report_maker:public_road_detail", args=[obj.pk]),
-        #         "order": getattr(obj, "order", 0),
-        #     })
-
-        # Unifica e ordena (se ambos coexistem)
-        items.sort(key=lambda x: (x.get("order", 0), x["obj"].pk))
-
-        # Numeração pronta para o template
-        enum = TitleEnumerator()
-        for it in items:
-            base = getattr(it["obj"], "title", "") or "Objeto sem título"
-            it["display_title"] = enum.format(base)  # <-- ajuste se seu enumerator usar outro método
-
-        ctx["exam_objects_ui"] = items
         return ctx

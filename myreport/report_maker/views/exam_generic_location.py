@@ -1,9 +1,10 @@
 # report_maker/views/exam_generic_location.py
-
 from __future__ import annotations
 
 from django.urls import reverse
 from django.views.generic import CreateView, UpdateView, DeleteView
+
+from accounts.mixins import CanEditReportsRequiredMixin
 
 from report_maker.forms import GenericLocationExamObjectForm
 from report_maker.models import GenericLocationExamObject
@@ -16,6 +17,10 @@ from report_maker.views.mixins import (
 
 
 class GenericLocationExamObjectOwnedQuerySetMixin:
+    """
+    Garante que o usuário só manipule objetos vinculados a laudos de sua autoria.
+    """
+
     def get_queryset(self):
         return (
             super()
@@ -26,7 +31,8 @@ class GenericLocationExamObjectOwnedQuerySetMixin:
 
 
 class GenericLocationExamObjectCreateView(
-    CanEditReportRequiredMixin,
+    CanEditReportsRequiredMixin,   # ✅ permissão de editar laudos (nível usuário)
+    CanEditReportRequiredMixin,    # ✅ permissão de editar este laudo (nível ReportCase: can_edit)
     ReportCaseContextMixin,
     ExamObjectImagesContextMixin,  # opcional
     CreateView,
@@ -47,7 +53,8 @@ class GenericLocationExamObjectCreateView(
 
 
 class GenericLocationExamObjectUpdateView(
-    CanEditReportRequiredMixin,
+    CanEditReportsRequiredMixin,   # ✅ nível usuário
+    CanEditReportRequiredMixin,    # ✅ nível ReportCase
     ReportCaseObjectGuardMixin,
     GenericLocationExamObjectOwnedQuerySetMixin,
     ReportCaseContextMixin,
@@ -66,7 +73,8 @@ class GenericLocationExamObjectUpdateView(
 
 
 class GenericLocationExamObjectDeleteView(
-    CanEditReportRequiredMixin,
+    CanEditReportsRequiredMixin,   # ✅ nível usuário
+    CanEditReportRequiredMixin,    # ✅ nível ReportCase
     ReportCaseObjectGuardMixin,
     GenericLocationExamObjectOwnedQuerySetMixin,
     ReportCaseContextMixin,
