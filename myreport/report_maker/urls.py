@@ -168,7 +168,7 @@ urlpatterns = [
     path(
         "reports/<uuid:report_pk>/objects/generic-location/create/",
         GenericLocationExamObjectCreateView.as_view(),
-        name="generic_location_object_create",
+        name="generic_location_create",
     ),
     path(
         "reports/<uuid:report_pk>/objects/generic-location/<uuid:pk>/edit/",

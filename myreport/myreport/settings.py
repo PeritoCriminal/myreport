@@ -19,7 +19,7 @@ ALLOWED_HOSTS = ['*']
 # Sessão / Autenticação
 # ---------------------------------------------------------------------
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_AGE = 600
+SESSION_COOKIE_AGE = 60 * 60 * 4  # 4 horas sem enviar requisção.
 SESSION_SAVE_EVERY_REQUEST = True
 
 AUTH_USER_MODEL = 'accounts.User'

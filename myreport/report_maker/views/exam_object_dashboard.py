@@ -55,7 +55,7 @@ class ExamObjectDashboardView(
                 "description": "Descrição e geolocalização de qualquer tipo de local examinável.",
                 "icon": "bi-geo-alt",
                 "url": reverse(
-                    "report_maker:generic_exam_location_object_create",
+                    "report_maker:generic_location_create",
                     kwargs={"report_pk": report.pk},
                 ),
                 "enabled": report.can_edit,
