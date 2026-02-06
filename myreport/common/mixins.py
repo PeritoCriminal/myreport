@@ -23,6 +23,8 @@ class BootstrapFormMixin:
     - Campos com erro (form bound) -> is-invalid
     """
 
+    SPACING_CLASS = "mb-3"
+
     CONTROL_WIDGETS = (
         forms.TextInput,
         forms.EmailInput,
@@ -63,11 +65,13 @@ class BootstrapFormMixin:
             if isinstance(widget, self.SELECT_WIDGETS):
                 self._remove_class(widget, "form-control")
                 self._add_class(widget, "form-select")
+                self._add_class(widget, self.SPACING_CLASS)
                 continue
 
             if isinstance(widget, self.CONTROL_WIDGETS):
                 self._remove_class(widget, "form-select")
                 self._add_class(widget, "form-control")
+                self._add_class(widget, self.SPACING_CLASS)
 
     def apply_error_classes(self) -> None:
         for name in self.errors.keys():

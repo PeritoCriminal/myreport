@@ -1,5 +1,13 @@
 # myreport/settings.py
+
 from pathlib import Path
+import os
+
+# ---------------------------------------------------------------------
+# Integrações externas / Serviços de terceiros
+# ---------------------------------------------------------------------
+# OpenAI (IA para geração de texto técnico)
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 # ---------------------------------------------------------------------
 # Base

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "report_maker/base_report_maker.html" %}
 {% load static %}
 
 {% block title %}
@@ -93,7 +93,7 @@
     Contexto do atendimento (Markdown)
     ─────────────────────────────────────
     {% endcomment %}
-    {% with field_name=form.service_context.name label=form.service_context.label value=form.service_context.value help_text=form.service_context.help_text rows=6 %}
+    {% with field_name=form.service_context.name label=form.service_context.label value=form.service_context.value help_text=form.service_context.help_text rows=6 enable_ai=report.can_edit ai_kind="service_context" %}
       {% include "report_maker/partials/text_block_editor.html" %}
     {% endwith %}
     
@@ -102,7 +102,7 @@
     Descrição (Markdown)
     ─────────────────────────────────────
     {% endcomment %}
-    {% with field_name=form.description.name label=form.description.label value=form.description.value help_text=form.description.help_text rows=6 %}
+    {% with field_name=form.description.name label=form.description.label value=form.description.value help_text=form.description.help_text rows=6 enable_ai=report.can_edit ai_kind="description" %}
       {% include "report_maker/partials/text_block_editor.html" %}
     {% endwith %}
 
@@ -111,7 +111,7 @@
     Condições climáticas (Markdown)
     ─────────────────────────────────────
     {% endcomment %}
-    {% with field_name=form.weather_conditions.name label=form.weather_conditions.label value=form.weather_conditions.value help_text=form.weather_conditions.help_text rows=6 %}
+    {% with field_name=form.weather_conditions.name label=form.weather_conditions.label value=form.weather_conditions.value help_text=form.weather_conditions.help_text rows=6 enable_ai=report.can_edit ai_kind="weather_conditions" %}
       {% include "report_maker/partials/text_block_editor.html" %}
     {% endwith %}
 
@@ -120,7 +120,7 @@
     Condições da via (Markdown)
     ─────────────────────────────────────
     {% endcomment %}
-    {% with field_name=form.road_conditions.name label=form.road_conditions.label value=form.road_conditions.value help_text=form.road_conditions.help_text rows=8 %}
+    {% with field_name=form.road_conditions.name label=form.road_conditions.label value=form.road_conditions.value help_text=form.road_conditions.help_text rows=8 enable_ai=report.can_edit ai_kind="road_conditions" %}
       {% include "report_maker/partials/text_block_editor.html" %}
     {% endwith %}
 
@@ -129,7 +129,7 @@
     Sinalização viária (Markdown)
     ─────────────────────────────────────
     {% endcomment %}
-    {% with field_name=form.traffic_signage.name label=form.traffic_signage.label value=form.traffic_signage.value help_text=form.traffic_signage.help_text rows=8 %}
+    {% with field_name=form.traffic_signage.name label=form.traffic_signage.label value=form.traffic_signage.value help_text=form.traffic_signage.help_text rows=8 enable_ai=report.can_edit ai_kind="traffic_signage" %}
       {% include "report_maker/partials/text_block_editor.html" %}
     {% endwith %}
 
@@ -138,7 +138,7 @@
     Elementos observados (Markdown)
     ─────────────────────────────────────
     {% endcomment %}
-    {% with field_name=form.observed_elements.name label=form.observed_elements.label value=form.observed_elements.value help_text=form.observed_elements.help_text rows=10 %}
+    {% with field_name=form.observed_elements.name label=form.observed_elements.label value=form.observed_elements.value help_text=form.observed_elements.help_text rows=10 enable_ai=report.can_edit ai_kind="observed_elements" %}
       {% include "report_maker/partials/text_block_editor.html" %}
     {% endwith %}
 

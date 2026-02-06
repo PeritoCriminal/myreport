@@ -1,6 +1,6 @@
-{# myreport/report_maker/templates/partials/text_blockeditor.html #}
+{# myreport/report_maker/templates/report_maker/partials/text_block_editor.html #}
 
-{% comment %} 
+{% comment %}
   Partial genérico para edição de blocos de texto em Markdown.
 
   Espera no contexto:
@@ -11,10 +11,30 @@
   - rows         (opcional)    → default 6
   - placeholder  (opcional)
   - required     (opcional)    → True/False
+
+  (NOVO — opcional)
+  - enable_ai    (opcional)    → True/False
+  - ai_kind      (opcional)    → ex: "service_context", "description", "observed_elements", "generic"
+  - ai_url       (opcional)    → url do endpoint (se não vier, usa default via url tag)
 {% endcomment %}
 
-<div class="mb-3 text-block-editor">
-  {% include "report_maker/partials/markdown_toolbar.html" %}
+<div class="mb-3 text-block-editor" data-text-block-editor>
+  <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+    <div class="flex-grow-1">
+      {% include "report_maker/partials/markdown_toolbar.html" %}
+    </div>
+
+    {% if enable_ai %}
+      <button type="button"
+              class="btn btn-sm btn-outline-primary"
+              data-ai-generate
+              data-ai-kind="{{ ai_kind|default:'generic' }}"
+              data-ai-target="{{ field_name }}"
+              data-ai-url="{% if ai_url %}{{ ai_url }}{% else %}{% url 'report_maker:ai_textblock_generate' %}{% endif %}">
+        Gerar (IA)
+      </button>
+    {% endif %}
+  </div>
 
   {% if label %}
     <label for="{{ field_name }}" class="form-label fw-semibold">

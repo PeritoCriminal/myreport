@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'report_maker/base_report_maker.html' %}
 {% load static %}
 
 {% block title %}
@@ -35,123 +35,85 @@
 
       {# Erros gerais do formulário #}
       {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-          {{ form.non_field_errors }}
-        </div>
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
       {% endif %}
 
       <div class="row">
-
-        <div class="col-12 mb-3">
-          {{ form.report_number.label_tag }}
+        <div class="col-12 mb-3">{{ form.report_number.label_tag }}
           {{ form.report_number }}
-          {{ form.report_number.errors }}
-        </div>
+          {{ form.report_number.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.protocol.label_tag }}
+        <div class="col-12 mb-3">{{ form.protocol.label_tag }}
           {{ form.protocol }}
-          {{ form.protocol.errors }}
-        </div>
+          {{ form.protocol.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.objective.label_tag }}
+        <div class="col-12 mb-3">{{ form.objective.label_tag }}
           {{ form.objective }}
-          {{ form.objective.errors }}
-        </div>
+          {{ form.objective.errors }}</div>
 
         <div class="col-12 mb-3">
           {{ form.objective_text.label_tag }}
           {{ form.objective_text }}
           {{ form.objective_text.errors }}
-          <div class="form-text">
-            Preencha apenas se desejar um objetivo diferente do padrão.
-          </div>
+          <div class="form-text">Preencha apenas se desejar um objetivo diferente do padrão.</div>
         </div>
 
-
-        <div class="col-12 mb-3">
-          {{ form.requesting_authority.label_tag }}
+        <div class="col-12 mb-3">{{ form.requesting_authority.label_tag }}
           {{ form.requesting_authority }}
-          {{ form.requesting_authority.errors }}
-        </div>
+          {{ form.requesting_authority.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.police_report.label_tag }}
+        <div class="col-12 mb-3">{{ form.police_report.label_tag }}
           {{ form.police_report }}
-          {{ form.police_report.errors }}
-        </div>
+          {{ form.police_report.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.police_inquiry.label_tag }}
+        <div class="col-12 mb-3">{{ form.police_inquiry.label_tag }}
           {{ form.police_inquiry }}
-          {{ form.police_inquiry.errors }}
-        </div>
+          {{ form.police_inquiry.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.police_station.label_tag }}
+        <div class="col-12 mb-3">{{ form.police_station.label_tag }}
           {{ form.police_station }}
-          {{ form.police_station.errors }}
-        </div>
+          {{ form.police_station.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.criminal_typification.label_tag }}
+        <div class="col-12 mb-3">{{ form.criminal_typification.label_tag }}
           {{ form.criminal_typification }}
-          {{ form.criminal_typification.errors }}
-        </div>
+          {{ form.criminal_typification.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.occurrence_datetime.label_tag }}
+        <div class="col-12 mb-3">{{ form.occurrence_datetime.label_tag }}
           {{ form.occurrence_datetime }}
-          {{ form.occurrence_datetime.errors }}
-        </div>
+          {{ form.occurrence_datetime.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.assignment_datetime.label_tag }}
+        <div class="col-12 mb-3">{{ form.assignment_datetime.label_tag }}
           {{ form.assignment_datetime }}
-          {{ form.assignment_datetime.errors }}
-        </div>
+          {{ form.assignment_datetime.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.examination_datetime.label_tag }}
+        <div class="col-12 mb-3">{{ form.examination_datetime.label_tag }}
           {{ form.examination_datetime }}
-          {{ form.examination_datetime.errors }}
-        </div>
+          {{ form.examination_datetime.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.photography_by.label_tag }}
+        <div class="col-12 mb-3">{{ form.photography_by.label_tag }}
           {{ form.photography_by }}
-          {{ form.photography_by.errors }}
-        </div>
+          {{ form.photography_by.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.sketch_by.label_tag }}
+        <div class="col-12 mb-3">{{ form.sketch_by.label_tag }}
           {{ form.sketch_by }}
-          {{ form.sketch_by.errors }}
-        </div>
+          {{ form.sketch_by.errors }}</div>
 
-        <div class="col-12 mb-3">
-          {{ form.conclusion.label_tag }}
+        <div class="col-12 mb-3">{{ form.conclusion.label_tag }}
           {{ form.conclusion }}
-          {{ form.conclusion.errors }}
-        </div>
-
+          {{ form.conclusion.errors }}</div>
       </div>
 
       <div class="d-flex justify-content-between mt-4">
-        <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-outline-secondary">
-          Cancelar
-        </a>
+        <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-outline-secondary">Cancelar</a>
 
-        <button type="submit" class="btn btn-primary">
-          Salvar laudo
-        </button>
+        <button type="submit" class="btn btn-primary">Salvar laudo</button>
       </div>
     </form>
   </div>
 {% endblock %}
 
 {% block scripts %}
+  {{ block.super }}
   <script src="{% static 'myreport/js/adjust_text.js' %}"></script>
 
   <script>
@@ -192,4 +154,4 @@
       {% endif %}
     });
   </script>
-{% endblock scripts %}
+{% endblock %}

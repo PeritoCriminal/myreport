@@ -1,6 +1,6 @@
 {# myreport/report_maker/templates/report_maker/reportcase_showpage.html #}
 
-{% load static %}
+{% extends 'report_maker/base_report_maker.html' %}
 {% load markdown_extras %}
 
 <!DOCTYPE html>
@@ -16,17 +16,12 @@
   </head>
 
   <body>
-    <button type="button" class="btn btn-light close-btn" data-action="close-preview">
-      Fechar
-    </button>
+    <button type="button" class="btn btn-light close-btn" data-action="close-preview">Fechar</button>
 
-    <a href="{% url 'report_maker:report_pdf' report.pk %}" class="btn btn-light pdf-btn">
-      PDF
-    </a>
+    <a href="{% url 'report_maker:report_pdf' report.pk %}" class="btn btn-light pdf-btn">PDF</a>
 
     <main class="report-stage">
       <section class="report-page">
-
         {# ───────────────────────── Cabeçalho institucional ───────────────────────── #}
         <header class="text-center">
           <table class="report-header" role="presentation">
@@ -43,7 +38,9 @@
                 {% if header.name or header.acronym %}
                   <div class="rh-line rh-2">
                     {{ header.name|default:'' }}
-                    {% if header.acronym %}({{ header.acronym }}){% endif %}
+                    {% if header.acronym %}
+                      ({{ header.acronym }})
+                    {% endif %}
                   </div>
                 {% endif %}
 
@@ -73,15 +70,12 @@
 
         {# ───────────────────────── Preâmbulo ───────────────────────── #}
         {% if preamble %}
-          <section class="report-section preamble">
-            {{ preamble|linebreaks }}
-          </section>
+          <section class="report-section preamble">{{ preamble|linebreaks }}</section>
         {% endif %}
 
         {# ───────────────────────── Conteúdo estruturado (outline) ───────────────────────── #}
         {% if outline %}
           {% for g in outline %}
-
             {# Cabeçalho de grupo (apenas quando existir label) #}
             {% if g.number and g.group_label %}
               <section class="report-section group-block">
@@ -96,44 +90,31 @@
             {# Objetos (inclui Resumo e Sumário como objetos virtuais) #}
             {% for o in g.objects %}
               <section class="report-section object-block">
-
-                <h2 class="section-heading">
-                  {{ o.number }} {{ o.title }}
-                </h2>
+                <h2 class="section-heading">{{ o.number }} {{ o.title }}</h2>
 
                 {% for s in o.sections %}
                   {% if s.number and s.label %}
-                    <div class="object-subtitle">
-                      {{ s.number }} {{ s.label }}
-                    </div>
+                    <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
                   {% endif %}
 
-                  {% if s.kind == "geo_location" %}
+                  {% if s.kind == 'geo_location' %}
                     <div class="mb-2">
                       {% if s.maps_url %}
                         <div class="mb-2">
                           <span class="fw-semibold">Acesso via Google Maps:</span>
-                          <a href="{{ s.maps_url }}" target="_blank" rel="noopener"
-                             class="text-decoration-underline">
-                            {{ s.maps_url }}
-                          </a>
+                          <a href="{{ s.maps_url }}" target="_blank" rel="noopener" class="text-decoration-underline">{{ s.maps_url }}</a>
                         </div>
                       {% endif %}
 
                       {% if s.qr_data_uri %}
                         <div class="mt-2">
-                          <img src="{{ s.qr_data_uri }}"
-                               alt="QR Code Google Maps"
-                               style="width: 120px; height: 120px;" />
+                          <img src="{{ s.qr_data_uri }}" alt="QR Code Google Maps" style="width: 120px; height: 120px;" />
                         </div>
                       {% endif %}
                     </div>
 
-                    <div class="mb-2">
-                      Coordenadas: {{ s.text|linebreaksbr }}
-                    </div>
-
-                  {% elif s.fmt == "kv" %}
+                    <div class="mb-2">Coordenadas: {{ s.text|linebreaksbr }}</div>
+                  {% elif s.fmt == 'kv' %}
                     <div class="mb-2">{{ s.text|linebreaksbr }}</div>
                   {% else %}
                     {{ s.text|render_markdown }}
@@ -147,7 +128,9 @@
                       <figure class="report-figure">
                         <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
                         <figcaption>
-                          {{ it.figure_label }}{% if it.img.caption %} — {{ it.img.caption }}{% endif %}
+                          {{ it.figure_label }}{% if it.img.caption %}
+                            — {{ it.img.caption }}
+                          {% endif %}
                         </figcaption>
                       </figure>
                     {% endfor %}
@@ -174,7 +157,6 @@
           </section>
         {% endif %}
 
-
         {% if conclusion_blocks %}
           <section class="report-section">
             <h2 class="section-heading">{{ conclusion_num }} Conclusão</h2>
@@ -185,21 +167,26 @@
           </section>
         {% endif %}
 
-            <div class="mb-3">{{ report.report_closing }}</div>
-            <div class="report-signature mt-5 text-end">
-              <div><strong>{{ report.report_signature_block.name }}</strong></div>
-              <div>{{ report.report_signature_block.role }}</div>
-            </div>
-
+        <div class="mb-3">{{ report.report_closing }}</div>
+        <div class="report-signature mt-5 text-end">
+          <div>
+            <strong>{{ report.report_signature_block.name }}</strong>
+          </div>
+          <div>{{ report.report_signature_block.role }}</div>
+        </div>
       </section>
     </main>
 
-    <script>
-      document.addEventListener("click", (ev) => {
-        const btn = ev.target.closest("[data-action='close-preview']")
-        if (!btn) return
-        window.close()
-      })
-    </script>
+    {% block scripts %}
+      {{ block.super }}
+
+      <script>
+        document.addEventListener('click', (ev) => {
+          const btn = ev.target.closest("[data-action='close-preview']")
+          if (!btn) return
+          window.close()
+        })
+      </script>
+    {% endblock %}
   </body>
 </html>

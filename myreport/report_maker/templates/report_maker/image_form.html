@@ -1,5 +1,5 @@
 {# report_maker/templates/report_maker/image_form.html #}
-{% extends "base.html" %}
+{% extends "report_maker/base_report_maker.html" %}
 {% load static %}
 
 {% block title %}
@@ -238,6 +238,7 @@
 {% endblock %}
 
 {% block scripts %}
+      {{ block.super }}
 <script>
 (() => {
   const editor = document.querySelector("[data-editor]");

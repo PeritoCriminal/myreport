@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "report_maker/base_report_maker.html" %}
 {% load static %}
 
 {% block title %}
@@ -32,22 +32,34 @@
     {{ form.methodology_kind }}
     {{ form.methodology_kind.errors }}
 
-    {% include "report_maker/partials/text_block_editor.html" with field_name="description" label="Descrição" value=form.description.value rows=4 %}
+    {% with field_name=form.description.name label=form.description.label value=form.description.value rows=4 enable_ai=report.can_edit ai_kind="description" %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
     {{ form.description.errors }}
 
-    {% include "report_maker/partials/text_block_editor.html" with field_name="methodology" label="Metodologia" value=form.methodology.value rows=5 %}
+    {% with field_name=form.methodology.name label=form.methodology.label value=form.methodology.value rows=5 enable_ai=report.can_edit ai_kind="methodology" %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
     {{ form.methodology.errors }}
 
-    {% include "report_maker/partials/text_block_editor.html" with field_name="observed_elements" label="Elementos observados" value=form.observed_elements.value rows=7 %}
+    {% with field_name=form.observed_elements.name label=form.observed_elements.label value=form.observed_elements.value rows=7 enable_ai=report.can_edit ai_kind="observed_elements" %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
     {{ form.observed_elements.errors }}
 
-    {% include "report_maker/partials/text_block_editor.html" with field_name="operational_tests" label="Testes operacionais" value=form.operational_tests.value rows=4 %}
+    {% with field_name=form.operational_tests.name label=form.operational_tests.label value=form.operational_tests.value rows=4 enable_ai=report.can_edit ai_kind="operational_tests" %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
     {{ form.operational_tests.errors }}
 
-    {% include "report_maker/partials/text_block_editor.html" with field_name="tire_conditions" label="Condições dos pneus" value=form.tire_conditions.value rows=3 %}
+    {% with field_name=form.tire_conditions.name label=form.tire_conditions.label value=form.tire_conditions.value rows=3 enable_ai=report.can_edit ai_kind="tire_conditions" %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
     {{ form.tire_conditions.errors }}
 
-    {% include "report_maker/partials/text_block_editor.html" with field_name="optional_notes" label="Texto opcional" value=form.optional_notes.value rows=3 %}
+    {% with field_name=form.optional_notes.name label=form.optional_notes.label value=form.optional_notes.value rows=3 enable_ai=report.can_edit ai_kind="generic" %}
+      {% include "report_maker/partials/text_block_editor.html" %}
+    {% endwith %}
     {{ form.optional_notes.errors }}
 
     <div class="mt-4 d-flex gap-2">

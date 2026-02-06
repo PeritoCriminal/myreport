@@ -1,6 +1,8 @@
 # report_maker/urls.py
 from django.urls import path
 
+from report_maker.views.ai_textblock import ai_textblock_generate
+
 from report_maker.views.report_case import (
     ReportCaseListView,
     ReportCaseCreateView,
@@ -238,4 +240,8 @@ urlpatterns = [
         ObjectImageDeleteView.as_view(),
         name="image_delete",
     ),
+]
+
+urlpatterns += [
+    path("ai/textblock/generate/", ai_textblock_generate, name="ai_textblock_generate"),
 ]
