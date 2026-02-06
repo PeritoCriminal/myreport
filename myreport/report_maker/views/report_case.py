@@ -185,10 +185,39 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
 class ReportCaseCreateView(LoginRequiredMixin, CreateView):
     model = ReportCase
     template_name = "report_maker/reportcase_form.html"
-    form_class = ReportCaseForm  # <- aqui
+    form_class = ReportCaseForm
 
     def form_valid(self, form):
-        form.instance.author = self.request.user
+        report = form.save(commit=False)
+        user = self.request.user
+
+        report.author = user
+
+        # ─────────────────────────────────────
+        # Contexto institucional do usuário
+        # ─────────────────────────────────────
+        inst_assignment = user.active_institution_assignment
+        team_assignment = user.active_team_assignment
+
+        if inst_assignment:
+            report.institution = inst_assignment.institution
+
+        if team_assignment:
+            report.team = team_assignment.team
+            report.nucleus = team_assignment.team.nucleus
+
+        # ─────────────────────────────────────
+        # Validação defensiva (não cria laudo sem contexto)
+        # ─────────────────────────────────────
+        if not report.institution_id or not report.nucleus_id or not report.team_id:
+            form.add_error(
+                None,
+                "Não foi possível determinar instituição, núcleo e equipe a partir do seu vínculo ativo."
+            )
+            return self.form_invalid(form)
+
+        report.save()
+        self.object = report
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -205,10 +234,46 @@ class ReportCaseUpdateView(
     template_name = "report_maker/reportcase_form.html"
     context_object_name = "report"
     pk_url_kwarg = "pk"
-    form_class = ReportCaseForm  # <- aqui
+    form_class = ReportCaseForm
+
+    def form_valid(self, form):
+        report = form.save(commit=False)
+        user = self.request.user
+
+        # ─────────────────────────────────────
+        # Contexto institucional do usuário
+        # ─────────────────────────────────────
+        inst_assignment = user.active_institution_assignment
+        team_assignment = user.active_team_assignment
+
+        # Preenche somente se ainda não estiver definido
+        if inst_assignment and not report.institution_id:
+            report.institution = inst_assignment.institution
+
+        if team_assignment and not report.team_id:
+            report.team = team_assignment.team
+            report.nucleus = team_assignment.team.nucleus
+
+        # ─────────────────────────────────────
+        # Validação defensiva
+        # ─────────────────────────────────────
+        if not report.institution_id or not report.nucleus_id or not report.team_id:
+            form.add_error(
+                None,
+                "Não foi possível determinar instituição, núcleo e equipe a partir do seu vínculo ativo."
+            )
+            return self.form_invalid(form)
+
+        report.save()
+        self.object = report
+        return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy("report_maker:reportcase_detail", kwargs={"pk": self.object.pk})
+        return reverse_lazy(
+            "report_maker:reportcase_detail",
+            kwargs={"pk": self.object.pk},
+        )
+
 
 
 class ReportCaseDeleteView(

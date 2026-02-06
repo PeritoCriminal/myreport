@@ -49,8 +49,8 @@ class PublicRoadExamObject(
         """
         return [
             {"kind": "geo_location", "label": "Localização", "field": "geo_location"},
-            {"kind": "section_field", "label": "Descrição", "field": "description", "fmt": "text"},
             {"kind": "section_field", "label": "Contexto do atendimento", "field": "service_context", "fmt": "text"},
+            {"kind": "section_field", "label": "Descrição", "field": "description", "fmt": "text"},
             {"kind": "section_field", "label": "Sinalização viária", "field": "traffic_signage", "fmt": "text"},
             {"kind": "section_field", "label": "Condições da via", "field": "road_conditions", "fmt": "text"},
             {"kind": "section_field", "label": "Condições climáticas", "field": "weather_conditions", "fmt": "text"},

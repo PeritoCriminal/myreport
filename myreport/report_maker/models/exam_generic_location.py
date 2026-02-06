@@ -45,8 +45,9 @@ class GenericLocationExamObject(
     @classmethod
     def get_render_blocks(cls) -> list[RenderBlock]:
         return [
-            {"kind": "section_field", "label": "Descrição", "field": "description", "fmt": "text"},
+            {"kind": "geo_location", "label": "Localização", "field": "geo_location"},
             {"kind": "section_field", "label": "Contexto do atendimento", "field": "service_context", "fmt": "text"},
+            {"kind": "section_field", "label": "Descrição", "field": "description", "fmt": "text"},
             {"kind": "section_field", "label": "Google Maps", "field": "maps_url", "fmt": "text"},
             {"kind": "section_field", "label": "Elementos observados", "field": "observed_elements", "fmt": "text"},
         ]

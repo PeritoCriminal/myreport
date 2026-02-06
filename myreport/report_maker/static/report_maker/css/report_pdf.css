@@ -10,21 +10,33 @@
 
 @page {
   size: A4;
-  margin: 5cm 2cm 4cm 3cm; /* sup dir inf esq */
+  margin: 5cm 2cm 4cm 3cm;
+  /* sup dir inf esq */
 
-  @top-center { content: element(doc_header); }
-  @bottom-right { content: element(doc_footer); }
+  @top-center {
+    content: element(doc_header);
+  }
+
+  @bottom-right {
+    content: element(doc_footer);
+  }
 }
 
 /* Registra elementos repetidos */
-.header-running { position: running(doc_header); }
-.footer-running { position: running(doc_footer); }
+.header-running {
+  position: running(doc_header);
+}
+
+.footer-running {
+  position: running(doc_footer);
+}
 
 /* ===========================
    BASE
    =========================== */
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   background: #fff;
@@ -38,9 +50,29 @@ body {
 }
 
 /* Evita “quebras feias” em títulos/figuras/cabeçalho */
-h1, h2, h3,
+h1,
+h2,
+h3,
+.section-heading,
+.object-subtitle,
 .report-figure,
 .report-header {
+  break-inside: avoid;
+}
+
+/* ===========================
+   CONTROLE DE ÓRFÃS/VIÚVAS
+   (reduz 2–3 linhas soltas no fim/início de página)
+   =========================== */
+
+p,
+li {
+  widows: 4;
+  orphans: 4;
+}
+
+/* Também ajuda em blocos de seção */
+.report-section {
   break-inside: avoid;
 }
 
@@ -121,7 +153,7 @@ h1, h2, h3,
 /* Número do laudo (ligeiramente maior) */
 .report-number {
   margin-top: 8pt;
-  font-size: 13pt; /* antes 12pt */
+  font-size: 13pt;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3pt;
@@ -134,7 +166,7 @@ h1, h2, h3,
 
 .footer-running {
   padding: 6pt 0 0 0;
-  border-top: 1px solid #000; /* segmento horizontal */
+  border-top: 1px solid #000;
   font-size: 10pt;
 }
 
@@ -170,85 +202,119 @@ p {
 }
 
 /* Listas (markdown) */
-ul, ol {
+ul,
+ol {
   margin: 0 0 12pt 18pt;
   padding: 0;
 }
 
-li { margin: 0 0 4pt 0; }
+li {
+  margin: 0 0 4pt 0;
+}
 
 /* ===========================
    TÍTULOS
    =========================== */
 
-/* Título de seção (se for seu T1 do outline, coloque aqui em caixa alta) */
+/* ↑ sutilmente mais “respiro” antes dos títulos */
 .section-heading {
   font-size: 12pt;
   font-weight: 700;
-  margin: 14pt 0 8pt 0;
-  text-transform: uppercase; /* T1 em caixa alta */
+  margin: 16pt 0 8pt 0;
+  /* antes 14pt */
+  text-transform: uppercase;
+  break-after: avoid;
 }
 
 .object-subtitle {
   font-size: 11pt;
   font-weight: 700;
-  margin: 10pt 0 4pt 0;
+  margin: 12pt 0 4pt 0;
+  /* antes 10pt */
+  break-after: avoid;
 }
 
 /* Headings vindos do markdown */
 h1 {
   font-size: 14pt;
-  font-weight: 700;
-  margin: 18pt 0 10pt 0;
-  text-transform: uppercase; /* nível 1 em caixa alta */
+  font-weight: 600;
+  margin: 26pt 0 10pt 0;
+  /* antes 24pt */
+  text-transform: uppercase;
+  break-after: avoid;
 }
 
 h2 {
   font-size: 12pt;
-  font-weight: 700;
-  margin: 14pt 0 8pt 0;
+  font-weight: 600;
+  margin: 20pt 0 8pt 0;
+  /* antes 18pt */
+  break-after: avoid;
 }
 
 h3 {
   font-size: 11pt;
-  font-weight: 700;
-  margin: 12pt 0 6pt 0;
+  font-weight: 600;
+  margin: 14pt 0 6pt 0;
+  /* antes 12pt */
+  break-after: avoid;
 }
 
 /* ===========================
    FIGURAS
    =========================== */
 
-.figure-grid { display: block; }
+.figure-grid {
+  display: block;
+}
 
 .report-figure {
   display: block;
   text-align: center;
-  break-inside: avoid;
 
-  /* ↑ maior espaço entre uma figura (com legenda) e a próxima imagem */
-  margin: 0 0 18pt 0; /* antes 12pt */
+  /* mantém figura + legenda juntas */
+  break-inside: avoid;
+  page-break-inside: avoid;
+
+  /* ↓ ajuda a evitar “2 linhas antes da figura”:
+     se a figura não couber bem no fim, tende a ir para a página seguinte
+     (com menos chance de sobrar só 2–3 linhas) */
+  break-before: auto;
+  page-break-before: auto;
+
+  margin: 0 0 18pt 0;
 }
 
 .report-figure img {
   display: block;
-  margin: 0 auto;       /* centraliza */
+  margin: 0 auto;
+
+  /* largura máxima atual */
   max-width: 13cm;
   width: auto;
+
+  /* ✅ controla altura máxima (evita imagem "gigante" que força quebras ruins) */
+  max-height: 17cm;
+  /* ajuste fino: 16.5–18cm conforme seu layout */
   height: auto;
 
-  /* borda da imagem */
-  border: 1px solid #fff;
+  /* garante que a imagem se ajuste sem distorcer */
+  object-fit: contain;
+
+  border: 1px solid #222;
 }
 
 /* ↓ menor espaço entre imagem e legenda */
 .report-figure figcaption {
-  margin-top: 3pt;      /* aproxima da imagem */
+  margin-top: 3pt;
   font-size: 11pt;
   font-style: italic;
   text-align: center;
   line-height: 1.0;
   white-space: pre-line;
+
+  /* mantém legenda junto da figura */
+  break-inside: avoid;
 }
 
 /* ===========================
@@ -257,7 +323,7 @@ h3 {
 
 .report-signature {
   break-before: avoid;
-  margin-top: 36pt;        /* espaço maior antes da assinatura */
+  margin-top: 36pt;
   text-align: right;
   line-height: 1.4;
 }
@@ -270,4 +336,16 @@ h3 {
    QUEBRA DE PÁGINA (opcional)
    =========================== */
 
-.page-break { break-before: page; }
+.page-break {
+  break-before: page;
+}
+
+/* ===========================
+   LINKS LONGOS (Google Maps)
+   =========================== */
+
+a {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
+}

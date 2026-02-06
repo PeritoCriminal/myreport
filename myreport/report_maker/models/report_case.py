@@ -25,6 +25,27 @@ def report_header_emblem_upload_path(instance, filename: str) -> str:
     return f"reports/{instance.id}/header/{filename}"
 
 
+def _validate_close_requirements(self) -> None:
+    """
+    Regras mínimas para laudo concluído:
+    - precisa ter PDF
+    - precisa estar bloqueado
+    - precisa ter organização definida (para congelar snapshot)
+    """
+    if self.status == self.Status.CLOSED:
+        if not self.pdf_file:
+            raise ValidationError("Laudo concluído deve possuir PDF.")
+        if not self.is_locked:
+            raise ValidationError("Laudo concluído deve estar bloqueado.")
+
+        if not self.institution_id:
+            raise ValidationError("Informe a instituição antes de concluir o laudo.")
+        if not self.nucleus_id:
+            raise ValidationError("Informe o núcleo antes de concluir o laudo.")
+        if not self.team_id:
+            raise ValidationError("Informe a equipe antes de concluir o laudo.")
+
+
 class ReportCase(models.Model): 
     """
     Representa o Laudo Pericial, entidade central do exame,
@@ -288,7 +309,11 @@ class ReportCase(models.Model):
             self.honoree_name_snapshot = getattr(self.institution, "honoree_name", "") or ""
 
             # kind pode ser choice; guardamos texto bruto (string) como snapshot
-            self.institution_kind_snapshot = str(getattr(self.institution, "kind", "") or "")
+            self.institution_kind_snapshot = (
+                self.institution.get_kind_display()
+                if hasattr(self.institution, "get_kind_display")
+                else str(getattr(self.institution, "kind", "") or "")
+            )
         else:
             self.emblem_primary_snapshot = None
             self.emblem_secondary_snapshot = None
@@ -583,18 +608,17 @@ class ReportCase(models.Model):
     def close(self, pdf_file):
         """
         Finaliza o laudo, vinculando o PDF definitivo e impedindo novas edições.
-
-        Efeito colateral desejado:
-        - congela a organização (snapshot) no momento da conclusão,
-          mantendo histórico imutável.
+        Congela a organização (snapshot) no ato do fechamento.
         """
         self.pdf_file = pdf_file
+
+        # congelar ANTES de setar CLOSED (pra garantir snapshot preenchido)
+        self.freeze_organization_snapshot()
+
         self.status = self.Status.CLOSED
         self.is_locked = True
         self.concluded_at = timezone.now()
 
-        # Congelamento no ato de finalização
-        self.freeze_organization_snapshot()
 
     @property
     def can_edit(self):
