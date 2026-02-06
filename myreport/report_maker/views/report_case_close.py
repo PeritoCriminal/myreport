@@ -9,7 +9,6 @@ from django.urls import reverse
 from django.views.generic import UpdateView
 
 from accounts.mixins import CanEditReportsRequiredMixin
-
 from report_maker.forms.report_case_close import ReportCaseCloseForm
 from report_maker.models import ReportCase
 
@@ -65,7 +64,7 @@ class ReportCaseCloseView(
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        report = form.save()
+        report: ReportCase = form.save()
 
         messages.success(
             self.request,

@@ -9,17 +9,27 @@
     <h4 class="mb-3">Concluir laudo</h4>
 
     <div class="alert alert-warning">
-      Ao concluir, o laudo será bloqueado para edição e a organização (instituição/núcleo/equipe)
-      será congelada para preservar o histórico.
+      <p class="mb-1">
+        Ao concluir, o laudo será <strong>bloqueado para edição</strong> e a
+        <strong>organização (instituição / núcleo / equipe)</strong> será
+        <strong>congelada</strong> para preservação do histórico.
+      </p>
+      <p class="mb-0">
+        Esta ação é <strong>irreversível</strong>.
+      </p>
     </div>
 
-    <form method="post" enctype="multipart/form-data" class="card p-3">
+    <form method="post" class="card p-3">
       {% csrf_token %}
-      {{ form.as_p }}
 
       <div class="d-flex gap-2">
-        <button class="btn btn-primary" type="submit">Concluir</button>
-        <a class="btn btn-outline-secondary" href="javascript:history.back()">Cancelar</a>
+        <button class="btn btn-primary" type="submit">
+          Confirmar conclusão
+        </button>
+        <a class="btn btn-outline-secondary"
+           href="{% url 'report_maker:reportcase_detail' object.pk %}">
+          Cancelar
+        </a>
       </div>
     </form>
   </div>

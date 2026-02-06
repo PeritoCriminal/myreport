@@ -129,7 +129,6 @@ class ReportCaseAdmin(admin.ModelAdmin):
                     "photography_by",
                     "sketch_by",
                     "conclusion",
-                    "pdf_file",
                     "concluded_at",
                 )
             },

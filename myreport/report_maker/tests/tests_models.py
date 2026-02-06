@@ -20,10 +20,6 @@ from institutions.models import (
 from report_maker.models import ReportCase
 
 
-def make_pdf_file(name="laudo.pdf", content=b"%PDF-1.4\n%Fake PDF\n"):
-    return SimpleUploadedFile(name=name, content=content, content_type="application/pdf")
-
-
 def make_png_file(name="img.png", size=(20, 20)):
     bio = BytesIO()
     Image.new("RGB", size).save(bio, format="PNG")
@@ -78,7 +74,7 @@ class ReportCaseSnapshotModelTests(TestCase):
         )
 
     def _close_report(self, report: ReportCase):
-        report.close(pdf_file=make_pdf_file("final.pdf"))
+        report.close()
         report.save()
         report.refresh_from_db()
         return report
@@ -107,7 +103,17 @@ class ReportCaseSnapshotModelTests(TestCase):
         self.assertEqual(report.team_name_snapshot, "Equipe 01")
         self.assertEqual(report.honoree_title_snapshot, "Perito Criminal Dr.")
         self.assertEqual(report.honoree_name_snapshot, "Octávio Eduardo de Brito Alvarenga")
-        self.assertEqual(report.institution_kind_snapshot, str(self.inst.kind))
+        self.assertEqual(report.institution_kind_snapshot, self.inst.get_kind_display())
+
+        # Snapshot REAL (cópia): não pode apontar para o mesmo caminho do arquivo da Institution
+        self.assertTrue(report.emblem_primary_snapshot)
+        self.assertTrue(report.emblem_secondary_snapshot)
+        self.assertNotEqual(report.emblem_primary_snapshot.name, self.inst.emblem_primary.name)
+        self.assertNotEqual(report.emblem_secondary_snapshot.name, self.inst.emblem_secondary.name)
+
+        # Caminho esperado do snapshot
+        self.assertIn(f"reports/{report.id}/header/", report.emblem_primary_snapshot.name)
+        self.assertIn(f"reports/{report.id}/header/", report.emblem_secondary_snapshot.name)
 
         header_before = report.header_context
         snap_primary_name_before = report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else ""
@@ -194,3 +200,100 @@ class ReportCaseSnapshotModelTests(TestCase):
         self.assertEqual(hdr["acronym"], report.institution_acronym_snapshot or None)
         self.assertEqual(hdr["name"], report.institution_name_snapshot or None)
         self.assertEqual(hdr["unit_line"], "Núcleo Campinas - Equipe 01")
+
+    def _read_file_bytes(self, field) -> bytes:
+        if not field:
+            return b""
+        field.open("rb")
+        try:
+            return field.read()
+        finally:
+            field.close()
+
+    def test_close_requires_organization_fields(self):
+        """
+        Garante que não é possível concluir laudo sem institution/nucleus/team,
+        pois o fechamento congela snapshots institucionais.
+        """
+        report = ReportCase.objects.create(
+            report_number="100/2026",
+            protocol="",
+            author=self.user,
+            institution=None,
+            nucleus=None,
+            team=None,
+            objective=ReportCase.Objective.INITIAL_EXAM,
+            requesting_authority="Autoridade",
+            status=ReportCase.Status.OPEN,
+            is_locked=False,
+        )
+
+        report.close()
+        with self.assertRaises(ValidationError):
+            report.save()
+
+    def test_close_is_idempotent_for_snapshots(self):
+        """
+        Garante que chamar close() novamente não regrava snapshots nem altera organization_frozen_at.
+        (congelamento ocorre uma única vez)
+        """
+        report = self._close_report(self._create_open_report())
+
+        frozen_at_1 = report.organization_frozen_at
+        snap_primary_1 = report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else ""
+        snap_secondary_1 = report.emblem_secondary_snapshot.name if report.emblem_secondary_snapshot else ""
+        inst_name_snap = report.institution_name_snapshot
+        acr_snap = report.institution_acronym_snapshot
+        hon_snap = report.honoree_name_snapshot
+        kind_snap = report.institution_kind_snapshot
+
+        # Chamada repetida
+        report.close()
+        report.save()
+        report.refresh_from_db()
+
+        self.assertEqual(report.organization_frozen_at, frozen_at_1)
+        self.assertEqual(report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else "", snap_primary_1)
+        self.assertEqual(report.emblem_secondary_snapshot.name if report.emblem_secondary_snapshot else "", snap_secondary_1)
+        self.assertEqual(report.institution_name_snapshot, inst_name_snap)
+        self.assertEqual(report.institution_acronym_snapshot, acr_snap)
+        self.assertEqual(report.honoree_name_snapshot, hon_snap)
+        self.assertEqual(report.institution_kind_snapshot, kind_snap)
+
+    def test_emblem_snapshot_content_equals_source_at_close_time(self):
+        """
+        Garante que o snapshot do emblema é uma cópia real do conteúdo no momento do fechamento.
+        """
+        report = self._close_report(self._create_open_report())
+
+        src_primary_bytes = self._read_file_bytes(self.inst.emblem_primary)
+        src_secondary_bytes = self._read_file_bytes(self.inst.emblem_secondary)
+        snap_primary_bytes = self._read_file_bytes(report.emblem_primary_snapshot)
+        snap_secondary_bytes = self._read_file_bytes(report.emblem_secondary_snapshot)
+
+        self.assertEqual(snap_primary_bytes, src_primary_bytes)
+        self.assertEqual(snap_secondary_bytes, src_secondary_bytes)
+
+    def test_header_context_uses_snapshots_when_frozen(self):
+        """
+        Garante que, após congelado, o header_context é derivado exclusivamente dos snapshots,
+        mesmo que a Institution mude seus dados.
+        """
+        report = self._close_report(self._create_open_report())
+
+        hdr_before = report.header_context
+
+        # muda a instituição
+        self.inst.acronym = "ALT"
+        self.inst.name = "Instituição Alterada"
+        self.inst.honoree_title = "Dr."
+        self.inst.honoree_name = "Beltrano"
+        self.inst.save()
+
+        report.refresh_from_db()
+        hdr_after = report.header_context
+
+        self.assertEqual(hdr_after["acronym"], hdr_before["acronym"])
+        self.assertEqual(hdr_after["name"], hdr_before["name"])
+        self.assertEqual(hdr_after["honoree_line"], hdr_before["honoree_line"])
+        self.assertEqual(hdr_after["unit_line"], hdr_before["unit_line"])

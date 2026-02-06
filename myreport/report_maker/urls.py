@@ -29,7 +29,7 @@ from report_maker.views.exam_public_road import (
     PublicRoadExamObjectDeleteView,
 )
 
-from report_maker.views.exam_generic_location import(
+from report_maker.views.exam_generic_location import (
     GenericLocationExamObjectCreateView,
     GenericLocationExamObjectUpdateView,
     GenericLocationExamObjectDeleteView,
@@ -51,7 +51,7 @@ from report_maker.views.images import (
 )
 
 # ─────────────────────────────────────
-# Textos genéricos do laudo (ReportTextBlock)
+# Textos do laudo (ReportTextBlock)
 # ─────────────────────────────────────
 from report_maker.views.report_text_block import (
     ReportTextBlockListView,
@@ -65,7 +65,7 @@ app_name = "report_maker"
 
 urlpatterns = [
     # ─────────────────────────────────────
-    # Laudos
+    # Laudos (ReportCase)
     # ─────────────────────────────────────
     path("reports/", ReportCaseListView.as_view(), name="reportcase_list"),
     path("reports/create/", ReportCaseCreateView.as_view(), name="reportcase_create"),
@@ -75,8 +75,9 @@ urlpatterns = [
     path("reports/<uuid:pk>/edit/", ReportCaseUpdateView.as_view(), name="reportcase_update"),
     path("reports/<uuid:pk>/delete/", ReportCaseDeleteView.as_view(), name="reportcase_delete"),
     path("reports/<uuid:pk>/close/", ReportCaseCloseView.as_view(), name="reportcase_close"),
-    path("reports/<uuid:pk>/pdf/", reportPDFGenerator, name="report_pdf"),
 
+    # PDF do laudo (artefato DERIVADO; pode ser gerado a qualquer momento)
+    path("reports/<uuid:pk>/pdf/", reportPDFGenerator, name="report_pdf"),
 
     # ─────────────────────────────────────
     # Textos do laudo (ReportTextBlock)
@@ -101,6 +102,10 @@ urlpatterns = [
         ReportTextBlockDeleteView.as_view(),
         name="textblock_delete",
     ),
+
+    # Upsert por placement:
+    # - Se existir, redireciona para edit
+    # - Se não existir, redireciona para create (com ?placement=<PLACEMENT>)
     path(
         "reports/<uuid:report_pk>/text-blocks/<str:placement>/",
         ReportTextBlockUpsertView.as_view(),
@@ -116,10 +121,11 @@ urlpatterns = [
         name="exam_object_dashboard",
     ),
 
+    # Reorder GLOBAL de imagens (ObjectImage) — endpoint de apoio ao sortable
     path("images/reorder/", images_reorder, name="images_reorder"),
 
     # ─────────────────────────────────────
-    # Objetos de exame (genérico)
+    # Objetos de exame (Genérico)
     # ─────────────────────────────────────
     path(
         "reports/<uuid:report_pk>/objects/generic/create/",
@@ -157,12 +163,12 @@ urlpatterns = [
     ),
 
     # ─────────────────────────────────────
-    # Objetos de exame (Via Pública)
+    # Objetos de exame (Local Genérico)
     # ─────────────────────────────────────
     path(
         "reports/<uuid:report_pk>/objects/generic-location/create/",
         GenericLocationExamObjectCreateView.as_view(),
-        name="generic_exam_location_object_create",
+        name="generic_location_object_create",
     ),
     path(
         "reports/<uuid:report_pk>/objects/generic-location/<uuid:pk>/edit/",
@@ -178,21 +184,21 @@ urlpatterns = [
     # ─────────────────────────────────────
     # Objetos de exame (Vistoria de Veículo)
     # ─────────────────────────────────────
-    #path(
-    #    "reports/<uuid:report_pk>/objects/vehicles/",
-    #    VehicleInspectionListView.as_view(),
-    #    name="vehicle_inspection_list",
-    #),
+    # path(
+    #     "reports/<uuid:report_pk>/objects/vehicles/",
+    #     VehicleInspectionListView.as_view(),
+    #     name="vehicle_inspection_list",
+    # ),
     path(
         "reports/<uuid:report_pk>/objects/vehicles/create/",
         VehicleInspectionCreateView.as_view(),
         name="vehicle_inspection_create",
     ),
-    #path(
-    #    "reports/<uuid:report_pk>/objects/vehicles/<uuid:pk>/",
-    #    VehicleInspectionDetailView.as_view(),
-    #    name="vehicle_inspection_detail",
-    #),
+    # path(
+    #     "reports/<uuid:report_pk>/objects/vehicles/<uuid:pk>/",
+    #     VehicleInspectionDetailView.as_view(),
+    #     name="vehicle_inspection_detail",
+    # ),
     path(
         "reports/<uuid:report_pk>/objects/vehicles/<uuid:pk>/edit/",
         VehicleInspectionUpdateView.as_view(),
@@ -203,7 +209,6 @@ urlpatterns = [
         VehicleInspectionDeleteView.as_view(),
         name="vehicle_inspection_delete",
     ),
-
 
     # ─────────────────────────────────────
     # Reorder GLOBAL de objetos (ExamObject)

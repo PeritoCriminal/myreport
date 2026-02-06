@@ -1,27 +1,25 @@
 # report_maker/forms/report_case_close.py
-from django import forms
-
 from common.mixins import BaseModelForm
 from report_maker.models import ReportCase
 
 
 class ReportCaseCloseForm(BaseModelForm):
     """
-    Minimal form to close a report by attaching the final PDF.
+    Form mínimo para concluir um laudo (sem anexar PDF arquivado).
 
-    Note:
-    - The actual closing rules are enforced by ReportCase.close().
+    Nota:
+    - As regras de fechamento são aplicadas por ReportCase.close().
     """
 
     class Meta:
         model = ReportCase
-        fields = ["pdf_file"]
+        fields: list[str] = []  # sem campos (apenas confirmação/submit)
 
-    def save(self, commit=True):
+    def save(self, commit: bool = True) -> ReportCase:
         report: ReportCase = super().save(commit=False)
 
-        # Close the report using the domain method (single source of truth)
-        report.close(self.cleaned_data["pdf_file"])
+        # Fecha o laudo usando o método de domínio (fonte única de verdade)
+        report.close()
 
         if commit:
             report.save()

@@ -1,21 +1,22 @@
 # report_maker/models/report_case.py
+import os
 import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.db import models
 from django.utils import timezone
 from django.utils.formats import date_format
 
 from institutions.models import Institution, Nucleus, Team
 
-
-def report_pdf_upload_path(instance, filename):
+def report_pdf_upload_path(instance, filename: str) -> str:
     """
-    Define o caminho de upload do PDF final do laudo,
-    agrupado pelo UUID do laudo.
+    Mantida por compatibilidade com migrações antigas.
+    NÃO é mais usada no modelo atual (pdf_file foi removido).
     """
-    return f"reports/{instance.id}/final/laudo_{instance.report_number}.pdf"
+    return f"reports/{instance.id}/final/{filename}"
 
 
 def report_header_emblem_upload_path(instance, filename: str) -> str:
@@ -25,36 +26,15 @@ def report_header_emblem_upload_path(instance, filename: str) -> str:
     return f"reports/{instance.id}/header/{filename}"
 
 
-def _validate_close_requirements(self) -> None:
-    """
-    Regras mínimas para laudo concluído:
-    - precisa ter PDF
-    - precisa estar bloqueado
-    - precisa ter organização definida (para congelar snapshot)
-    """
-    if self.status == self.Status.CLOSED:
-        if not self.pdf_file:
-            raise ValidationError("Laudo concluído deve possuir PDF.")
-        if not self.is_locked:
-            raise ValidationError("Laudo concluído deve estar bloqueado.")
-
-        if not self.institution_id:
-            raise ValidationError("Informe a instituição antes de concluir o laudo.")
-        if not self.nucleus_id:
-            raise ValidationError("Informe o núcleo antes de concluir o laudo.")
-        if not self.team_id:
-            raise ValidationError("Informe a equipe antes de concluir o laudo.")
-
-
-class ReportCase(models.Model): 
+class ReportCase(models.Model):
     """
     Representa o Laudo Pericial, entidade central do exame,
     agregando objetos periciais, imagens e documento final.
 
     Histórico institucional por snapshot imutável:
     - Enquanto OPEN: exibe dados via FKs (Institution/Nucleus/Team).
-    - Ao fechar (close): congela snapshots no BD.
-    - Após CLOSED: exibe exclusivamente snapshots (imutável).
+    - Ao fechar (close): congela snapshots no BD (incluindo cópia REAL dos emblemas).
+    - Após congelar: exibe exclusivamente snapshots (imutável).
     """
 
     # ---------------------------------------------------------------------
@@ -152,7 +132,7 @@ class ReportCase(models.Model):
         upload_to=report_header_emblem_upload_path,
         null=True,
         blank=True,
-    ) 
+    )
     emblem_secondary_snapshot = models.ImageField(
         "Emblema secundário (snapshot)",
         upload_to=report_header_emblem_upload_path,
@@ -193,16 +173,15 @@ class ReportCase(models.Model):
         max_length=40,
         choices=Objective.choices,
         blank=True,
-        default='',
+        default="",
     )
 
     objective_text = models.CharField(
         "Objetivo (descrição livre)",
         max_length=255,
         blank=True,
-        default='',
+        default="",
     )
-
 
     requesting_authority = models.CharField("Autoridade requisitante", max_length=120)
     police_report = models.CharField("Boletim de ocorrência", max_length=60, blank=True)
@@ -222,8 +201,6 @@ class ReportCase(models.Model):
     photography_by = models.CharField("Fotografia", max_length=120, blank=True)
     sketch_by = models.CharField("Croqui", max_length=120, blank=True)
 
-    # conclusion = models.TextField("Conclusão", blank=True)
-
     status = models.CharField(
         "Status",
         max_length=20,
@@ -233,13 +210,6 @@ class ReportCase(models.Model):
     )
 
     is_locked = models.BooleanField("Bloqueado para edição", default=False)
-
-    pdf_file = models.FileField(
-        "PDF do laudo",
-        upload_to=report_pdf_upload_path,
-        null=True,
-        blank=True,
-    )
 
     concluded_at = models.DateTimeField("Concluído em", null=True, blank=True)
 
@@ -272,17 +242,49 @@ class ReportCase(models.Model):
         return bool(self.organization_frozen_at)
 
     # ---------------------------------------------------------------------
-    # Organization snapshot API
+    # Snapshot helpers
     # ---------------------------------------------------------------------
-    def freeze_organization_snapshot(self, force: bool = False) -> None:
+    def _snapshot_image_once(self, src_field, dst_attr: str, filename_prefix: str) -> None:
         """
-        Congela a organização do laudo, copiando dados atuais para os snapshots.
+        Cria snapshot REAL do arquivo (cópia), salvando no ImageField de destino.
 
         Regras:
-        - Se já estiver congelado, não faz nada (a menos que force=True).
-        - O congelamento ocorre SOMENTE no fechamento do laudo (close()).
+        - Só deve ser chamado quando ainda NÃO estiver congelado.
+        - Não apaga arquivo antigo e não regrava (congelar só uma vez).
+        - save=False para permitir que o fluxo salve o model no final.
         """
-        if self.organization_frozen_at and not force:
+        if not src_field:
+            setattr(self, dst_attr, None)
+            return
+
+        src_name = getattr(src_field, "name", "") or ""
+        _, ext = os.path.splitext(src_name)
+        ext = ext.lower() if ext else ".png"
+
+        new_name = f"{filename_prefix}{ext}"
+
+        src_field.open("rb")
+        try:
+            content = src_field.read()
+        finally:
+            src_field.close()
+
+        snapshot_field = getattr(self, dst_attr)
+        snapshot_field.save(new_name, ContentFile(content), save=False)
+
+    # ---------------------------------------------------------------------
+    # Organization snapshot API
+    # ---------------------------------------------------------------------
+    def freeze_organization_snapshot(self) -> None:
+        """
+        Congela a organização do laudo, copiando dados atuais para snapshots.
+
+        Regras:
+        - Se já estiver congelado, não faz nada.
+        - O congelamento ocorre SOMENTE no fechamento do laudo (close()).
+        - Emblemas são copiados (snapshot REAL), e não apenas referenciados.
+        """
+        if self.organization_frozen_at:
             return
 
         # ─────────────────────────────────────────────
@@ -299,27 +301,36 @@ class ReportCase(models.Model):
         self.team_name_snapshot = self.team.name if self.team else ""
 
         # ─────────────────────────────────────────────
-        # Snapshots do cabeçalho (emblemas / honraria / kind)
+        # Snapshots do cabeçalho (honraria / kind)
         # ─────────────────────────────────────────────
-        if self.institution:
-            self.emblem_primary_snapshot = getattr(self.institution, "emblem_primary", None)
-            self.emblem_secondary_snapshot = getattr(self.institution, "emblem_secondary", None)
+        inst = self.institution
+        if inst:
+            self.honoree_title_snapshot = getattr(inst, "honoree_title", "") or ""
+            self.honoree_name_snapshot = getattr(inst, "honoree_name", "") or ""
 
-            self.honoree_title_snapshot = getattr(self.institution, "honoree_title", "") or ""
-            self.honoree_name_snapshot = getattr(self.institution, "honoree_name", "") or ""
-
-            # kind pode ser choice; guardamos texto bruto (string) como snapshot
             self.institution_kind_snapshot = (
-                self.institution.get_kind_display()
-                if hasattr(self.institution, "get_kind_display")
-                else str(getattr(self.institution, "kind", "") or "")
+                inst.get_kind_display()
+                if hasattr(inst, "get_kind_display")
+                else str(getattr(inst, "kind", "") or "")
+            )
+
+            # Emblemas: cópia real no storage do laudo
+            self._snapshot_image_once(
+                src_field=getattr(inst, "emblem_primary", None),
+                dst_attr="emblem_primary_snapshot",
+                filename_prefix="emblem_primary_snapshot",
+            )
+            self._snapshot_image_once(
+                src_field=getattr(inst, "emblem_secondary", None),
+                dst_attr="emblem_secondary_snapshot",
+                filename_prefix="emblem_secondary_snapshot",
             )
         else:
-            self.emblem_primary_snapshot = None
-            self.emblem_secondary_snapshot = None
             self.honoree_title_snapshot = ""
             self.honoree_name_snapshot = ""
             self.institution_kind_snapshot = ""
+            self.emblem_primary_snapshot = None
+            self.emblem_secondary_snapshot = None
 
         self.organization_frozen_at = timezone.now()
 
@@ -363,15 +374,12 @@ class ReportCase(models.Model):
             },
         ]
 
-
-
     @property
     def objective_for_display(self) -> str:
         text = (self.objective_text or "").strip()
         if text:
             return text
         return self.get_objective_display() if self.objective else ""
-
 
     @property
     def report_identity_name(self) -> str:
@@ -380,7 +388,6 @@ class ReportCase(models.Model):
             or getattr(self.author, "display_name", "")
             or str(self.author)
         )
-
 
     @property
     def report_metadata_context(self) -> dict:
@@ -405,20 +412,17 @@ class ReportCase(models.Model):
             },
         }
 
-
     @property
     def institution_name_for_display(self) -> str:
         if self.is_frozen:
             return self.institution_name_snapshot or ""
         return (self.institution.name if self.institution else "") or ""
 
-
     @property
     def institution_acronym_for_display(self) -> str:
         if self.is_frozen:
             return self.institution_acronym_snapshot or ""
         return (self.institution.acronym if self.institution else "") or ""
-
 
     @property
     def institution_display(self) -> str:
@@ -432,20 +436,17 @@ class ReportCase(models.Model):
         acr = self.institution_acronym_for_display
         return f"{name} ({acr})" if (name and acr) else (name or acr)
 
-
     @property
     def nucleus_display(self) -> str:
         if self.is_frozen:
             return self.nucleus_name_snapshot or ""
         return (self.nucleus.name if self.nucleus else "") or ""
 
-
     @property
     def team_display(self) -> str:
         if self.is_frozen:
             return self.team_name_snapshot or ""
         return (self.team.name if self.team else "") or ""
-
 
     # ---------------------------------------------------------------------
     # Header helper (OPEN -> FK, CLOSED -> snapshot)
@@ -467,25 +468,24 @@ class ReportCase(models.Model):
             hon_name = self.honoree_name_snapshot or ""
             kind_display = self.institution_kind_snapshot or ""
 
-            emblem_primary = self.emblem_primary_snapshot or (inst.emblem_primary if inst else None)
-            emblem_secondary = self.emblem_secondary_snapshot or (inst.emblem_secondary if inst else None)
+            emblem_primary = self.emblem_primary_snapshot
+            emblem_secondary = self.emblem_secondary_snapshot
         else:
             name = (inst.name if inst else "") or ""
             acronym = (inst.acronym if inst else "") or ""
             hon_title = (getattr(inst, "honoree_title", "") if inst else "") or ""
             hon_name = (getattr(inst, "honoree_name", "") if inst else "") or ""
 
-            kind_display = inst.get_kind_display() if (inst and hasattr(inst, "get_kind_display")) else (
-                str(getattr(inst, "kind", "") or "") if inst else ""
+            kind_display = (
+                inst.get_kind_display()
+                if (inst and hasattr(inst, "get_kind_display"))
+                else (str(getattr(inst, "kind", "") or "") if inst else "")
             )
 
-            emblem_primary = inst.emblem_primary if (inst and inst.emblem_primary) else None
-            emblem_secondary = inst.emblem_secondary if (inst and inst.emblem_secondary) else None
+            emblem_primary = inst.emblem_primary if (inst and getattr(inst, "emblem_primary", None)) else None
+            emblem_secondary = inst.emblem_secondary if (inst and getattr(inst, "emblem_secondary", None)) else None
 
-        if hon_title and hon_name:
-            honoree_line = f"{hon_title} {hon_name}"
-        else:
-            honoree_line = hon_name or ""
+        honoree_line = f"{hon_title} {hon_name}".strip() if (hon_title and hon_name) else (hon_name or "")
 
         unit_line = " - ".join(p for p in [self.nucleus_display, self.team_display] if p)
 
@@ -499,34 +499,25 @@ class ReportCase(models.Model):
             "emblem_secondary": emblem_secondary,
         }
 
-
     # ---------------------------------------------------------------------
     # Validation
     # ---------------------------------------------------------------------
     def _validate_close_requirements(self) -> None:
         """
         Regras mínimas para laudo concluído:
-        - precisa ter PDF
         - precisa estar bloqueado
+        - precisa ter organização definida (para congelar snapshot)
         """
         if self.status == self.Status.CLOSED:
-            if not self.pdf_file:
-                raise ValidationError("Laudo concluído deve possuir PDF.")
             if not self.is_locked:
                 raise ValidationError("Laudo concluído deve estar bloqueado.")
 
-    def _validate_organization_consistency(self) -> None:
-        """
-        Garante consistência entre Institution / Nucleus / Team.
-        """
-        if self.team and self.nucleus and self.team.nucleus_id != self.nucleus_id:
-            raise ValidationError("A equipe selecionada não pertence ao núcleo informado.")
-
-        if self.nucleus and self.institution and self.nucleus.institution_id != self.institution_id:
-            raise ValidationError("O núcleo selecionado não pertence à instituição informada.")
-
-        if self.team and self.institution and self.team.nucleus.institution_id != self.institution_id:
-            raise ValidationError("A equipe selecionada não pertence à instituição informada.")
+            if not self.institution_id:
+                raise ValidationError("Informe a instituição antes de concluir o laudo.")
+            if not self.nucleus_id:
+                raise ValidationError("Informe o núcleo antes de concluir o laudo.")
+            if not self.team_id:
+                raise ValidationError("Informe a equipe antes de concluir o laudo.")
 
     def _validate_organization_immutability(self) -> None:
         """
@@ -583,7 +574,6 @@ class ReportCase(models.Model):
         emb_secondary_old = old["emblem_secondary_snapshot"] or ""
         emb_primary_new = (self.emblem_primary_snapshot.name if self.emblem_primary_snapshot else "") or ""
         emb_secondary_new = (self.emblem_secondary_snapshot.name if self.emblem_secondary_snapshot else "") or ""
-
         emblems_changed = (emb_primary_old != emb_primary_new) or (emb_secondary_old != emb_secondary_new)
 
         if fk_changed or snapshot_changed or emblems_changed:
@@ -599,26 +589,21 @@ class ReportCase(models.Model):
             raise ValidationError({"objective_text": "Informe o objetivo quando selecionado 'Outro'."})
 
         self._validate_close_requirements()
-        self._validate_organization_consistency()
         self._validate_organization_immutability()
 
     # ---------------------------------------------------------------------
     # Domain operation
     # ---------------------------------------------------------------------
-    def close(self, pdf_file):
+    def close(self):
         """
-        Finaliza o laudo, vinculando o PDF definitivo e impedindo novas edições.
-        Congela a organização (snapshot) no ato do fechamento.
+        Finaliza o laudo, impedindo novas edições e congelando a organização (snapshot).
         """
-        self.pdf_file = pdf_file
-
         # congelar ANTES de setar CLOSED (pra garantir snapshot preenchido)
         self.freeze_organization_snapshot()
 
         self.status = self.Status.CLOSED
         self.is_locked = True
         self.concluded_at = timezone.now()
-
 
     @property
     def can_edit(self):
@@ -716,10 +701,13 @@ class ReportCase(models.Model):
             f"{d_examiner} {examiner} para proceder ao exame pericial "
             f"em atendimento à requisição expedida {d_authority} {authority}."
         )
-    
+
     @property
     def report_closing(self):
-        return 'Esse laudo foi assinado digitalmente e encontra-se arquivado no sistema GDL da Superintendência da Polícia Técnico-Científica do Estado de São Paulo.'
+        return (
+            "Esse laudo foi assinado digitalmente e encontra-se arquivado no sistema GDL da "
+            "Superintendência da Polícia Técnico-Científica do Estado de São Paulo."
+        )
 
     @property
     def report_signature_block(self) -> dict:
@@ -739,4 +727,3 @@ class ReportCase(models.Model):
             "name": name,
             "role": role,
         }
-    

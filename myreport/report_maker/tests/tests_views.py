@@ -5,15 +5,21 @@ import json
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from django.core.exceptions import ValidationError
 
+from institutions.models import (
+    Institution,
+    InstitutionCity,
+    Nucleus,
+    Team,
+    UserInstitutionAssignment,
+)
 from report_maker.models import ReportCase
 from report_maker.models.report_text_block import ReportTextBlock
 
-# User = get_user_model()
 UserModel = get_user_model()
 
 
@@ -38,6 +44,28 @@ class ReportMakerViewsSmokeTests(TestCase):
         self.user.can_create_reports_until = timezone.now() + timedelta(days=90)
         self.user.save(update_fields=["can_create_reports", "can_edit_reports", "can_create_reports_until"])
 
+        # ─────────────────────────────────────────────
+        # Organização mínima (exigida no close() / validação de laudo fechado)
+        # ─────────────────────────────────────────────
+        self.inst = Institution.objects.create(
+            acronym="SPTC",
+            name="Superintendência da Polícia Técnico-Científica",
+            kind=Institution.Kind.SCIENTIFIC_POLICE,
+            is_active=True,
+        )
+        self.city = InstitutionCity.objects.create(institution=self.inst, name="Campinas", state="SP")
+        self.nucleus = Nucleus.objects.create(institution=self.inst, name="Núcleo Campinas", city=self.city)
+        self.team = Team.objects.create(nucleus=self.nucleus, name="Equipe 01", description="")
+
+        # Vínculo institucional ativo (se seu mixin exigir)
+        UserInstitutionAssignment.objects.create(
+            user=self.user,
+            institution=self.inst,
+            start_at=timezone.now(),
+            end_at=None,
+            is_primary=True,
+        )
+
         self.report = self._make_report(author=self.user, report_number="123.123/2026")
 
     # ─────────────────────────────────────────────
@@ -54,58 +82,38 @@ class ReportMakerViewsSmokeTests(TestCase):
         IMPORTANTE:
         - Seu model ReportCase chama full_clean() em save(), então precisamos
           preencher os campos obrigatórios.
-
-        Se aparecer outro ValidationError futuramente, inclua o campo mínimo aqui.
         """
         base = dict(
             author=author,
             report_number=report_number,
-
-            # Campo obrigatório (segundo o erro do seu teste)
             requesting_authority="Autoridade Requisitante (teste)",
-        )
 
-        # Se seu model tiver outros obrigatórios, inclua abaixo conforme surgir:
-        # base.update({
-        #     "police_station": "1º DP (teste)",
-        #     "police_report": "BO 0000/0000",
-        #     "protocol": "SQ0000/0000",
-        # })
+            # Organização (permite close() nos testes e mantém consistência do domínio)
+            institution=self.inst,
+            nucleus=self.nucleus,
+            team=self.team,
+        )
 
         report = ReportCase(**base)
 
         try:
             report.save()
         except ValidationError as e:
-            # Ajuda a diagnosticar rapidamente quais campos faltaram
             raise AssertionError(
-                f"ReportCase inválido no teste. Ajuste _make_report() com os mínimos obrigatórios.\n"
-                f"Erros: {e.message_dict}"
+                "ReportCase inválido no teste. Ajuste _make_report() com os mínimos obrigatórios.\n"
+                f"Erros: {getattr(e, 'message_dict', e)}"
             )
 
         return report
 
     def _lock_report(self, report: ReportCase):
         """
-        Tenta tornar report.can_edit == False sem depender do nome exato do campo.
-
-        Preferência:
-        - Se existir método de domínio close(), usa.
-        - Se existir campo status, tenta CLOSED.
-        - Caso contrário, você ajusta conforme sua implementação real.
+        Torna report.can_edit == False usando o método de domínio.
         """
-        if hasattr(report, "close") and callable(getattr(report, "close")):
-            report.close()
-            report.save()
-            return
-
-        if hasattr(report, "status"):
-            report.status = "CLOSED"
-            report.save(update_fields=["status"])
-            return
-
-        # fallback: se existir algum boolean de bloqueio no model, ajuste aqui
-        raise AssertionError("Não consegui travar o laudo. Ajuste _lock_report() conforme seu model.")
+        report.close()
+        report.save()
+        report.refresh_from_db()
+        return report
 
     # ─────────────────────────────────────────────
     # ReportCase: list/detail
@@ -142,7 +150,7 @@ class ReportMakerViewsSmokeTests(TestCase):
     # ─────────────────────────────────────────────
     def test_pdf_generator_only_author(self):
         self.login(self.other)
-        url = reverse("report_maker:report_pdf_generator", kwargs={"pk": self.report.pk})
+        url = reverse("report_maker:report_pdf", kwargs={"pk": self.report.pk})
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 404)
 
@@ -209,12 +217,17 @@ class ReportMakerViewsSmokeTests(TestCase):
     def test_textblock_upsert_redirects_to_create_when_missing(self):
         self.login(self.user)
         url = reverse(
-            "report_maker:textblock_upsert",
+            "report_maker:text_block_upsert",
             kwargs={"report_pk": self.report.pk, "placement": ReportTextBlock.Placement.SUMMARY},
         )
         resp = self.client.get(url)
+
         self.assertEqual(resp.status_code, 302)
-        self.assertIn("textblock_create", resp.url)
+
+        expected = reverse("report_maker:textblock_create", kwargs={"report_pk": self.report.pk})
+        self.assertTrue(resp.url.startswith(expected))
+        self.assertIn("placement=SUMMARY", resp.url)
+
 
     def test_textblock_upsert_redirects_to_update_when_exists(self):
         self.login(self.user)
@@ -226,7 +239,7 @@ class ReportMakerViewsSmokeTests(TestCase):
         )
 
         url = reverse(
-            "report_maker:textblock_upsert",
+            "report_maker:text_block_upsert",
             kwargs={"report_pk": self.report.pk, "placement": ReportTextBlock.Placement.SUMMARY},
         )
         resp = self.client.get(url)
