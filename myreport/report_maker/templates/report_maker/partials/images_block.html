@@ -1,31 +1,30 @@
 {# myreport/report_maker/templates/report_maker/partials/images_block.html #}
 
-{# Esse fragmento é carregado logo após os formulários, e exibe imagens do obejto concreto #}
-{# Está muito colado, precisamos aumentar o distanciamento e deixar de forma visível que é outro bloco #}
-{# O que sugere? #}
-
 {% if obj.pk %}
-  <div class="mt-3" id="imagesBlock">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0">Imagens</h6>
+  <section class="mt-5" id="imagesBlock">
+    <div class="card border shadow-sm">
+      <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center py-2">
+        <h6 class="mb-0 fw-semibold">Imagens</h6>
 
-        
-        <a href="{% url 'report_maker:image_add' obj.app_label obj.model_name obj.pk %}" 
-          class="btn btn-sm btn-outline-primary">
-          <i class="bi bi-image"></i> Adicionar imagem
-        </a>
+        {% if can_edit %}
+          <a href="{% url 'report_maker:image_add' obj.app_label obj.model_name obj.pk %}"
+             class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-image"></i> Adicionar imagem
+          </a>
+        {% endif %}
       </div>
 
-    {% if images %}
-      <div class="row g-2">
-        {% for image in images %}
-          {% include 'report_maker/partials/image_card.html' with img=image report=report %}
-        {% endfor %}
+      <div class="card-body">
+        {% if images %}
+          <div class="row g-3">
+            {% for image in images %}
+              {% include 'report_maker/partials/image_card.html' with img=image report=report %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-muted small">Nenhuma imagem cadastrada.</div>
+        {% endif %}
       </div>
-    {% else %}
-      <div class="text-muted small">Nenhuma imagem cadastrada.</div>
-    {% endif %}
-  </div>
+    </div>
+  </section>
 {% endif %}
-
-
