@@ -1,7 +1,6 @@
 {# myreport/report_maker/templates/report_maker/reportcase_showpage.html #}
 
-{% extends 'report_maker/base_report_maker.html' %}
-{% load markdown_extras %}
+{% load markdown_extras static %}
 
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -178,7 +177,6 @@
     </main>
 
     {% block scripts %}
-      {{ block.super }}
 
       <script>
         document.addEventListener('click', (ev) => {
