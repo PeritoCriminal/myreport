@@ -1,0 +1,33 @@
+{# report_maker/templates/report_maker/partials/ai_textblock_modal.html #}
+<div class="modal fade" id="aiTextBlockModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Sugestão gerada por IA</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="small text-muted mb-2">
+          Revise o texto abaixo. Você pode substituir o conteúdo atual do campo ou descartar.
+        </div>
+
+        <textarea id="aiTextBlockModalOutput" class="form-control font-monospace" rows="10"></textarea>
+
+        <div class="alert alert-danger mt-3 d-none" role="alert" id="aiTextBlockModalError"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          Descartar
+        </button>
+
+        <button type="button" class="btn btn-primary" id="aiTextBlockModalApply">
+          Substituir texto atual
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

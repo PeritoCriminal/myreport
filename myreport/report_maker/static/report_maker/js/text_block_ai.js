@@ -8,14 +8,45 @@
   }
 
   function getCsrfToken() {
-    // 1) cookie (padrão Django)
     const fromCookie = getCookie("csrftoken");
     if (fromCookie) return fromCookie;
 
-    // 2) fallback: input hidden do form (funciona mesmo com CSRF_COOKIE_HTTPONLY=True)
     const input = document.querySelector('input[name="csrfmiddlewaretoken"]');
     return input ? input.value : null;
   }
+
+  function getModalParts() {
+    const modalEl = document.getElementById("aiTextBlockModal");
+    const outputEl = document.getElementById("aiTextBlockModalOutput");
+    const errorEl = document.getElementById("aiTextBlockModalError");
+    const applyBtn = document.getElementById("aiTextBlockModalApply");
+    const canUseBootstrapModal = !!(window.bootstrap && window.bootstrap.Modal);
+
+    const hasModal = !!(modalEl && outputEl && errorEl && applyBtn && canUseBootstrapModal);
+    return { hasModal, modalEl, outputEl, errorEl, applyBtn };
+  }
+
+  function showModal(modalEl) {
+    const instance = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+    instance.show();
+  }
+
+  function hideModal(modalEl) {
+    const instance = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+    instance.hide();
+  }
+
+  function setModalError(errorEl, msg) {
+    errorEl.textContent = msg;
+    errorEl.classList.remove("d-none");
+  }
+
+  function clearModalError(errorEl) {
+    errorEl.textContent = "";
+    errorEl.classList.add("d-none");
+  }
+
+  let currentTextarea = null;
 
   async function handle(btn) {
     const url = btn.dataset.aiUrl;
@@ -26,14 +57,33 @@
     if (!textarea) return;
 
     const notes = (textarea.value || "").trim();
+    const csrfToken = getCsrfToken();
+
+    const { hasModal, modalEl, outputEl, errorEl, applyBtn } = getModalParts();
+
     if (!notes) {
-      alert("Digite algumas informações no campo antes de gerar.");
+      if (hasModal) {
+        currentTextarea = textarea;
+        outputEl.value = "";
+        clearModalError(errorEl);
+        setModalError(errorEl, "Digite algumas informações no campo antes de gerar.");
+        showModal(modalEl);
+      } else {
+        alert("Digite algumas informações no campo antes de gerar.");
+      }
       return;
     }
 
-    const csrfToken = getCsrfToken();
     if (!csrfToken) {
-      alert("CSRF token não encontrado. Recarregue a página e tente novamente.");
+      if (hasModal) {
+        currentTextarea = textarea;
+        outputEl.value = "";
+        clearModalError(errorEl);
+        setModalError(errorEl, "CSRF token não encontrado. Recarregue a página e tente novamente.");
+        showModal(modalEl);
+      } else {
+        alert("CSRF token não encontrado. Recarregue a página e tente novamente.");
+      }
       return;
     }
 
@@ -57,24 +107,86 @@
 
       if (!resp.ok) {
         console.error("IA erro HTTP:", resp.status, raw);
-        alert(`Falha ao gerar texto com IA (HTTP ${resp.status}). Veja o console (F12).`);
+        const msg = `Falha ao gerar texto com IA (HTTP ${resp.status}). Veja o console (F12).`;
+
+        if (hasModal) {
+          currentTextarea = textarea;
+          outputEl.value = "";
+          clearModalError(errorEl);
+          setModalError(errorEl, msg);
+          showModal(modalEl);
+        } else {
+          alert(msg);
+        }
         return;
       }
 
       if (!contentType.includes("application/json")) {
-        // geralmente acontece quando veio HTML (ex: redirect/login) ou erro
         console.error("IA resposta não-JSON:", raw);
-        alert("Falha ao gerar texto com IA (resposta inesperada). Veja o console (F12).");
+        const msg = "Falha ao gerar texto com IA (resposta inesperada). Veja o console (F12).";
+
+        if (hasModal) {
+          currentTextarea = textarea;
+          outputEl.value = "";
+          clearModalError(errorEl);
+          setModalError(errorEl, msg);
+          showModal(modalEl);
+        } else {
+          alert(msg);
+        }
         return;
       }
 
       const data = JSON.parse(raw);
-      textarea.value = data.text || "";
-      textarea.dispatchEvent(new Event("input", { bubbles: true }));
-      textarea.dispatchEvent(new Event("change", { bubbles: true }));
+      const generated = (data.text || "").trim();
+
+      if (!hasModal) {
+        textarea.value = generated;
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        textarea.dispatchEvent(new Event("change", { bubbles: true }));
+        return;
+      }
+
+      currentTextarea = textarea;
+      outputEl.value = generated;
+      clearModalError(errorEl);
+      showModal(modalEl);
+
+      // Garantir handler do Apply (idempotente)
+      if (!applyBtn.dataset.bound) {
+        applyBtn.dataset.bound = "1";
+        applyBtn.addEventListener("click", () => {
+          if (!currentTextarea) return;
+          const { hasModal: hm, modalEl: me, outputEl: oe } = getModalParts();
+          currentTextarea.value = oe.value;
+          currentTextarea.dispatchEvent(new Event("input", { bubbles: true }));
+          currentTextarea.dispatchEvent(new Event("change", { bubbles: true }));
+          if (hm) hideModal(me);
+        });
+      }
+
+      // Limpar estado ao fechar (idempotente)
+      if (!modalEl.dataset.bound) {
+        modalEl.dataset.bound = "1";
+        modalEl.addEventListener("hidden.bs.modal", () => {
+          currentTextarea = null;
+          const parts = getModalParts();
+          if (parts.hasModal) clearModalError(parts.errorEl);
+        });
+      }
     } catch (e) {
       console.error("IA exceção JS:", e);
-      alert("Falha ao gerar texto com IA. Veja o console (F12).");
+      const msg = "Falha ao gerar texto com IA. Veja o console (F12).";
+
+      if (hasModal) {
+        currentTextarea = textarea;
+        outputEl.value = "";
+        clearModalError(errorEl);
+        setModalError(errorEl, msg);
+        showModal(modalEl);
+      } else {
+        alert(msg);
+      }
     } finally {
       btn.disabled = false;
       btn.textContent = originalText;

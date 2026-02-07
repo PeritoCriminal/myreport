@@ -22,10 +22,15 @@ SYSTEM_STYLE = (
 # O que escrever (varia por campo)
 KIND_PROMPTS = {
     "service_context": (
-        "Redija um único parágrafo curto (80 a 140 palavras) descrevendo o contexto do atendimento pericial, "
-        "incluindo preservação e isolamento do local e o acompanhamento do exame, quando informado. "
-        "Se houver, cite encarregado, equipe/órgão e viatura de forma objetiva. "
-        "Não acrescente informações não contidas nas anotações."
+        "Redija o Contexto do Atendimento Pericial preferencialmente em tópicos, evitando parágrafo corrido, "
+        "Inicie, quando couber, com uma frase curta introdutória que funcione como cabeçalho do campo (ex.: 'Local preservado por equipe da Polícia Militar Rodoviária.'). "
+        "Sempre que possível, utilize lista não numerada em Markdown, adotando o formato chave: valor, com a chave em negrito e o valor sem negrito, separados por dois pontos (ex.: Encarregado: Cabo PM Fulano). "
+        "O texto deve ser preferencialmente atemporal. Quando for necessário empregar tempo verbal:"
+        "ao descrever preservação, isolamento ou controle do local por policiais, utilize pretérito imperfeito, indicando ação contínua durante o período do exame;"
+        "para comparecimento, acompanhamento, recepção da equipe ou demais ações concluídas, utilize pretérito perfeito."
+        "Caso o atendimento tenha ocorrido de forma agendada, descreva objetivamente quem recebeu a equipe pericial, informando o nome e a função declarada (ex.: morador, supervisor, funcionário), mencionando que indicou o local do exame e acompanhou o trabalho da perícia, quando constar nas anotações."
+        "Não inclua nenhuma informação que não esteja explicitamente nas anotações e não omita nenhuma informação presente nelas."
+        "Se as anotações forem extensas e estiverem relativamente bem redigidas, limite-se a corrigir erros gramaticais e de concordância, preservando o conteúdo, a ordem lógica e o sentido original do texto."
     ),
     "description": (
         "Redija 1 a 2 parágrafos curtos descrevendo tecnicamente o objeto/local do exame, de forma objetiva, "
