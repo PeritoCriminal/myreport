@@ -36,7 +36,12 @@
 
   <form method="post" novalidate>
     {% csrf_token %}
-    {{ form.non_field_errors }}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
 
     <div class="mb-4">
       <label for="{{ form.title.id_for_label }}" class="form-label fw-semibold">
@@ -72,32 +77,32 @@
       {% if object and object.geo_maps_url %}
         <div class="mt-2 d-flex gap-2 flex-wrap">
           <a class="btn btn-sm btn-outline-primary" href="{{ object.geo_maps_url }}" target="_blank" rel="noopener">
-            Abrir no Google Maps {# Aqui o certo é buscar no Google Maps, certo? #}
+            Abrir no Google Maps
           </a>
         </div>
       {% endif %}
     </div>
 
-    {# Contexto do atendimento #}
-    {# Como posso implementar uso de IA nesse campo, com poucas informações que o usuário iserir, #}
-    {# a IA pode gerar um texto técnico formal sobre preservação de local #}
-    <div class="mb-4">
-      <label for="{{ form.service_context.id_for_label }}" class="form-label fw-semibold">
-        {{ form.service_context.label }}
-      </label>
+    {% if form.service_context %}
+      {% with field_name=form.service_context.name label=form.service_context.label value=form.service_context.value help_text=form.service_context.help_text rows=6 enable_ai=report.can_edit ai_kind="service_context" %}
+        {% include "report_maker/partials/text_block_editor.html" %}
+      {% endwith %}
+      {{ form.service_context.errors }}
+    {% endif %}
 
-    {% with field_name=form.service_context.name label=form.service_context.label value=form.service_context.value help_text=form.service_context.help_text rows=6 %}
-      {% include "report_maker/partials/text_block_editor.html" %}
-    {% endwith %}
+    {% if form.description %}
+      {% with field_name=form.description.name label=form.description.label value=form.description.value help_text=form.description.help_text rows=8 enable_ai=report.can_edit ai_kind="description" %}
+        {% include "report_maker/partials/text_block_editor.html" %}
+      {% endwith %}
+      {{ form.description.errors }}
+    {% endif %}
 
-
-    {% with field_name=form.description.name label=form.description.label value=form.description.value help_text=form.description.help_text rows=8 %}
-      {% include "report_maker/partials/text_block_editor.html" %}
-    {% endwith %}
-
-    {% with field_name=form.observed_elements.name label=form.observed_elements.label value=form.observed_elements.value help_text=form.observed_elements.help_text rows=12 %}
-      {% include "report_maker/partials/text_block_editor.html" %}
-    {% endwith %}
+    {% if form.observed_elements %}
+      {% with field_name=form.observed_elements.name label=form.observed_elements.label value=form.observed_elements.value help_text=form.observed_elements.help_text rows=12 enable_ai=report.can_edit ai_kind="observed_elements" %}
+        {% include "report_maker/partials/text_block_editor.html" %}
+      {% endwith %}
+      {{ form.observed_elements.errors }}
+    {% endif %}
 
     <div class="d-flex justify-content-end gap-2 mt-4">
       <a href="{% url 'report_maker:reportcase_detail' report.pk %}" class="btn btn-outline-secondary">

@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block page_header %}
-  {% include 'headerbars/report_maker.html' %}
+  {% include "headerbars/report_maker.html" %}
 {% endblock %}
 
 {% block content %}
@@ -20,38 +20,61 @@
 
   <form method="post" novalidate>
     {% csrf_token %}
-    {{ form.non_field_errors }}
 
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    {# Campos comuns (não-markdown) #}
     {% for field in form %}
-
-      {% if field.name == "description" or field.name == "methodology" or field.name == "examination" or field.name == "results" %}
-        {% include "report_maker/partials/text_block_editor.html" with field_name=field.name label=field.label value=field.value help_text=field.help_text rows=8 %}
-
-      {% else %}
+      {% if field.name != "description" and field.name != "methodology" and field.name != "examination" and field.name != "results" %}
         <div class="mb-3">
-          <label for="{{ field.id_for_label }}" class="form-label">
-            {{ field.label }}
-          </label>
-
+          {{ field.label_tag }}
           {{ field }}
 
           {% if field.help_text %}
             <div class="form-text">{{ field.help_text }}</div>
           {% endif %}
 
-          {% for error in field.errors %}
-            <div class="invalid-feedback d-block">
-              {{ error }}
-            </div>
-          {% endfor %}
+          {{ field.errors }}
         </div>
       {% endif %}
-
     {% endfor %}
 
+    {# Blocos Markdown com editor + IA (padrão do template que funciona) #}
+
+    {% if form.description %}
+      {% with field_name=form.description.name label=form.description.label value=form.description.value rows=8 enable_ai=report.can_edit ai_kind="description" %}
+        {% include "report_maker/partials/text_block_editor.html" %}
+      {% endwith %}
+      {{ form.description.errors }}
+    {% endif %}
+
+    {% if form.methodology %}
+      {% with field_name=form.methodology.name label=form.methodology.label value=form.methodology.value rows=8 enable_ai=report.can_edit ai_kind="methodology" %}
+        {% include "report_maker/partials/text_block_editor.html" %}
+      {% endwith %}
+      {{ form.methodology.errors }}
+    {% endif %}
+
+    {% if form.examination %}
+      {% with field_name=form.examination.name label=form.examination.label value=form.examination.value rows=8 enable_ai=report.can_edit ai_kind="examination" %}
+        {% include "report_maker/partials/text_block_editor.html" %}
+      {% endwith %}
+      {{ form.examination.errors }}
+    {% endif %}
+
+    {% if form.results %}
+      {% with field_name=form.results.name label=form.results.label value=form.results.value rows=8 enable_ai=report.can_edit ai_kind="results" %}
+        {% include "report_maker/partials/text_block_editor.html" %}
+      {% endwith %}
+      {{ form.results.errors }}
+    {% endif %}
+
     <div class="d-flex justify-content-end gap-2 mt-4">
-      <a href="{{ request.META.HTTP_REFERER|default:'javascript:history.back()' }}"
-         class="btn btn-outline-secondary">
+      <a href="{{ request.META.HTTP_REFERER|default:'javascript:history.back()' }}" class="btn btn-outline-secondary">
         Cancelar
       </a>
       <button type="submit" class="btn btn-primary">
@@ -60,7 +83,7 @@
     </div>
   </form>
 
-  {# Agora aqui, chamamos o fragmento abaixo, que ter pk para ser exibido. A ideia é só permitir cadastro de imagens na edição e não na criação do objeto #}
+  {# Cadastro de imagens: o partial decide (ou a view decide) se mostra apenas quando existe pk #}
   {% include "report_maker/partials/images_block.html" %}
 
 </div>
