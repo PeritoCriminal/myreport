@@ -1,6 +1,6 @@
 {# report_maker/templates/report_maker/exam_cadaver_form.html #}
 
-{% extends "report_maker/base_report_maker.html" %}
+{% extends 'report_maker/base_report_maker.html' %}
 {% load static %}
 
 {% block title %}
@@ -12,135 +12,85 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4" style="max-width: 980px;">
+  <div class="container mt-4" style="max-width: 980px;">
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+      <div>
+        <h4 class="mb-1">
+          {% if object %}
+            {{ object.title|default:'Exame de cadáver' }}
+          {% else %}
+            Novo exame de cadáver
+          {% endif %}
+        </h4>
 
-  <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-    <div>
-      <h4 class="mb-1">
-        {% if object %}
-          {{ object.title|default:"Exame de cadáver" }}
-        {% else %}
-          Novo exame de cadáver
+        {% if object.description %}
+          <div class="text-muted small">{{ object.description|truncatechars:160 }}</div>
         {% endif %}
-      </h4>
+      </div>
 
-      {% if object.description %}
-        <div class="text-muted small">
-          {{ object.description|truncatechars:160 }}
-        </div>
-      {% endif %}
+      <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'report_maker:reportcase_detail' report.pk %}" class="btn btn-sm btn-outline-secondary">Voltar ao laudo</a>
+
+        {% if report.can_edit and object.pk %}
+          <a href="{% url 'report_maker:cadaver_delete' report.pk object.pk %}" class="btn btn-sm btn-outline-danger">Excluir</a>
+        {% endif %}
+      </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
-      <a
-        href="{% url 'report_maker:reportcase_detail' report.pk %}"
-        class="btn btn-sm btn-outline-secondary"
-      >
-        Voltar ao laudo
-      </a>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.non_field_errors }}
 
-      {% if report.can_edit and object.pk %}
-        <a
-          href="{% url 'report_maker:cadaver_delete' report.pk object.pk %}"
-          class="btn btn-sm btn-outline-danger"
-        >
-          Excluir
-        </a>
-      {% endif %}
-    </div>
+      <div class="row g-3">
+        <div class="col-12">{{ form.title.label_tag }}
+          {{ form.title }}</div>
+
+        <div class="col-12">{{ form.name.label_tag }}
+          {{ form.name }}</div>
+
+        <div class="col-12">{{ form.description.label_tag }}
+          {{ form.description }}</div>
+
+        <div class="col-12">{{ form.perinecroscopic_exam.label_tag }}
+          {{ form.perinecroscopic_exam }}</div>
+
+        <div class="col-12">{{ form.hypostasis.label_tag }}
+          {{ form.hypostasis }}</div>
+
+        <div class="col-12">{{ form.rigor.label_tag }}
+          {{ form.rigor }}</div>
+
+        <div class="col-12">{{ form.injuries.label_tag }}
+          {{ form.injuries }}</div>
+
+        <div class="col-12">{{ form.clothing.label_tag }}
+          {{ form.clothing }}</div>
+
+        <div class="col-12">{{ form.tattoos.label_tag }}
+          {{ form.tattoos }}</div>
+
+        <div class="col-12">{{ form.body_adornments.label_tag }}
+          {{ form.body_adornments }}</div>
+
+        <div class="col-12">{{ form.observations.label_tag }}
+          {{ form.observations }}</div>
+      </div>
+
+      <div class="mt-4 d-flex justify-content-end gap-2">
+        <a href="{% url 'report_maker:reportcase_detail' report.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+
+        <button type="submit" class="btn btn-primary">
+          {% if object %}
+            Salvar alterações
+          {% else %}
+            Criar exame
+          {% endif %}
+        </button>
+      </div>
+    </form>
+
+    {% if object.pk %}
+      {% include 'report_maker/partials/images_block.html' with obj=object report=report %}
+    {% endif %}
   </div>
-
-  <form method="post" novalidate>
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-
-    <div class="row g-3">
-
-      <div class="col-md-6">
-        {{ form.title.label_tag }}
-        {{ form.title }}
-        {{ form.title.errors }}
-      </div>
-
-      <div class="col-md-6">
-        {{ form.name.label_tag }}
-        {{ form.name }}
-        {{ form.name.errors }}
-      </div>
-
-      <div class="col-12">
-        {{ form.description.label_tag }}
-        {{ form.description }}
-        {{ form.description.errors }}
-      </div>
-
-      <div class="col-12">
-        {{ form.perinecroscopic_exam.label_tag }}
-        {{ form.perinecroscopic_exam }}
-        {{ form.perinecroscopic_exam.errors }}
-      </div>
-
-      <div class="col-md-6">
-        {{ form.hypostasis.label_tag }}
-        {{ form.hypostasis }}
-        {{ form.hypostasis.errors }}
-      </div>
-
-      <div class="col-md-6">
-        {{ form.rigor.label_tag }}
-        {{ form.rigor }}
-        {{ form.rigor.errors }}
-      </div>
-
-      <div class="col-12">
-        {{ form.injuries.label_tag }}
-        {{ form.injuries }}
-        {{ form.injuries.errors }}
-      </div>
-
-      <div class="col-12">
-        {{ form.clothing.label_tag }}
-        {{ form.clothing }}
-        {{ form.clothing.errors }}
-      </div>
-
-      <div class="col-md-6">
-        {{ form.tattoos.label_tag }}
-        {{ form.tattoos }}
-        {{ form.tattoos.errors }}
-      </div>
-
-      <div class="col-md-6">
-        {{ form.body_adornments.label_tag }}
-        {{ form.body_adornments }}
-        {{ form.body_adornments.errors }}
-      </div>
-
-      <div class="col-12">
-        {{ form.observations.label_tag }}
-        {{ form.observations }}
-        {{ form.observations.errors }}
-      </div>
-
-    </div>
-
-    <div class="mt-4 d-flex justify-content-end gap-2">
-      <a
-        href="{% url 'report_maker:reportcase_detail' report.pk %}"
-        class="btn btn-outline-secondary"
-      >
-        Cancelar
-      </a>
-
-      <button type="submit" class="btn btn-primary">
-        {% if object %}Salvar alterações{% else %}Criar exame{% endif %}
-      </button>
-    </div>
-  </form>
-
-  {% if object.pk %}
-    {% include "report_maker/partials/images_block.html" with obj=object report=report %}
-  {% endif %}
-
-</div>
 {% endblock %}
