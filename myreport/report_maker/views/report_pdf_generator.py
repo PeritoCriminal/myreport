@@ -1,6 +1,8 @@
 # report_maker/views/report_pdf_generator.py
 from __future__ import annotations
 
+import re
+
 import mimetypes
 from collections import defaultdict
 from dataclasses import asdict
@@ -349,7 +351,17 @@ def reportPDFGenerator(request, pk):
         url_fetcher=django_url_fetcher,
     ).write_pdf(stylesheets=[CSS(filename=css_path)])
 
-    filename = f"laudo_{report.report_number}".replace("/", "-").replace(".", "_")
+    def normalize(value: str) -> str:
+        # substitui / por _
+        value = value.replace("/", "_")
+        # remove tudo que não seja letra, número ou _
+        value = re.sub(r"[^a-zA-Z0-9_]", "", value)
+        return value.lower()
+
+    number_part = normalize(report.report_number)
+    type_part = normalize(report.criminal_typification)
+
+    filename = f"{number_part}${type_part}"
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
     resp["Content-Disposition"] = f'attachment; filename="{filename}.pdf"'

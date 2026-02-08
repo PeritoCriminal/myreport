@@ -188,7 +188,7 @@ class ReportCase(models.Model):
     police_inquiry = models.CharField("Inquérito policial", max_length=60, blank=True)
     police_station = models.CharField("Distrito policial", max_length=120, blank=True)
     criminal_typification = models.CharField(
-        "Tipificação penal",
+        "Tipificação penal / Ocorrência",
         max_length=80,
         blank=True,
         help_text="Ex.: furto, roubo, homicídio, latrocínio",
@@ -351,7 +351,7 @@ class ReportCase(models.Model):
                     {"label": "Inquérito policial", "value": self.police_inquiry},
                     {"label": "Distrito policial", "value": self.police_station},
                     {"label": "Boletim de ocorrência", "value": self.police_report},
-                    {"label": "Tipificação penal", "value": self.criminal_typification},
+                    {"label": "Tipificação penal / Ocorrência", "value": self.criminal_typification},
                     {"label": "Data e hora da ocorrência", "value": self.occurrence_datetime},
                 ],
             },
