@@ -1,3 +1,5 @@
+{# path: myreport/report_maker/templates/report_maker/exam_object_form.html #}
+
 {% extends "report_maker/base_report_maker.html" %}
 {% load static %}
 
@@ -9,13 +11,20 @@
   {% include "headerbars/report_maker.html" %}
 {% endblock %}
 
-{% block content %}
+{% block report_maker_content %}
 <div class="container mt-4" style="max-width: 900px;">
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">
       {% if obj %}Editar objeto de exame{% else %}Novo objeto de exame{% endif %}
     </h4>
+
+    <a
+      href="{% url 'report_maker:reportcase_detail' report.pk %}"
+      class="btn btn-sm btn-outline-secondary"
+    >
+      Voltar ao laudo
+    </a>
   </div>
 
   <form method="post" novalidate>
@@ -30,61 +39,67 @@
     {# Campos comuns (não-markdown) #}
     {% for field in form %}
       {% if field.name != "description" and field.name != "methodology" and field.name != "examination" and field.name != "results" %}
-        <div class="mb-3">
-          {{ field.label_tag }}
+        <div class="mb-4">
+          <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+            {{ field.label }}
+          </label>
+
           {{ field }}
 
           {% if field.help_text %}
             <div class="form-text">{{ field.help_text }}</div>
           {% endif %}
 
-          {{ field.errors }}
+          {% for error in field.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
         </div>
       {% endif %}
     {% endfor %}
 
-    {# Blocos Markdown com editor + IA (padrão do template que funciona) #}
+    {# Blocos Markdown com editor + IA (padrão) #}
 
     {% if form.description %}
-      {% with field_name=form.description.name label=form.description.label value=form.description.value rows=8 enable_ai=report.can_edit ai_kind="description" %}
+      {% with field_name=form.description.name label=form.description.label value=form.description.value help_text=form.description.help_text rows=8 enable_ai=report.can_edit ai_kind="description" %}
         {% include "report_maker/partials/text_block_editor.html" %}
       {% endwith %}
       {{ form.description.errors }}
     {% endif %}
 
     {% if form.methodology %}
-      {% with field_name=form.methodology.name label=form.methodology.label value=form.methodology.value rows=8 enable_ai=report.can_edit ai_kind="methodology" %}
+      {% with field_name=form.methodology.name label=form.methodology.label value=form.methodology.value help_text=form.methodology.help_text rows=8 enable_ai=report.can_edit ai_kind="methodology" %}
         {% include "report_maker/partials/text_block_editor.html" %}
       {% endwith %}
       {{ form.methodology.errors }}
     {% endif %}
 
     {% if form.examination %}
-      {% with field_name=form.examination.name label=form.examination.label value=form.examination.value rows=8 enable_ai=report.can_edit ai_kind="examination" %}
+      {% with field_name=form.examination.name label=form.examination.label value=form.examination.value help_text=form.examination.help_text rows=8 enable_ai=report.can_edit ai_kind="examination" %}
         {% include "report_maker/partials/text_block_editor.html" %}
       {% endwith %}
       {{ form.examination.errors }}
     {% endif %}
 
     {% if form.results %}
-      {% with field_name=form.results.name label=form.results.label value=form.results.value rows=8 enable_ai=report.can_edit ai_kind="results" %}
+      {% with field_name=form.results.name label=form.results.label value=form.results.value help_text=form.results.help_text rows=8 enable_ai=report.can_edit ai_kind="results" %}
         {% include "report_maker/partials/text_block_editor.html" %}
       {% endwith %}
       {{ form.results.errors }}
     {% endif %}
 
     <div class="d-flex justify-content-end gap-2 mt-4">
-      <a href="{{ request.META.HTTP_REFERER|default:'javascript:history.back()' }}" class="btn btn-outline-secondary">
+      <a href="{% url 'report_maker:reportcase_detail' report.pk %}" class="btn btn-outline-secondary">
         Cancelar
       </a>
+
       <button type="submit" class="btn btn-primary">
         Salvar
       </button>
     </div>
   </form>
 
-  {# Cadastro de imagens: o partial decide (ou a view decide) se mostra apenas quando existe pk #}
-  {% include "report_maker/partials/images_block.html" %}
+  {# Imagens vinculadas ao objeto (só renderiza se obj.pk, conforme seu fragmento) #}
+  {% include "report_maker/partials/images_block.html" with can_edit=report.can_edit %}
 
 </div>
 {% endblock %}
