@@ -73,5 +73,14 @@
 
   </form>
 
+  {# Imagens vinculadas ao objeto (só renderiza se obj.pk, conforme seu fragmento) #}
+  {% include "report_maker/partials/images_block.html" with can_edit=report.can_edit %}
+
 </div>
 {% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'report_maker/js/markdown_editor.js' %}"></script>
+{% endblock %}
+

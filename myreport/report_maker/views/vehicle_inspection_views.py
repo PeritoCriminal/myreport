@@ -10,8 +10,13 @@ from common.mixins import BootstrapFormMixin, BootstrapFormViewMixin
 from report_maker.forms.vehicle_inspection import VehicleInspectionExamObjectForm
 from report_maker.models import ReportCase
 from report_maker.models.exam_vehicle_inspection import VehicleInspectionExamObject
-from report_maker.views.mixins import CanEditReportRequiredMixin, ReportCaseContextMixin, ReportCaseObjectGuardMixin
 
+from report_maker.views.mixins import (
+    CanEditReportRequiredMixin,
+    ReportCaseContextMixin,
+    ReportCaseObjectGuardMixin,
+    ExamObjectImagesContextMixin,
+)
 
 class VehicleInspectionExamObjectOwnedQuerySetMixin:
     """
@@ -35,6 +40,7 @@ class VehicleInspectionExamObjectOwnedQuerySetMixin:
 class VehicleInspectionCreateView(
     CanEditReportRequiredMixin,
     ReportCaseContextMixin,
+    ExamObjectImagesContextMixin,
     BootstrapFormViewMixin,
     CreateView,
 ):
@@ -53,6 +59,7 @@ class VehicleInspectionCreateView(
     # injeta classes Bootstrap no form
     form_base_class = BootstrapFormMixin
     mode = "create"
+    context_object_name = "obj"
 
     def form_valid(self, form):
         """
@@ -71,6 +78,7 @@ class VehicleInspectionUpdateView(
     ReportCaseObjectGuardMixin,
     VehicleInspectionExamObjectOwnedQuerySetMixin,
     ReportCaseContextMixin,
+    ExamObjectImagesContextMixin,
     BootstrapFormViewMixin,
     UpdateView,
 ):
@@ -85,6 +93,7 @@ class VehicleInspectionUpdateView(
     model = VehicleInspectionExamObject
     form_class = VehicleInspectionExamObjectForm
     template_name = "report_maker/vehicle_inspection_form.html"
+    context_object_name = "obj"
 
     form_base_class = BootstrapFormMixin
     pk_url_kwarg = "pk"
