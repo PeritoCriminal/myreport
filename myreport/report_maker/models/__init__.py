@@ -8,3 +8,4 @@ from .images import ObjectImage
 from .report_text_block import ReportTextBlock
 from .exam_vehicle_inspection import VehicleInspectionExamObject
 from .exam_generic_location import GenericLocationExamObject
+from .exam_cadaver import CadaverExamObject

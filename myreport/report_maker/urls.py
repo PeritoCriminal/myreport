@@ -52,6 +52,12 @@ from report_maker.views.images import (
     images_reorder,
 )
 
+from report_maker.views.exam_cadaver import (
+    CadaverExamObjectCreateView,
+    CadaverExamObjectUpdateView,
+    CadaverExamObjectDeleteView,
+)
+
 # ─────────────────────────────────────
 # Textos do laudo (ReportTextBlock)
 # ─────────────────────────────────────
@@ -211,6 +217,26 @@ urlpatterns = [
         VehicleInspectionDeleteView.as_view(),
         name="vehicle_inspection_delete",
     ),
+
+    # ─────────────────────────────────────
+    # Objetos de exame (Cadáver)
+    # ─────────────────────────────────────
+    path(
+        "reports/<uuid:report_pk>/objects/cadaver/create/",
+        CadaverExamObjectCreateView.as_view(),
+        name="cadaver_create",
+    ),
+    path(
+        "reports/<uuid:report_pk>/objects/cadaver/<uuid:pk>/edit/",
+        CadaverExamObjectUpdateView.as_view(),
+        name="cadaver_update",
+    ),
+    path(
+        "reports/<uuid:report_pk>/objects/cadaver/<uuid:pk>/delete/",
+        CadaverExamObjectDeleteView.as_view(),
+        name="cadaver_delete",
+    ),
+
 
     # ─────────────────────────────────────
     # Reorder GLOBAL de objetos (ExamObject)

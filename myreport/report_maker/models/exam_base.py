@@ -252,7 +252,8 @@ class ExamObject(models.Model):
             "vehicleinspectionexamobject",
             "genericexamobject",
             "genericlocationexamobject",
-            # "cadaverexamobject",  # inclua quando criar
+            "cadaverexamobject",
+            # "novos_elementos",  # incluir quando criar novos models.
         ):
             if hasattr(self, rel):
                 return getattr(self, rel)

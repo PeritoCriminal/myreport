@@ -80,5 +80,15 @@ class ExamObjectDashboardView(
                 ),
                 "enabled": report.can_edit,
             },
+            {
+                "title": "Exame de cadáver",
+                "description": "Descrição perinecroscópica, posição, hipóstases, rigidez, lesões, indumentária e sinais individuais.",
+                "icon": "bi-person",
+                "url": reverse(
+                    "report_maker:cadaver_create",
+                    kwargs={"report_pk": report.pk},
+                ),
+                "enabled": report.can_edit,
+            },
         ]
         return context

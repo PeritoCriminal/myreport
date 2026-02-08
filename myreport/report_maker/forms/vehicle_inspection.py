@@ -9,9 +9,9 @@ class VehicleInspectionExamObjectForm(forms.ModelForm):
         model = VehicleInspectionExamObject
         fields = (
             "title",
-            "description",
             "methodology_kind",
             "methodology",
+            "description",
             "observed_elements",
             "operational_tests",
             "tire_conditions",

@@ -46,7 +46,7 @@ class VehicleInspectionExamObject(HasMethodologyMixin, HasObservedElementsMixin,
     )
 
     optional_notes = models.TextField(
-        "Texto opcional",
+        "Observações",
         blank=True,
         help_text="Campo livre para consignações técnicas pontuais relacionadas ao exame.",
     )
@@ -69,7 +69,7 @@ class VehicleInspectionExamObject(HasMethodologyMixin, HasObservedElementsMixin,
             {"kind": "section_field", "label": "Elementos observados", "field": "observed_elements", "fmt": "text"},
             {"kind": "section_field", "label": "Testes operacionais", "field": "operational_tests", "fmt": "text"},
             {"kind": "section_field", "label": "Condições dos pneus", "field": "tire_conditions", "fmt": "text"},
-            {"kind": "section_field", "label": "Texto opcional", "field": "optional_notes", "fmt": "text"},
+            {"kind": "section_field", "label": "Observações", "field": "optional_notes", "fmt": "text"},
         ]
 
     def __str__(self) -> str:
