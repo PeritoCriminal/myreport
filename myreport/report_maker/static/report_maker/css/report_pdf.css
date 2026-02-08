@@ -73,7 +73,8 @@ li {
 
 /* Também ajuda em blocos de seção */
 .report-section {
-  break-inside: avoid;
+  break-inside: auto;
+  margin: 0 0 10pt 0;
 }
 
 /* ===========================
@@ -190,9 +191,6 @@ li {
    CONTEÚDO
    =========================== */
 
-.report-section {
-  margin: 0 0 10pt 0;
-}
 
 /* Parágrafos (inclui markdown renderizado) */
 p {
@@ -348,4 +346,62 @@ a {
   word-break: break-all;
   overflow-wrap: anywhere;
   word-wrap: break-word;
+}
+
+/* ===========================
+   GEO (QR + LINK sem quebrar página)
+   =========================== */
+
+.geo-block,
+.geo-table,
+.geo-table tr,
+.geo-table td {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* se não couber no fim da página, joga o bloco inteiro para a próxima */
+.geo-block {
+  break-before: auto;
+  page-break-before: auto;
+}
+
+.geo-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.geo-qr {
+  width: 34mm;
+  padding-right: 8pt;
+
+  /* ✅ centraliza o QR na altura total da “linha” */
+  vertical-align: middle;
+  text-align: center;
+}
+
+.geo-qr-img {
+  width: 30mm;
+  height: 30mm;
+  object-fit: contain;
+  display: inline-block;
+}
+
+.geo-link {
+  vertical-align: top;
+}
+
+.geo-link-title {
+  font-weight: 700;
+  margin: 0 0 2pt 0;
+}
+
+.geo-link-url {
+  display: block;
+  text-decoration: underline;
+
+  /* ✅ deixa o link “crescer para baixo” sem estourar margem */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }

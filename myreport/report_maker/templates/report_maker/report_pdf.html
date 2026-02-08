@@ -59,9 +59,7 @@
 
     {% comment %}RODAPÉ (running){% endcomment %}
     <footer class="footer-running">
-      <div class="footer-meta">
-        Laudo {{ report.report_number }} | Boletim {{ report.police_report }} - {{ report.police_station }}
-      </div>
+      <div class="footer-meta">Laudo {{ report.report_number }} | Boletim {{ report.police_report }} - {{ report.police_station }}</div>
       <div class="footer-page">
         <span class="page-count"></span>
       </div>
@@ -78,7 +76,6 @@
     {# Conteúdo (outline único, já numerado) #}
     {% if outline %}
       {% for g in outline %}
-
         {# Cabeçalho de grupo apenas quando existir label #}
         {% if g.number and g.group_label %}
           <section class="report-section group-block">
@@ -101,26 +98,27 @@
                 <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
               {% endif %}
 
-              {% if s.kind == "geo_location" %}
-                <div class="mb-2">
-                  {% if s.maps_url %}
-                    <div class="mb-2">
-                      <span class="fw-semibold">Acesso via Google Maps:</span>
-                      <a href="{{ s.maps_url }}" target="_blank" rel="noopener"
-                        class="text-decoration-underline">
-                        {{ s.maps_url }}
-                      </a>
-                    </div>
-                  {% endif %}
-                  {% if s.qr_data_uri %}
-                    <div class="mt-2">
-                      <img src="{{ s.qr_data_uri }}" alt="QR Code Google Maps"
-                          style="width: 120px; height: 120px;" />
-                    </div>
-                  {% endif %}
-                </div>
-                <div class="mb-2">Coordenadas: {{ s.text|linebreaksbr }}</div>
+              {% if s.kind == 'geo_location' %}
+                <div class="mb-2 geo-block">
+                  <table class="geo-table">
+                    <tr>
+                      <td class="geo-qr">
+                        {% if s.qr_data_uri %}
+                          <img src="{{ s.qr_data_uri }}" alt="QR Code Google Maps" class="geo-qr-img" />
+                        {% endif %}
+                      </td>
 
+                      <td class="geo-link">
+                        {% if s.maps_url %}
+                          <div class="geo-link-title">Acesso via Google Maps:</div>
+                          <a href="{{ s.maps_url }}" target="_blank" rel="noopener" class="geo-link-url">{{ s.maps_url }}</a>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div class="mb-2">Coordenadas: {{ s.text|linebreaksbr }}</div>
               {% elif s.fmt == 'kv' %}
                 <div class="mb-2">{{ s.text|linebreaksbr }}</div>
               {% else %}
@@ -135,7 +133,8 @@
                   <figure class="report-figure">
                     <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
                     <figcaption>
-                      {{ it.figure_label }}{% if it.img.caption %} — {{ it.img.caption }}{% endif %}
+                      {{ it.figure_label }}{% if it.img.caption %} - {{ it.img.caption }}
+                      {% endif %}
                     </figcaption>
                   </figure>
                 {% endfor %}
@@ -175,7 +174,9 @@
     {# alinhar a direita e manter um espaçamento maior antes da linha acima #}
     {# podemos usar o css que já temos para isso? #}
     <div class="report-signature mt-5 text-end">
-      <div><strong>{{ report.report_signature_block.name }}</strong></div>
+      <div>
+        <strong>{{ report.report_signature_block.name }}</strong>
+      </div>
       <div>{{ report.report_signature_block.role }}</div>
     </div>
   </body>
