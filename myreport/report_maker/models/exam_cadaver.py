@@ -92,6 +92,7 @@ class CadaverExamObject(ExamObject):
         return [
             {"kind": "section_field", "label": "Nome", "field": "name", "fmt": "text"},
             {"kind": "section_field", "label": "Descrição", "field": "description", "fmt": "text"},
+            {"kind": "section_field", "label": "Exame perinecroscópico", "field": "perinecroscopic_exam", "fmt": "text"},
             {"kind": "section_field", "label": "Indumentária", "field": "clothing", "fmt": "text"},
             {"kind": "section_field", "label": "Tatuagens", "field": "tattoos", "fmt": "text"},
             {"kind": "section_field", "label": "Adornos fixados ao corpo", "field": "body_adornments", "fmt": "text"},
