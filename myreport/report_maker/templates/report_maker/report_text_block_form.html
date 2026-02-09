@@ -1,3 +1,5 @@
+{# path: myreport/report_maker/templates/report_maker/report_textblock_form.html #}
+
 {% extends "report_maker/base_report_maker.html" %}
 {% load static %}
 
@@ -10,73 +12,89 @@
 {% endblock %}
 
 {% block page_header %}
-  {% include 'headerbars/report_maker.html' %}
+  {% include "headerbars/report_maker.html" %}
 {% endblock %}
 
-{% block content %}
-  <div class="container mt-4" style="max-width: 980px;">
-    <div class="mb-4">
-      <div class="d-flex align-items-start justify-content-between gap-3">
-        <div>
-          <h4 class="mb-1">
-            {% if object %}
-              Editar {{ group_label|default:placement_label|default:'texto do laudo' }}
-            {% else %}
-              Novo {{ group_label|default:placement_label|default:'texto do laudo' }}
-            {% endif %}
-          </h4>
+{% block report_maker_content %}
+<div class="container mt-4" style="max-width: 980px;">
 
-          <div class="text-muted small">Laudo nº {{ report.report_number }}</div>
+  <div class="mb-4">
+    <div class="d-flex align-items-start justify-content-between gap-3">
+      <div>
+        <h4 class="mb-1">
+          {% if object %}
+            Editar {{ group_label|default:placement_label|default:"texto do laudo" }}
+          {% else %}
+            Novo {{ group_label|default:placement_label|default:"texto do laudo" }}
+          {% endif %}
+        </h4>
+
+        <div class="text-muted small">Laudo nº {{ report.report_number }}</div>
+      </div>
+
+      {# Contexto do texto (placement / grupo) #}
+      {% if placement_label %}
+        <div class="text-end">
+          <span class="badge text-bg-secondary">{{ placement_label }}</span>
+
+          {% if group_label %}
+            <span class="badge text-bg-light border">{{ group_label }}</span>
+          {% endif %}
         </div>
+      {% endif %}
+    </div>
+  </div>
 
-        {# Contexto do texto (placement / grupo) #}
-        {% if placement_label %}
-          <div class="text-end">
-            <span class="badge text-bg-secondary">{{ placement_label }}</span>
+  <form method="post" novalidate>
+    {% csrf_token %}
 
-            {% if group_label %}
-              <span class="badge text-bg-light border">{{ group_label }}</span>
-            {% endif %}
-          </div>
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    {# Campos estruturais NÃO editáveis pelo usuário #}
+    {% if form.placement %}
+      {{ form.placement.as_hidden }}
+      {{ form.placement.errors }}
+    {% endif %}
+
+    {% if form.group_key %}
+      {{ form.group_key.as_hidden }}
+      {{ form.group_key.errors }}
+    {% endif %}
+
+    {% if form.body %}
+      {% with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind="generic" %}
+        {% include "report_maker/partials/text_block_editor.html" %}
+      {% endwith %}
+      {{ form.body.errors }}
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+      <a href="{{ cancel_url }}" class="btn btn-outline-secondary">
+        Cancelar
+      </a>
+
+      <div class="d-flex gap-2">
+        {% if object %}
+          <a href="{% url 'report_maker:textblock_delete' report.pk object.pk %}" class="btn btn-outline-danger">
+            Excluir
+          </a>
         {% endif %}
+
+        <button type="submit" class="btn btn-primary">
+          Salvar texto
+        </button>
       </div>
     </div>
+  </form>
 
-    <form method="post" novalidate>
-      {% csrf_token %}
+</div>
+{% endblock %}
 
-      {% if form.non_field_errors %}
-        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-      {% endif %}
-
-      {# Campos estruturais NÃO editáveis pelo usuário #}
-      {% if form.placement %}
-        {{ form.placement.as_hidden }}
-        {{ form.placement.errors }}
-      {% endif %}
-
-      {% if form.group_key %}
-        {{ form.group_key.as_hidden }}
-        {{ form.group_key.errors }}
-      {% endif %}
-
-      <div class="row">
-        <div class="col-12">
-          {% include 'report_maker/partials/text_block_editor.html' with field_name='body' value=form.body.value required=True rows=10 %}{{ form.body.errors }}
-        </div>
-      </div>
-
-      <div class="d-flex justify-content-between align-items-center mt-4">
-        <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancelar</a>
-
-        <div class="d-flex gap-2">
-          {% if object %}
-            <a href="{% url 'report_maker:textblock_delete' report.pk object.pk %}" class="btn btn-outline-danger">Excluir</a>
-          {% endif %}
-
-          <button type="submit" class="btn btn-primary">Salvar texto</button>
-        </div>
-      </div>
-    </form>
-  </div>
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'report_maker/js/markdown_editor.js' %}"></script>
 {% endblock %}
