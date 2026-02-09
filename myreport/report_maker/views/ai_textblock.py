@@ -12,53 +12,54 @@ from openai import RateLimitError, APIError, AuthenticationError
 
 # Regras permanentes de estilo (vale para todos os tipos)
 SYSTEM_STYLE = (
-    "Você redige texto técnico pericial no contexto brasileiro. "
-    "Utilize sempre o passado simples. "
-    "Empregue linguagem objetiva, técnica e assertiva. "
-    "Evite termos subjetivos como 'aparentemente', 'possivelmente' e 'provavelmente'. "
-    "Não invente dados; utilize apenas o que estiver explicitamente nas anotações."
+    "Você redige textos técnicos periciais no contexto brasileiro. "
+    "Adote um tom assertivo e impessoal (voz passiva com 'se'). "
+    "Diferencie 'estado' (pretérito imperfeito: apresentava, estava) de 'ocorrência' (pretérito perfeito: verificou-se, constatou-se). "
+    "Seja preciso, mas evite uma redação excessivamente truncada; o texto deve ter coesão e fluidez. "
+    "Não utilize termos subjetivos nem invente dados."
 )
 
 # O que escrever (varia por campo)
 KIND_PROMPTS = {
     "service_context": (
-        "Redija o Contexto do Atendimento Pericial preferencialmente em tópicos, evitando parágrafo corrido, "
-        "Inicie, quando couber, com uma frase curta introdutória que funcione como cabeçalho do campo (ex.: 'Local preservado por equipe da Polícia Militar Rodoviária.'). "
-        "Sempre que possível, utilize lista não numerada em Markdown, adotando o formato chave: valor, com a chave em negrito e o valor sem negrito, separados por dois pontos (ex.: Encarregado: Cabo PM Fulano). "
-        "O texto deve ser preferencialmente atemporal. Quando for necessário empregar tempo verbal:"
-        "ao descrever preservação, isolamento ou controle do local por policiais, utilize pretérito imperfeito, indicando ação contínua durante o período do exame;"
-        "para comparecimento, acompanhamento, recepção da equipe ou demais ações concluídas, utilize pretérito perfeito."
-        "Caso o atendimento tenha ocorrido de forma agendada, descreva objetivamente quem recebeu a equipe pericial, informando o nome e a função declarada (ex.: morador, supervisor, funcionário), mencionando que indicou o local do exame e acompanhou o trabalho da perícia, quando constar nas anotações."
-        "Não inclua nenhuma informação que não esteja explicitamente nas anotações e não omita nenhuma informação presente nelas."
-        "Se as anotações forem extensas e estiverem relativamente bem redigidas, limite-se a corrigir erros gramaticais e de concordância, preservando o conteúdo, a ordem lógica e o sentido original do texto."
+        "Redija o Contexto do Atendimento priorizando tópicos (Markdown lista não numerada). "
+        "Estrutura: Inicie com frase curta sobre a preservação (ex.: 'Local preservado pela PM.'). "
+        "Formatação Chave-Valor: Use '**Chave**: valor' (ex.: '**Encarregado**: Cabo PM Fulano'). "
+        "Regras Verbais Rígidas: "
+        "1. Pretérito Imperfeito para estados/ações contínuas durante o exame (ex.: 'A equipe PM isolava o local'); "
+        "2. Pretérito Perfeito para fatos concluídos (ex.: 'O perito compareceu', 'A equipe foi recebida'). "
+        "Agendamentos: Descreva quem recebeu a equipe, nome e função, mencionando a indicação do local e o acompanhamento dos trabalhos."
     ),
     "description": (
-        "Redija 1 a 2 parágrafos curtos descrevendo tecnicamente o objeto/local do exame, de forma objetiva, "
-        "sem inferências e sem adjetivação desnecessária. "
-        "Não acrescente informações não contidas nas anotações."
+        "Descreva o objeto ou local em 1 ou 2 parágrafos técnicos. "
+        "Utilize o Pretérito Imperfeito para características estruturais (ex.: 'O imóvel possuía', 'A via apresentava') "
+        "e Pretérito Perfeito para alterações encontradas (ex.: 'O vidro foi quebrado'). "
+        "Mantenha foco estritamente visual e material, sem juízo de valor."
     ),
     "observed_elements": (
-        "Converta as anotações em uma lista numerada (Markdown), com itens curtos e objetivos, "
-        "mantendo apenas elementos efetivamente citados. "
-        "Não acrescente informações não contidas nas anotações."
+        "Descreva os elementos observados de forma organizada, escolhendo o formato que melhor se adapte à complexidade das anotações: "
+        "1. Para múltiplos itens isolados, utilize listas não numeradas (Markdown '- '); "
+        "2. Para elementos que possuam relação entre si ou exijam detalhamento de posição/dinâmica, utilize parágrafos descritivos. "
+        "Foque no substantivo e em sua condição técnica (ex.: 'Fragmentos de vidro incolor espalhados sobre o leito carroçável'). "
+        "Mantenha a ordem lógica das anotações, preservando a conexão entre os vestígios encontrados."
     ),
     "weather_conditions": (
-        "Redija um parágrafo curto descrevendo as condições ambientais/climáticas relevantes ao exame "
-        "(ex.: luminosidade, chuva, neblina, visibilidade), apenas se estiverem nas anotações. "
-        "Não invente informações."
+        "Descreva condições ambientais relevantes em parágrafo único. "
+        "Use o Pretérito Imperfeito (ex.: 'O céu estava encoberto', 'A visibilidade era reduzida'). "
+        "Se não houver dados nas anotações, responda 'Informação não constante nas anotações'."
     ),
     "road_conditions": (
-        "Redija um parágrafo curto descrevendo as condições de conservação da via/pavimento "
-        "(ex.: estado geral, irregularidades, contaminantes), apenas com base nas anotações. "
-        "Não invente informações."
+        "Descreva o estado da via/pavimento em parágrafo curto. "
+        "Diferencie estado (Imperfeito: 'O asfalto apresentava desgaste') de anomalias pontuais (Perfeito: 'Verificou-se mancha de óleo'). "
+        "Foque em conservação, aderência e irregularidades."
     ),
     "traffic_signage": (
-        "Redija um parágrafo curto descrevendo a sinalização viária, preferindo a estrutura 'incluindo: "
-        "– sinalização horizontal: ...; – sinalização vertical: ...'. "
-        "Use apenas o que constar nas anotações e não invente informações."
+        "Descreva a sinalização viária conforme a estrutura: "
+        "'A sinalização no trecho compreendia: – sinalização horizontal: [itens]; – sinalização vertical: [itens].' "
+        "Utilize termos técnicos do [Código de Trânsito Brasileiro (CTB)](https://www.planalto.gov.br)."
     ),
     "generic": (
-        "Redija um texto técnico curto e objetivo com base nas anotações, sem inferências e sem inventar dados."
+        "Redija texto técnico pericial curto. Use voz passiva, elimine pronomes desnecessários e mantenha o foco nos vestígios materiais."
     ),
 }
 
