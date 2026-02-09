@@ -98,8 +98,6 @@
                       <div class="d-flex gap-2 flex-shrink-0">
                         {% if obj_edit_url %}
                           <a class="btn btn-sm btn-outline-secondary" href="{{ obj_edit_url }}" title="Editar"><i class="bi bi-pencil"></i></a>
-                        {% else %}
-                          <h1>Não tem objt_edit_url</h1>
                         {% endif %}
 
                         {# IMPORTANT: usa o CONCRETO para montar a URL de image_add #}
@@ -109,8 +107,6 @@
 
                         {% if obj_delete_url %}
                           <a class="btn btn-sm btn-outline-danger" href="{{ obj_delete_url }}" title="Excluir"><i class="bi bi-trash"></i></a>
-                        {% else %}
-                          <h1>Não tem objt_delete_url</h1>
                         {% endif %}
                       </div>
                     {% endif %}

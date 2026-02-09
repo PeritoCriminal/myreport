@@ -17,6 +17,11 @@ class ReportTextBlock(models.Model):
     Cada bloco é identificado por um tipo (placement) e por uma chave de grupo
     (group_key). O título exibido no laudo não é persistido, sendo derivado
     dessas informações.
+
+    Convenções:
+    - group_key="__GLOBAL__" representa blocos globais do laudo.
+    - placement="HISTORIC" (histórico) é um bloco global, destinado a registrar
+      histórico/contexto do caso no corpo do laudo.
     """
 
     GLOBAL_GROUP_KEY = "__GLOBAL__"
@@ -25,6 +30,9 @@ class ReportTextBlock(models.Model):
         PREAMBLE = "PREAMBLE", "Preâmbulo"
         SUMMARY = "SUMMARY", "Resumo"
         TOC = "TOC", "Sumário"
+
+        # Bloco global (group_key="__GLOBAL__")
+        HISTORIC = "HISTORIC", "Histórico"
 
         OBJECT_GROUP_INTRO = "OBJECT_GROUP_INTRO", "Texto comum do grupo de objetos"
 
@@ -36,6 +44,7 @@ class ReportTextBlock(models.Model):
         Placement.PREAMBLE,
         Placement.SUMMARY,
         Placement.TOC,
+        Placement.HISTORIC,
         Placement.OBSERVATIONS,
         Placement.FINAL_CONSIDERATIONS,
         Placement.CONCLUSION,
@@ -45,6 +54,7 @@ class ReportTextBlock(models.Model):
         Placement.PREAMBLE: "PREÂMBULO",
         Placement.SUMMARY: "RESUMO",
         Placement.TOC: "SUMÁRIO",
+        Placement.HISTORIC: "HISTÓRICO",
         Placement.OBSERVATIONS: "OBSERVAÇÕES",
         Placement.FINAL_CONSIDERATIONS: "CONSIDERAÇÕES FINAIS",
         Placement.CONCLUSION: "CONCLUSÃO",
@@ -52,6 +62,7 @@ class ReportTextBlock(models.Model):
 
     NUMBERED_PLACEMENTS = {
         Placement.SUMMARY,
+        Placement.HISTORIC,
         Placement.OBSERVATIONS,
         Placement.FINAL_CONSIDERATIONS,
         Placement.CONCLUSION,
@@ -103,14 +114,17 @@ class ReportTextBlock(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["report_case", "placement"],
-                condition=Q(placement__in=[
-                    "PREAMBLE",
-                    "SUMMARY",
-                    "TOC",
-                    "OBSERVATIONS",
-                    "FINAL_CONSIDERATIONS",
-                    "CONCLUSION",
-                ]),
+                condition=Q(
+                    placement__in=[
+                        "PREAMBLE",
+                        "SUMMARY",
+                        "TOC",
+                        "HISTORIC",
+                        "OBSERVATIONS",
+                        "FINAL_CONSIDERATIONS",
+                        "CONCLUSION",
+                    ]
+                ),
                 name="uq_report_textblock_singleton_per_placement",
             ),
             models.UniqueConstraint(
@@ -154,12 +168,12 @@ class ReportTextBlock(models.Model):
                     "group_key obrigatório e não pode ser __GLOBAL__ para OBJECT_GROUP_INTRO."
                 )
         else:
+            # Todos os demais placements são globais
             self.group_key = self.GLOBAL_GROUP_KEY
 
         if not self.position:
             last_pos = (
-                self.__class__.objects
-                .filter(report_case=self.report_case)
+                self.__class__.objects.filter(report_case=self.report_case)
                 .aggregate(max_pos=Max("position"))
                 .get("max_pos")
             )
