@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Case, IntegerField, Value, When
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
@@ -25,48 +25,75 @@ def exam_objects_reorder(request, pk):
     - usuário precisa ter permissão efetiva para editar laudos (nível User);
     - o laudo precisa estar editável (ReportCase.can_edit).
 
+    Contrato do payload:
+    - Content-Type deve ser application/json;
+    - Body: {"items": [{"id": "<uuid>"}, ...]}
+    - "items" pode ser [] (aceito: no-op, ok=True).
+    - Cada item deve ser objeto (dict) contendo "id".
+
     Observação:
     - Aqui não usamos mixin (função-based view).
     - A regra de expiração permanece centralizada em User.can_edit_reports_effective.
     """
+
     # ✅ autorização (nível usuário: assinatura/validade/vínculo)
     if not request.user.can_edit_reports_effective:
         raise PermissionDenied("Acesso negado.")
 
-    try:
-        payload = json.loads(request.body.decode("utf-8") or "{}")
-    except Exception:
-        return HttpResponseBadRequest("JSON inválido")
-
-    items = payload.get("items") or []  # [{id}, ...]
-    raw_ids = [it.get("id") for it in items if it.get("id")]
-    if not raw_ids:
-        return JsonResponse({"ok": False, "error": "Lista vazia."}, status=400)
-
+    # ✅ autorização (nível laudo: autoria + estado do laudo) — deve vir ANTES da validação do payload
+    # (assim "laudo bloqueado" sempre retorna 403, mesmo que o front mande JSON ruim)
     report = get_object_or_404(
         ReportCase.objects.select_related("author"),
         pk=pk,
     )
 
-    # ✅ autorização (nível laudo: autoria + estado do laudo)
     if report.author_id != request.user.id:
         raise PermissionDenied("Acesso negado.")
     if not report.can_edit:
         raise PermissionDenied("Este laudo está bloqueado para edição.")
 
-    # normaliza para string e remove duplicados mantendo a ordem
+    # ✅ contrato: Content-Type JSON (aceita "application/json; charset=utf-8")
+    ctype = (request.content_type or "").split(";")[0].strip().lower()
+    if ctype != "application/json":
+        return JsonResponse({"ok": False, "error": "content_type_not_json"}, status=415)
+
+    # ✅ parse JSON
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("JSON inválido")
+
+    items = payload.get("items")
+    if items is None:
+        return JsonResponse({"ok": False, "error": "items_required"}, status=400)
+    if not isinstance(items, list):
+        return JsonResponse({"ok": False, "error": "items_must_be_list"}, status=400)
+
+    # ✅ aceita lista vazia (no-op)
+    if not items:
+        return JsonResponse({"ok": True, "updated": 0}, status=200)
+
+    # ✅ extrai ids com validação defensiva
+    raw_ids: list[str] = []
+    for it in items:
+        if not isinstance(it, dict):
+            return JsonResponse({"ok": False, "error": "items_must_be_objects"}, status=400)
+        _id = it.get("id")
+        if not _id:
+            return JsonResponse({"ok": False, "error": "item_id_required"}, status=400)
+        raw_ids.append(str(_id))
+
+    # normaliza e remove duplicados mantendo a ordem
     ids: list[str] = []
     seen: set[str] = set()
-    for _id in raw_ids:
-        s = str(_id)
+    for s in raw_ids:
         if s not in seen:
             seen.add(s)
             ids.append(s)
 
     # 1) Confere se todos IDs pertencem ao laudo e descobre o group_key real (inclui NULL)
     rows = list(
-        ExamObject.objects.filter(report_case=report, pk__in=ids)
-        .values_list("pk", "group_key")
+        ExamObject.objects.filter(report_case=report, pk__in=ids).values_list("pk", "group_key")
     )
     found_str = {str(pk) for pk, _gk in rows}
 
@@ -142,21 +169,16 @@ def exam_objects_reorder(request, pk):
 
     # Se por algum motivo algo ficou inconsistente
     if len(new_global_ids) != len(all_rows):
-        return JsonResponse(
-            {"ok": False, "error": "Falha ao reconstruir ordem global."},
-            status=500,
-        )
+        return JsonResponse({"ok": False, "error": "Falha ao reconstruir ordem global."}, status=500)
 
     # 5) Persiste com técnica do "bump" no LAUDO TODO (evita colisão do UniqueConstraint)
     bump = 10_000
 
     bump_cases = [
-        When(pk=obj_id, then=Value(bump + idx))
-        for idx, obj_id in enumerate(new_global_ids, start=1)
+        When(pk=obj_id, then=Value(bump + idx)) for idx, obj_id in enumerate(new_global_ids, start=1)
     ]
     final_cases = [
-        When(pk=obj_id, then=Value(idx))
-        for idx, obj_id in enumerate(new_global_ids, start=1)
+        When(pk=obj_id, then=Value(idx)) for idx, obj_id in enumerate(new_global_ids, start=1)
     ]
 
     with transaction.atomic():
@@ -167,4 +189,4 @@ def exam_objects_reorder(request, pk):
             order=Case(*final_cases, default=Value(0), output_field=IntegerField())
         )
 
-    return JsonResponse({"ok": True, "group_key": target_group_key})
+    return JsonResponse({"ok": True, "group_key": target_group_key, "updated": len(ids)}, status=200)
