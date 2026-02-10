@@ -1,4 +1,4 @@
-# report_maker/views/report_outline.py
+# myreport/report_maker/views/report_outline.py
 from __future__ import annotations
 
 import base64
@@ -10,13 +10,27 @@ from report_maker.models import ReportTextBlock
 from report_maker.models.exam_base import ExamObjectGroup
 
 
+def _with_dash(number: str) -> str:
+    """
+    Formata o prefixo numérico para exibição, inserindo " - " entre
+    a numeração e o texto quando houver numeração.
+
+    Ex.:
+      "4" -> "4 -"
+      "3.1.2" -> "3.1.2 -"
+      "" -> ""
+    """
+    number = (number or "").strip()
+    return f"{number} -" if number else ""
+
+
 @dataclass(frozen=True)
 class OutlineSection:
     """
     Sub-seção renderizável dentro de um objeto do laudo.
 
     Campos:
-    - number: numeração hierárquica (ex.: "3.1.2") ou "" quando omitida por regra editorial.
+    - number: numeração hierárquica (ex.: "3.1.2 -") ou "" quando omitida por regra editorial.
     - label:  rótulo da seção (ex.: "Elementos Observados") ou "" quando renderização “inline”.
     - text:   conteúdo textual da seção.
     - fmt:    formato do texto: "text" | "md" | "kv".
@@ -42,7 +56,7 @@ class OutlineObject:
     Um objeto do laudo (instância concreta de ExamObject ou similar), já pronto para render.
 
     Campos:
-    - number: numeração do objeto (ex.: "3.1" ou "4" quando não há cabeçalho de grupo).
+    - number: numeração do objeto (ex.: "3.1 -" ou "4 -" quando não há cabeçalho de grupo).
     - obj: instância concreta (usada no showpage para puxar imagens, ids, etc.).
     - title: título do objeto (derivado do field indicado por get_object_title_field()).
     - sections: lista de OutlineSection já filtradas e numeradas.
@@ -63,7 +77,7 @@ class OutlineGroup:
     - number != "" -> grupo com cabeçalho (objetos numerados como n_top.n_obj).
 
     Campos:
-    - number: numeração do cabeçalho do grupo (ex.: "3") ou "".
+    - number: numeração do cabeçalho do grupo (ex.: "3 -") ou "".
     - group_key: chave do grupo (enum ExamObjectGroup.value) ou "" para "sem grupo".
     - group_label: rótulo humano do grupo.
     - intro_text: texto introdutório do grupo (ReportTextBlock OBJECT_GROUP_INTRO), se existir.
@@ -126,7 +140,7 @@ def build_report_outline(
 
     Regras editoriais importantes:
     0) Blocos iniciais (prepend_blocks):
-       - viram entradas T1 (number="1", "2", "3"...), SEM subdivisões (sem "1.1").
+       - viram entradas T1 (number="1 -", "2 -", "3 -"...), SEM subdivisões (sem "1.1").
        - "Objetivo" só é renderizado se houver conteúdo.
     1) Agrupamento dos objetos:
        - group_key None/"" -> UNGROUPED (sem cabeçalho de grupo).
@@ -237,7 +251,7 @@ def build_report_outline(
                     intro_text="",
                     objects=[
                         OutlineObject(
-                            number=f"{n_top}",
+                            number=_with_dash(f"{n_top}"),
                             obj=report,
                             title=label,
                             sections=[
@@ -297,7 +311,7 @@ def build_report_outline(
             )
 
         intro_text = intro_by_group.get(group_key, "") if group_key != UNGROUPED else ""
-        group_number = f"{n_top}" if use_header else ""
+        group_number = _with_dash(f"{n_top}") if use_header else ""
 
         out_objs: list[OutlineObject] = []
         n_obj = 1
@@ -306,7 +320,8 @@ def build_report_outline(
             title_field = obj.get_object_title_field() if hasattr(obj, "get_object_title_field") else "title"
             title_value = (getattr(obj, title_field, "") or "").strip() or str(obj)
 
-            obj_number = f"{n_top}.{n_obj}" if use_header else f"{n_top}"
+            raw_obj_number = f"{n_top}.{n_obj}" if use_header else f"{n_top}"
+            obj_number = _with_dash(raw_obj_number)
 
             blocks = obj.get_render_blocks() if hasattr(obj, "get_render_blocks") else []
 
@@ -397,7 +412,8 @@ def build_report_outline(
                         )
                         continue
 
-                    sec_number = f"{n_top}.{n_obj}.{n_sec}" if use_header else f"{n_top}.{n_sec}"
+                    raw_sec_number = f"{n_top}.{n_obj}.{n_sec}" if use_header else f"{n_top}.{n_sec}"
+                    sec_number = _with_dash(raw_sec_number)
                     out_sections.append(
                         OutlineSection(
                             number=sec_number,

@@ -50,7 +50,8 @@
 
   async function handle(btn) {
     const url = btn.dataset.aiUrl;
-    const kind = btn.dataset.aiKind || "generic";
+    const kindRaw = btn.dataset.aiKind || "generic";
+    const kind = String(kindRaw).trim().toLowerCase() || "generic";
     const target = btn.dataset.aiTarget;
 
     const textarea = document.getElementById(target) || document.querySelector(`[name="${target}"]`);
