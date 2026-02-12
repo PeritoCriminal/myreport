@@ -1,4 +1,4 @@
-# myreport/report_maker/views/report_outline.py
+# path: myreport/report_maker/views/report_outline.py
 from __future__ import annotations
 
 import base64
