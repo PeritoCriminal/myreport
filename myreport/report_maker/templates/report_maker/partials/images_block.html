@@ -1,30 +1,53 @@
-{# myreport/report_maker/templates/report_maker/partials/images_block.html #}
+{# path: myreport/report_maker/templates/report_maker/partials/images_block.html #}
 
 {% if obj.pk %}
   <section class="mt-5" id="imagesBlock">
-    <div class="card border shadow-sm">
-      <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center py-2">
-        <h6 class="mb-0 fw-semibold">Imagens</h6>
 
-        {% if can_edit %}
-          <a href="{% url 'report_maker:image_add' obj.app_label obj.model_name obj.pk %}"
-             class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-image"></i> Adicionar imagem
-          </a>
-        {% endif %}
-      </div>
+    <div class="accordion" id="imagesAccordion">
 
-      <div class="card-body">
-        {% if images %}
-          <div class="row g-3">
-            {% for image in images %}
-              {% include 'report_maker/partials/image_card.html' with img=image report=report %}
-            {% endfor %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingImages">
+          <button class="accordion-button collapsed fw-semibold py-2"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapseImages"
+                  aria-expanded="false"
+                  aria-controls="collapseImages">
+            Imagens
+          </button>
+        </h2>
+
+        <div id="collapseImages"
+             class="accordion-collapse collapse"
+             aria-labelledby="headingImages"
+             data-bs-parent="#imagesAccordion">
+
+          <div class="accordion-body">
+
+            {% if can_edit %}
+              <div class="d-flex justify-content-end mb-3">
+                <a href="{% url 'report_maker:image_add' obj.app_label obj.model_name obj.pk %}"
+                   class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-image"></i> Adicionar imagem
+                </a>
+              </div>
+            {% endif %}
+
+            {% if images %}
+              <div class="row g-3">
+                {% for image in images %}
+                  {% include 'report_maker/partials/image_card.html' with img=image report=report %}
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-muted small">Nenhuma imagem cadastrada.</div>
+            {% endif %}
+
           </div>
-        {% else %}
-          <div class="text-muted small">Nenhuma imagem cadastrada.</div>
-        {% endif %}
+        </div>
       </div>
+
     </div>
+
   </section>
 {% endif %}
