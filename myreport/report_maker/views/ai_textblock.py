@@ -4,39 +4,51 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from openai import OpenAI, RateLimitError, APIError, AuthenticationError
+from openai import OpenAI
 
-
-# Regras permanentes de estilo (vale para todos os tipos)
 SYSTEM_STYLE = (
     "Você é um perito criminal redigindo laudos técnicos. "
     "Use tom assertivo, impessoal e linguagem culta brasileira. "
+    "Use preferencialmente passado simples. "
     "Diferencie 'estado' (imperfeito: estava) de 'ocorrência' (perfeito: verificou-se). "
-    "Não invente dados."
+    "NÃO acrescente informações que não estejam explicitamente contidas nas anotações. "
+    "Se faltar dado, omita — não presuma, não complete, não estime. "
 )
 
-# O que escrever (varia por campo)
 KIND_PROMPTS = {
-    "service_context": (
-        "Redija o Contexto do Atendimento em tópicos (Markdown). "
-        "Use '**Chave**: valor'. "
-        "Finalize com a linha: *(Contexto de Serviço - Texto gerado com auxílio de IA)*"
+    "historic": (
+        "Gere uma lista Markdown. Cada item: '- **DATA**: TEXTO'. "
+        "As datas são chaves; o histórico é o valor. "
+        "Converta datas para 'dd de mmm de aaaa'. "
+        "Se a data resultante ficar posterior à data atual, use o ano anterior. "
+        "Se a data não trouxer ano, considere o ano atual. "
+        "Não inclua fatos que não estejam explicitamente nas anotações. "
+        "Finalize com: *(Histórico - Texto gerado com auxílio de IA)*"
+    ),
+    "summary": (
+        "Redija um resumo executivo dos fatos. "
+        "Finalize com: *(Resumo - Texto gerado com auxílio de IA)*"
+    ),
+    "observations": (
+        "Redija observações técnicas colhidas na diligência. "
+        "Finalize com: *(Observações - Texto gerado com auxílio de IA)*"
+    ),
+    "conclusion": (
+        "Redija a conclusão pericial objetiva. "
+        "Finalize com: *(Conclusão - Texto gerado com auxílio de IA)*"
     ),
     "description": (
         "Descreva o objeto/local tecnicamente em 1 ou 2 parágrafos. "
-        "Finalize com a linha: *(Descrição - Texto gerado com auxílio de IA)*"
+        "Finalize com: *(Descrição - Texto gerado com auxílio de IA)*"
     ),
-    "historic": (
-        "Gere uma lista Markdown. Cada item: '- **DATA**: TEXTO'. "
-        "Converta datas para 'dd de mmm de aaaa'. "
-        "Importante: Após a lista, adicione uma linha em branco e obrigatoriamente o rodapé: "
-        "*(Histórico - Texto gerado com auxilio de IA)*"
+    "service_context": (
+        "Redija o Contexto do Atendimento em tópicos (Markdown). Use '**Chave**: valor'. "
+        "Finalize com: *(Contexto de Serviço - Texto gerado com auxílio de IA)*"
     ),
     "generic": (
-        "Redija texto técnico pericial curto. "
-        "Finalize com a linha: *(Texto gerado com auxílio de IA)*"
+        "Redija um texto técnico pericial curto. "
+        "Finalize com: *(Texto gerado com auxílio de IA)*"
     ),
-    # Adicione os demais conforme necessário, sempre repetindo a instrução do rodapé no final
 }
 
 @login_required
@@ -47,43 +59,48 @@ def ai_textblock_generate(request):
     except json.JSONDecodeError:
         return JsonResponse({"error": "invalid_json"}, status=400)
 
-    raw_kind = (payload.get("kind") or payload.get("placement") or "generic")
+    # 1. Captura o que vem do frontend (pode ser HISTORIC, Histórico, historic, etc)
+    raw_kind = str(payload.get("kind") or payload.get("placement") or "generic").strip()
     
-    # Mapeamento de normalização já existente
-    KIND_ALIASES = {
+    # 2. Mapeamento de sinônimos para garantir que tudo aponte para as chaves do KIND_PROMPTS
+    # Transformamos a busca em algo insensível a maiúsculas/minúsculas e acentos comuns
+    lookup = raw_kind.upper()
+    
+    MAP = {
         "HISTORIC": "historic",
-        "SERVICE_CONTEXT": "service_context",
+        "HISTÓRICO": "historic",
+        "SUMMARY": "summary",
+        "RESUMO": "summary",
+        "OBSERVATIONS": "observations",
+        "OBSERVAÇÕES": "observations",
+        "CONCLUSION": "conclusion",
+        "CONCLUSÃO": "conclusion",
         "DESCRIPTION": "description",
-        "GENERIC": "generic",
+        "DESCRIÇÃO": "description",
+        "SERVICE_CONTEXT": "service_context",
+        "CONTEXTO DO ATENDIMENTO": "service_context",
+        "RESULTS": "conclusion",
     }
-    
-    kind = KIND_ALIASES.get(str(raw_kind).upper(), str(raw_kind).lower())
-    notes = (payload.get("notes") or "").strip()
 
+    # Tenta achar no mapa, se não achar, usa o lower do que veio, se não, generic
+    target_key = MAP.get(lookup, raw_kind.lower())
+    instruction = KIND_PROMPTS.get(target_key, KIND_PROMPTS["generic"])
+
+    notes = (payload.get("notes") or "").strip()
     if not notes:
         return JsonResponse({"error": "notes_required"}, status=400)
-
-    instruction = KIND_PROMPTS.get(kind, KIND_PROMPTS["generic"])
 
     client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
     try:
-        # CORREÇÃO: gpt-5.2 não existe. Usando gpt-4o para maior aderência a instruções.
-        # CORREÇÃO: O método correto é chat.completions.create.
         resp = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": SYSTEM_STYLE},
                 {"role": "user", "content": f"Instrução: {instruction}\n\nAnotações:\n{notes}"},
             ],
-            temperature=0.2, # Mantém a resposta técnica e menos criativa
+            temperature=0.2,
         )
-        
-        generated_text = resp.choices[0].message.content.strip()
-        return JsonResponse({"text": generated_text})
-
-    except RateLimitError:
-        return JsonResponse({"error": "insufficient_quota"}, status=429)
+        return JsonResponse({"text": resp.choices[0].message.content.strip()})
     except Exception as e:
         return JsonResponse({"error": "api_error", "detail": str(e)}, status=500)
-

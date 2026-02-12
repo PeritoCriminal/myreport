@@ -14,8 +14,10 @@
 
   (NOVO — opcional)
   - enable_ai    (opcional)    → True/False
-  - ai_kind      (opcional)    → ex: "service_context", "description", "observed_elements", "generic"
-  - ai_url       (opcional)    → url do endpoint (se não vier, usa default via url tag)
+  - ai_kind      (opcional)    → Prioridade 1: Tipo específico (ex: "HISTORIC")
+                                 Prioridade 2: Se omitido, usa o field_name
+                                 Prioridade 3: Default "generic"
+  - ai_url       (opcional)    → url do endpoint
 {% endcomment %}
 
 <div class="mb-3 text-block-editor" data-text-block-editor>
@@ -28,10 +30,11 @@
       <button type="button"
               class="btn btn-sm btn-outline-primary"
               data-ai-generate
-              data-ai-kind="{{ ai_kind|default:'generic' }}"
+              {# AJUSTE AQUI: Tenta ai_kind, senão tenta o nome do campo, senão cai no generic #}
+              data-ai-kind="{{ ai_kind|default:field_name|default:'generic' }}"
               data-ai-target="{{ field_name }}"
               data-ai-url="{% if ai_url %}{{ ai_url }}{% else %}{% url 'report_maker:ai_textblock_generate' %}{% endif %}">
-        Gerar (IA)
+        <i class="bi bi-robot"></i> Gerar (IA)
       </button>
     {% endif %}
   </div>
