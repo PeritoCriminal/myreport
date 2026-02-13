@@ -69,7 +69,7 @@ class VehicleInspectionExamObject(HasMethodologyMixin, HasObservedElementsMixin,
             {"kind": "section_field", "label": "Elementos observados", "field": "observed_elements", "fmt": "text"},
             {"kind": "section_field", "label": "Testes operacionais", "field": "operational_tests", "fmt": "text"},
             {"kind": "section_field", "label": "Condições dos pneus", "field": "tire_conditions", "fmt": "text"},
-            {"kind": "section_field", "label": "Observações", "field": "optional_notes", "fmt": "text"},
+            {"kind": "section_field", "label": "Observações", "field": "observations", "fmt": "text"},
         ]
 
     def __str__(self) -> str:
