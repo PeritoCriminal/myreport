@@ -1,4 +1,5 @@
 {# myreport/accounts/templates/accounts/preferences_form.html #}
+
 {% extends "base.html" %}
 
 {% block title %}Preferências{% endblock %}
@@ -39,6 +40,15 @@
       <label class="form-label">{{ form.default_home.label }}</label>
       {{ form.default_home }}
       {{ form.default_home.errors }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">{{ form.closing_phrase.label }}</label>
+      {{ form.closing_phrase }}
+      {% if form.closing_phrase.help_text %}
+        <div class="form-text">{{ form.closing_phrase.help_text }}</div>
+      {% endif %}
+      {{ form.closing_phrase.errors }}
     </div>
 
     <div class="d-flex gap-2">

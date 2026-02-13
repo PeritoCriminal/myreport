@@ -170,9 +170,9 @@
         {% endfor %}
       </section>
     {% endif %}
-    <div class="mb-3">{{ report.report_closing }}</div>
-    {# alinhar a direita e manter um espaçamento maior antes da linha acima #}
-    {# podemos usar o css que já temos para isso? #}
+    <div class="mb-3">
+      {{ report.report_closing }}
+    </div>
     <div class="report-signature mt-5 text-end">
       <div>
         <strong>{{ report.report_signature_block.name }}</strong>

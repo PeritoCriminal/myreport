@@ -391,15 +391,29 @@ from .home_registry import get_allowed_home_choices, get_home_keys
 class UserPreferencesForm(BaseModelForm):
     class Meta:
         model = User
-        fields = ("theme", "default_home")
+        fields = ("theme", "default_home", "closing_phrase")
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        pref_user = user or self.instance
-        self.fields["default_home"].choices = get_allowed_home_choices(pref_user)
+
+        pref_user = user if user is not None else self.instance
+        if pref_user is None:
+            raise ValueError("UserPreferencesForm requires a user instance.")
+
+        self._allowed_home_choices = get_allowed_home_choices(pref_user)
+        self.fields["default_home"].choices = self._allowed_home_choices
 
     def clean_default_home(self):
         value = self.cleaned_data["default_home"]
-        if value not in get_home_keys():
+
+        allowed_keys = [key for key, _ in self._allowed_home_choices]
+
+        if value not in allowed_keys:
             raise ValidationError("Página inicial inválida para este usuário.")
+
         return value
+
+    def clean_closing_phrase(self):
+        value = self.cleaned_data.get("closing_phrase") or ""
+        return value.strip()
+

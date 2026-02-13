@@ -110,7 +110,15 @@ class ReportTextBlockCreateView(LoginRequiredMixin, ReportCaseContextMixin, Crea
             if group_key:
                 initial["group_key"] = group_key
 
+        # Injeta APENAS no create (GET) e apenas se o body estiver vazio
+        if placement == ReportTextBlock.Placement.CONCLUSION:
+            author = getattr(self.report_case, "author", None)
+            closing = (getattr(author, "closing_phrase", "") or "").strip()
+            if closing and not (initial.get("body") or "").strip():
+                initial["body"] = f"\n\n*{closing}*"
+
         return initial
+
 
     def get_form(self, form_class=None):
         """

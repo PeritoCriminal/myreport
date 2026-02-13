@@ -129,6 +129,12 @@ class User(AbstractUser):
         help_text="Página inicial padrão ao entrar no sistema.",
     )
 
+    closing_phrase = models.TextField(
+        "Frase de Fechamento",
+        blank=True,
+        default="Nada mais havendo a consignar, encerra-se o presente laudo."
+    )
+
     # ─────────────────────────────────────
     # Imagens
     # ─────────────────────────────────────
