@@ -1,6 +1,5 @@
 <!-- scale14.html -->
-<br />
-<div class="ruler-scale mb-2">
+<div class="rm-ruler mb-2" data-scale-wrap>
   <div class="ruler-line">
     <div class="tick major">
       <span class="tick-label">0</span>
@@ -65,6 +64,9 @@
 </div>
 
 <style>
+  .rm-ruler {
+    margin-top: 20px; /* ajuste aqui */
+  }
   .ruler-scale {
     max-width: 900px;
     margin: auto;
@@ -74,9 +76,8 @@
   .ruler-line {
     display: flex;
     align-items: flex-end;
-    height: -60px;
     position: relative;
-    border-top: 1px solid #000; /* linha de base agora em cima */
+    border-top: 1px solid #777; /* linha de base agora em cima */
   }
   
   .tick {
@@ -93,7 +94,7 @@
     transform: translateX(-50%);
     width: 1px;
     height: 14px;
-    background: #000;
+    background: #777;
   }
   
   .tick.minor::before {
@@ -104,7 +105,7 @@
     transform: translateX(-50%);
     width: 1px;
     height: 6px;
-    background: #000;
+    background: #777;
   }
   
   .tick-label {
@@ -113,6 +114,6 @@
     left: 50%;
     transform: translateX(-50%);
     font-size: 10px;
-    color: #000;
+    color: #777;
   }
 </style>
