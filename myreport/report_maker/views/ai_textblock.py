@@ -24,28 +24,80 @@ except Exception:  # pragma: no cover
 
 
 SYSTEM_STYLE = (
-    "Você é um perito criminal redigindo laudos técnicos. "
-    "Use tom assertivo, impessoal e linguagem culta brasileira. "
-    "Use preferencialmente passado simples. "
-    "NÃO acrescente informações que não estejam explicitamente contidas nas anotações. "
-    "Se faltar dado, omita — não presuma, não complete, não estime."
+    #   Vamos deixar esse trecho comentado até resolvermos o problema, e depois que estiver
+    #   rodando bem, aí instruimos a IA.
+    #"Você é um perito criminal redigindo laudos técnicos. "
+    #"Use tom assertivo, impessoal e linguagem culta brasileira. "
+    #"Use preferencialmente passado simples. "
+    #"NÃO acrescente informações que não estejam explicitamente contidas nas anotações. "
+    #"Se faltar dado, omita — não presuma, não complete, não estime."
+    #"Se o conteúdo for 'teste', retorne a string: conteúdo vazio."
 )
 
 KIND_PROMPTS: dict[str, str] = {
+    "preamble": (
+        "Se o conteúdo for 'teste', retorne a string: Prâmbulo."
+        # Retorna Genérico
+    ),
     "description": (
-        "Redija a descrição técnica (Markdown) com 1–2 parágrafos, objetiva e impessoal."
+        "Se o conteúdo for 'teste', retorne a string: Descrição."
+        # Retorna Descrição
     ),
     "methodology": (
-        "Redija a metodologia do exame (Markdown), em tópicos, objetiva e impessoal."
+        "Se o conteúdo for 'teste', retorne a string: Metodologia."
+        # Retorna metodologia
     ),
     "examination": (
-        "Redija o exame (Markdown), descrevendo apenas o que consta nas anotações."
+        "Se o conteúdo for 'teste', retorne a string: Exame."
+        # Retorna Exame
     ),
     "results": (
-        "Redija os resultados/conclusões parciais (Markdown) de forma objetiva."
+        "Se o conteúdo for 'teste', retorne a string: Resultado."
+        # Retorna Resultado
+    ),
+    "historic":(
+        "Se o conteúdo for 'teste', retorne a string: Histórico."
+        # Retorna Genérico
+    ),
+    "SUMMARY":(
+        "Se o conteúdo for 'teste', retorne a string: Sumário."
+        # Retorna Genérico?
+    ),
+    "observed_elements":(
+        "Se o conteúdo for 'teste', retorne a string: Elementos_observados."
+        # Retorna Elementos
+    ),
+    "operational_tests":(
+         "Se o conteúdo for 'teste', retorne a string: Testes_operacionais."
+         # Retorna Testes
+    ),
+    "tire_conditions":(
+        "Se o conteúdo for 'teste', retorne a string: Peneus."
+        # Retorna Penus
+    ),
+    "observation":(
+        "Se o conteúdo for 'teste', retorne a string: Observações."
+        # Retorna Observações
+    ),
+    "service_context":(
+        "Se o conteúdo for 'teste', retorne a string: Contexto_de_atendimento."
+        # Retorna Contexto
+    ),
+    "weather_conditions":(
+        "Se o conteúdo for 'teste', retorne a string: Clima_condições."
+        # Retorna Clima
+    ),
+    "road_conditions":(
+        "Se o conteúdo for 'teste', retorne a string: Via_condições."
+        # Retorna Via
+    ),
+    "traffic_signage":(
+        "Se o conteúdo for 'teste', retorne a string: Sinalização."
+        # Retorna Sinalização
     ),
     "generic": (
-        "Redija um texto técnico pericial curto (Markdown), baseado apenas nas anotações."
+        "Se o conteúdo for 'teste', retorne a string: Genérico."
+        # Retorna Genérico, e é aqui muitos caem por não estar mapeados, eu acho, e a IA não vai ficar boa se não tratarmos isso.
     ),
 }
 
