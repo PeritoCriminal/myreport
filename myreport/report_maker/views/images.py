@@ -165,6 +165,7 @@ class ObjectImageUpdateView(NextUrlMixin, _ImageAccessMixin, UpdateView):
         img = self.object
         ctx["initial_image_url"] = img.image.url if getattr(img, "image", None) else ""
 
+        # O objeto é acessado via GenericForeignKey
         report = img.content_object.report_case
         ctx["cancel_url"] = self.get_next_url() or reverse(
             "report_maker:reportcase_detail",
@@ -173,15 +174,25 @@ class ObjectImageUpdateView(NextUrlMixin, _ImageAccessMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        # garante que o index não seja alterado
+        # 1. Recupera o objeto atual para manter o index
         current = self.get_object()
         form.instance.index = current.index
+
+        # 2. Captura a largura enviada pelo JavaScript (campo oculto width_override)
+        width_override = self.request.POST.get('width_override')
+        if width_override:
+            try:
+                # Converte o valor (ex: "1142.85") para inteiro (1142)
+                form.instance.original_width = int(float(width_override))
+            except (ValueError, TypeError):
+                # Se houver erro na conversão, mantém o que está no arquivo
+                pass
+
         return super().form_valid(form)
 
     def get_fallback_url(self) -> str:
         obj = self.object.content_object
         return reverse("report_maker:reportcase_detail", kwargs={"pk": obj.report_case.pk})
-
 
 # ─────────────────────────────────────────────────────────────
 # Delete

@@ -28,6 +28,7 @@
 
     <form method="post" enctype="multipart/form-data" id="image-form" novalidate>
       {% csrf_token %}
+      <input type="hidden" name="width_override" id="id_width_override">
       <input type="hidden" name="next" value="{{ request.GET.next }}" />
 
       <div class="image-editor card shadow-sm" data-editor data-mode="{{ mode|default:'create' }}" data-initial-image-url="{{ initial_image_url|default:'' }}">
@@ -142,6 +143,22 @@
         return parseFloat(selectWidth.value) * PX_PER_CM
       }
     
+      function getClosestWidthCm(pixelWidth) {
+        // Nossos pontos de parada em pixels (cm * 114.2857)
+        const targets = [
+          { cm: 4, px: 457 },
+          { cm: 10, px: 1143 },
+          { cm: 14, px: 1600 }
+        ]
+    
+        // Encontra o alvo cuja diferença de pixels seja a menor
+        const closest = targets.reduce((prev, curr) => {
+          return Math.abs(curr.px - pixelWidth) < Math.abs(prev.px - pixelWidth) ? curr : prev
+        })
+    
+        return closest.cm
+      }
+    
       function applyConstraints() {
         if (!imagemOriginal) return
     
@@ -179,7 +196,7 @@
         const targetWidthPx = getTargetPx()
         const isVertical = (currentRotation / 90) % 2 !== 0
     
-        // Ativa controlos
+        // Ativa controles
         ;[btnRotate, btnReset, btnZoomIn, btnZoomOut, btnZoomReset, sliderBrightness, sliderContrast].forEach((el) => (el.disabled = false))
     
         // DIMENSÕES DINÂMICAS: Recalcula a altura do canvas baseada na rotação
@@ -193,9 +210,18 @@
         // Ajusta o tamanho do container no ecrã (proporção visual)
         canvas.parentElement.style.width = targetWidthPx / 2 + 'px'
     
+        // --- FUNDO BRANCO ---
+        // Pintamos o fundo de branco antes de qualquer coisa para evitar transparências pretas
+        ctx.save()
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.restore()
+    
         applyConstraints()
     
         ctx.save()
+    
+        // Aplica os filtros de imagem
         ctx.filter = `brightness(${sliderBrightness.value}%) contrast(${sliderContrast.value}%)`
     
         // Aplica Pan e Rotação no centro
@@ -204,8 +230,9 @@
         ctx.scale(currentZoom, currentZoom)
     
         // A escala de desenho usa as dimensões ORIGINAIS da imagem
-        // O contexto (ctx) já está rotacionado e escalado
         const drawScale = targetWidthPx / logicalW
+    
+        // Desenha a imagem centralizada
         ctx.drawImage(img, (-img.width * drawScale) / 2, (-img.height * drawScale) / 2, img.width * drawScale, img.height * drawScale)
     
         ctx.restore()
@@ -298,9 +325,27 @@
           const img = new Image()
           img.onload = () => {
             currentRotation = 0
-            currentZoom = 1.0
             offsetX = 0
             offsetY = 0
+    
+            // 1. Descobrimos qual o melhor tamanho em CM para essa imagem
+            const suggestedCm = getClosestWidthCm(img.width)
+    
+            // 2. Atualizamos o SELECT de largura para o usuário ver
+            selectWidth.value = suggestedCm.toString()
+    
+            // 3. Disparamos a função que você já tem que ajusta o Canvas
+            // (Presumindo que sua função se chame ajustarTamanhoCanvas ou similar)
+            // Se não tiver uma função separada, aplique a lógica de redimensionar o canvas.width aqui
+            const novoWidthPx = Math.round(suggestedCm * 114.2857)
+            canvas.width = novoWidthPx
+    
+            // Opcional: ajustar a altura proporcionalmente ou manter fixa
+            // canvas.height = (img.height / img.width) * novoWidthPx;
+    
+            // 4. Forçamos o Zoom a ser 1.0 para que ela preencha o canvas novo exatamente
+            currentZoom = canvas.width / img.width
+    
             renderImageToCanvas(img)
           }
           img.src = ev.target.result
@@ -308,27 +353,56 @@
         reader.readAsDataURL(file)
       })
     
+      // 1. Carregamento inicial da imagem (Modo Edição)
       const initialUrl = editorEl.dataset.initialImageUrl
       if (initialUrl) {
         const img = new Image()
         img.crossOrigin = 'anonymous'
-        img.onload = () => renderImageToCanvas(img)
+        img.onload = () => {
+          // Tenta recuperar a largura salva no banco de dados para setar o selectWidth
+          {% if object and object.original_width %}
+            const savedPx = {{ object.original_width }}
+            // Converte pixels de volta para o valor aproximado da régua (4, 10 ou 14)
+            const targetCm = Math.round(savedPx / 114.2857)
+            
+            // Se o valor calculado bater com nossas opções, define no select
+            if ([4, 10, 14].includes(targetCm)) {
+              selectWidth.value = targetCm.toString()
+            }
+          {% endif %}
+
+          // Reseta estados para garantir que a edição comece limpa
+          currentRotation = 0
+          currentZoom = 1.0
+          offsetX = 0
+          offsetY = 0
+          
+          renderImageToCanvas(img)
+        }
         img.src = initialUrl
       }
     
+      // 2. Envio do formulário (Processamento do Canvas para Blob)
       form.addEventListener('submit', function (e) {
         if (!imagemOriginal) return
         e.preventDefault()
+
+
+        document.getElementById('id_width_override').value = getTargetPx();
+        // O fundo branco já foi garantido na função renderImageToCanvas
         canvas.toBlob(
           (blob) => {
+            // Criamos o arquivo JPEG. O fundo branco preencherá qualquer transparência original.
             const file = new File([blob], 'pericia_final.jpg', { type: 'image/jpeg' })
             const dataTransfer = new DataTransfer()
             dataTransfer.items.add(file)
             fileInput.files = dataTransfer.files
+            
+            // Envia o formulário de fato
             form.submit()
           },
           'image/jpeg',
-          0.92
+          0.92 // Qualidade preservando detalhes periciais
         )
       })
     })
