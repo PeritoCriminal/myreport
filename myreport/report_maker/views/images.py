@@ -1,4 +1,4 @@
-# report_maker/views/images.py
+# path: myreport/report_maker/views/images.py
 from __future__ import annotations
 
 import json
