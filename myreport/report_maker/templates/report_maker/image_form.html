@@ -3,7 +3,11 @@
 {% load static %}
 
 {% block title %}
-  {% if object %}Editar imagem{% else %}Adicionar imagem{% endif %}
+  {% if object %}
+    Editar imagem
+  {% else %}
+    Adicionar imagem
+  {% endif %}
 {% endblock %}
 
 {% block page_header %}
@@ -14,7 +18,11 @@
   <div class="container mt-4" style="max-width: 980px;">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h4 class="mb-0">
-        {% if object %}Editar imagem{% else %}Adicionar imagem{% endif %}
+        {% if object %}
+          Editar imagem
+        {% else %}
+          Adicionar imagem
+        {% endif %}
       </h4>
     </div>
 
@@ -25,44 +33,44 @@
       <div class="image-editor card shadow-sm" data-editor data-mode="{{ mode|default:'create' }}" data-initial-image-url="{{ initial_image_url|default:'' }}">
         <div class="card-header py-2">
           <div class="d-flex flex-wrap align-items-center gap-3">
-            
             {# Grupo: Arquivo e Rotação #}
             <div class="btn-group btn-group-sm">
-              <button id="btn-upload-trigger" type="button" class="btn btn-outline-secondary" title="Selecionar imagem">
-                <i class="bi bi-folder2-open"></i>
-              </button>
-              <button id="btn-rotate" type="button" class="btn btn-outline-secondary" title="Rotacionar 90°" disabled>
-                <i class="bi bi-arrow-clockwise"></i>
-              </button>
+              <button id="btn-upload-trigger" type="button" class="btn btn-outline-secondary" title="Selecionar imagem"><i class="bi bi-folder2-open"></i></button>
+              <button id="btn-rotate" type="button" class="btn btn-outline-secondary" title="Rotacionar 90°" disabled><i class="bi bi-arrow-clockwise"></i></button>
             </div>
 
             {# Grupo: Zoom #}
             <div class="btn-group btn-group-sm" role="group">
-              <button id="btn-zoom-out" type="button" class="btn btn-outline-secondary" title="Zoom -" disabled>
-                <i class="bi bi-zoom-out"></i>
-              </button>
-              <button id="btn-zoom-reset" type="button" class="btn btn-outline-secondary" title="Reset zoom" disabled>
-                <i class="bi bi-aspect-ratio"></i>
-              </button>
-              <button id="btn-zoom-in" type="button" class="btn btn-outline-secondary" title="Zoom +" disabled>
-                <i class="bi bi-zoom-in"></i>
-              </button>
+              <button id="btn-zoom-out" type="button" class="btn btn-outline-secondary" title="Zoom -" disabled><i class="bi bi-zoom-out"></i></button>
+              <button id="btn-zoom-reset" type="button" class="btn btn-outline-secondary" title="Reset zoom" disabled><i class="bi bi-aspect-ratio"></i></button>
+              <button id="btn-zoom-in" type="button" class="btn btn-outline-secondary" title="Zoom +" disabled><i class="bi bi-zoom-in"></i></button>
             </div>
 
             {# Grupo: Ajustes de Imagem #}
             <div class="d-flex align-items-center gap-2 border-start ps-3">
               <label class="small text-muted" title="Brilho"><i class="bi bi-brightness-high"></i></label>
               <input type="range" id="input-brightness" class="form-range" min="0" max="200" value="100" style="width: 80px;" disabled />
-              
+
               <label class="small text-muted ms-2" title="Contraste"><i class="bi bi-circle-half"></i></label>
               <input type="range" id="input-contrast" class="form-range" min="0" max="200" value="100" style="width: 80px;" disabled />
             </div>
 
+            {# Grupo: Ajuste nas dimenões do canvas, afeta tamanho real da imagem #}
+            <div class="d-flex align-items-center gap-2 border-start ps-3">
+              <label class="small text-muted">Largura (cm):</label>
+              <select id="select-width-cm" class="form-select form-select-sm" style="width: 70px;">
+                <option value="14">14</option>
+                <option value="12">12</option>
+                <option value="10">10</option>
+                <option value="8">8</option>
+                <option value="6">6</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+
             {# Grupo: Reset Geral #}
             <div class="btn-group btn-group-sm ms-auto">
-              <button id="btn-reset-editor" type="button" class="btn btn-outline-secondary" disabled title="Resetar tudo">
-                <i class="bi bi-arrow-repeat"></i>
-              </button>
+              <button id="btn-reset-editor" type="button" class="btn btn-outline-secondary" disabled title="Resetar tudo"><i class="bi bi-arrow-repeat"></i></button>
             </div>
           </div>
         </div>
@@ -74,7 +82,7 @@
           <div class="mx-auto" data-stage-wrap style="max-width: 800px; width: 100%;">
             {# Régua pericial #}
             {% include 'report_maker/partials/scale14.html' %}
-            
+
             <div class="border rounded-3 bg-body-tertiary" data-stage style="overflow:hidden; margin:0 auto; min-height: 250px; display: flex; align-items: center; justify-content: center;">
               <canvas id="main-canvas" style="display: block; max-width: 100%; height: auto;"></canvas>
             </div>
@@ -89,9 +97,7 @@
 
         <div class="card-footer d-flex gap-2 justify-content-end">
           <a href="{{ cancel_url }}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
-          <button type="submit" class="btn btn-primary btn-sm">
-            <i class="bi bi-check-lg"></i> Salvar
-          </button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> Salvar</button>
         </div>
       </div>
     </form>
@@ -100,223 +106,231 @@
 
 {% block scripts %}
   {{ block.super }}
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('image-form');
-    const btnTrigger = document.getElementById('btn-upload-trigger');
-    const btnRotate = document.getElementById('btn-rotate');
-    const btnReset = document.getElementById('btn-reset-editor');
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const form = document.getElementById('image-form')
+      const btnTrigger = document.getElementById('btn-upload-trigger')
+      const btnRotate = document.getElementById('btn-rotate')
+      const btnReset = document.getElementById('btn-reset-editor')
+      const selectWidth = document.getElementById('select-width-cm')
     
-    const btnZoomIn = document.getElementById('btn-zoom-in');
-    const btnZoomOut = document.getElementById('btn-zoom-out');
-    const btnZoomReset = document.getElementById('btn-zoom-reset');
-
-    const fileInput = document.getElementById('id_image'); 
-    const canvas = document.getElementById('main-canvas');
-    const ctx = canvas.getContext('2d');
-    const editorEl = document.querySelector('[data-editor]');
-
-    const sliderBrightness = document.getElementById('input-brightness');
-    const sliderContrast = document.getElementById('input-contrast');
-
-    const PX_PARA_14CM = 1600; 
-    let imagemOriginal = null;
+      const btnZoomIn = document.getElementById('btn-zoom-in')
+      const btnZoomOut = document.getElementById('btn-zoom-out')
+      const btnZoomReset = document.getElementById('btn-zoom-reset')
     
-    // Estados
-    let currentRotation = 0;
-    let currentZoom = 1.0;
-    let offsetX = 0; 
-    let offsetY = 0;
-    let isDragging = false;
-    let startX, startY;
-
-    /**
-     * Função Auxiliar: Garante que a imagem sempre preencha o canvas
-     * e não saia das bordas durante o Pan ou Zoom.
-     */
-    function applyConstraints() {
-      if (!imagemOriginal) return;
-
-      const isVertical = (currentRotation / 90) % 2 !== 0;
-      
-      // Dimensões da imagem após escala base (para caber nos 1600px)
-      let baseW = isVertical ? imagemOriginal.height : imagemOriginal.width;
-      let baseH = isVertical ? imagemOriginal.width : imagemOriginal.height;
-      let baseScale = Math.min(1.0, PX_PARA_14CM / baseW);
-      
-      let imgW = baseW * baseScale * currentZoom;
-      let imgH = baseH * baseScale * currentZoom;
-
-      // 1. Bloqueia Zoom inferior ao preenchimento do Canvas
-      // Se a imagem rotacionada for menor que o canvas em algum eixo, o zoom aumenta
-      if (imgW < canvas.width) {
-          currentZoom = canvas.width / (baseW * baseScale);
-          imgW = canvas.width;
-          imgH = baseH * baseScale * currentZoom;
-      }
-      if (imgH < canvas.height) {
-          // Opcional: permitir altura menor se a imagem for muito "wide"
-          // Mas para perícia, geralmente mantemos o preenchimento total.
-      }
-
-      // 2. Bloqueia Pan (Limites das Bordas)
-      // O deslocamento máximo permitido é a diferença entre o tamanho da imagem e do canvas / 2
-      const maxOffsetX = Math.max(0, (imgW - canvas.width) / 2);
-      const maxOffsetY = Math.max(0, (imgH - canvas.height) / 2);
-
-      if (Math.abs(offsetX) > maxOffsetX) {
-          offsetX = offsetX > 0 ? maxOffsetX : -maxOffsetX;
-      }
-      if (Math.abs(offsetY) > maxOffsetY) {
-          offsetY = offsetY > 0 ? maxOffsetY : -maxOffsetY;
-      }
-    }
-
-    function renderImageToCanvas(img) {
-      if (!img) return;
-      imagemOriginal = img;
-      
-      // Ativa botões
-      [btnRotate, btnReset, btnZoomIn, btnZoomOut, btnZoomReset, sliderBrightness, sliderContrast].forEach(el => el.disabled = false);
-      
-      const isVertical = (currentRotation / 90) % 2 !== 0;
-      let targetW = isVertical ? img.height : img.width;
-      let targetH = isVertical ? img.width : img.height;
-
-      let baseScale = Math.min(1.0, PX_PARA_14CM / targetW);
-      const displayW = targetW * baseScale;
-      const displayH = targetH * baseScale;
-
-      canvas.width = PX_PARA_14CM;
-      canvas.height = displayH;
-
-      // Aplica restrições antes de desenhar
-      applyConstraints();
-
-      ctx.save();
-      ctx.filter = `brightness(${sliderBrightness.value}%) contrast(${sliderContrast.value}%)`;
-
-      // Ordem: Pan -> Rotação -> Zoom
-      ctx.translate(canvas.width / 2 + offsetX, canvas.height / 2 + offsetY);
-      ctx.rotate((currentRotation * Math.PI) / 180);
-      ctx.scale(currentZoom, currentZoom);
-
-      const drawW = isVertical ? displayH : displayW;
-      const drawH = isVertical ? displayW : displayH;
-      
-      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
-      ctx.restore();
-      
-      // Cursor feedback
-      canvas.style.cursor = currentZoom > 1.01 ? 'grab' : 'default';
-    }
-
-    // --- Eventos de Pan ---
-    canvas.addEventListener('mousedown', (e) => {
-      if (currentZoom <= 1.01) return;
-      isDragging = true;
-      canvas.style.cursor = 'grabbing';
-      // Ajuste para escala do CSS vs Resolução Real
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      startX = e.clientX * scaleX - offsetX;
-      startY = e.clientY * scaleY - offsetY;
-    });
-
-    window.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      offsetX = e.clientX * scaleX - startX;
-      offsetY = e.clientY * scaleY - startY;
-      renderImageToCanvas(imagemOriginal);
-    });
-
-    window.addEventListener('mouseup', () => {
-      isDragging = false;
-    });
-
-    // --- Botões de Zoom ---
-    btnZoomIn.addEventListener('click', () => {
-      currentZoom += 0.2;
-      renderImageToCanvas(imagemOriginal);
-    });
-
-    btnZoomOut.addEventListener('click', () => {
-      currentZoom -= 0.2;
-      renderImageToCanvas(imagemOriginal);
-    });
-
-    btnZoomReset.addEventListener('click', () => {
-      currentZoom = 1.0;
-      offsetX = 0;
-      offsetY = 0;
-      renderImageToCanvas(imagemOriginal);
-    });
-
-    // ... (restante do código de Rotação, Filtros e Form Submit permanecem iguais) ...
-    // ... mas lembre de chamar renderImageToCanvas() neles ...
-
-    btnRotate.addEventListener('click', () => {
-      currentRotation = (currentRotation + 90) % 360;
-      // Ao rotacionar, resetamos zoom/pan para evitar que a imagem "suma"
-      currentZoom = 1.0;
-      offsetX = 0;
-      offsetY = 0;
-      renderImageToCanvas(imagemOriginal);
-    });
-
-    [sliderBrightness, sliderContrast].forEach(s => {
-      s.addEventListener('input', () => renderImageToCanvas(imagemOriginal));
-    });
-
-    btnTrigger.addEventListener('click', () => fileInput.click());
-
-    btnReset.addEventListener('click', function() {
-      if (imagemOriginal && confirm("Descartar tudo?")) {
-        currentRotation = 0; currentZoom = 1.0; offsetX = 0; offsetY = 0;
-        sliderBrightness.value = 100; sliderContrast.value = 100;
-        renderImageToCanvas(imagemOriginal);
-      }
-    });
-
-    fileInput.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const img = new Image();
-        img.onload = () => {
-          currentRotation = 0; currentZoom = 1.0; offsetX = 0; offsetY = 0;
-          renderImageToCanvas(img);
-        };
-        img.src = ev.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-
-    const initialUrl = editorEl.dataset.initialImageUrl;
-    if (initialUrl) {
-      const img = new Image();
-      img.crossOrigin = "anonymous"; 
-      img.onload = () => renderImageToCanvas(img);
-      img.src = initialUrl;
-    }
+      const fileInput = document.getElementById('id_image')
+      const canvas = document.getElementById('main-canvas')
+      const ctx = canvas.getContext('2d')
+      const editorEl = document.querySelector('[data-editor]')
     
-    // Interceptação do Submit
-    form.addEventListener('submit', function(e) {
-      if (!imagemOriginal) return;
-      e.preventDefault();
-      canvas.toBlob((blob) => {
-        const file = new File([blob], "pericia_final.jpg", { type: "image/jpeg" });
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-        fileInput.files = dataTransfer.files;
-        form.submit();
-      }, 'image/jpeg', 0.92);
-    });
-  });
-</script>
+      const sliderBrightness = document.getElementById('input-brightness')
+      const sliderContrast = document.getElementById('input-contrast')
+    
+      // Constante de densidade: 14cm = 1600px -> ~114.28 px/cm
+      const PX_PER_CM = 1600 / 14
+      let imagemOriginal = null
+    
+      // Estados
+      let currentRotation = 0
+      let currentZoom = 1.0
+      let offsetX = 0
+      let offsetY = 0
+      let isDragging = false
+      let startX, startY
+    
+      function getTargetPx() {
+        return parseFloat(selectWidth.value) * PX_PER_CM
+      }
+    
+      function applyConstraints() {
+        if (!imagemOriginal) return
+    
+        const targetWidthPx = getTargetPx()
+        const isVertical = (currentRotation / 90) % 2 !== 0
+    
+        // Dimensões lógicas da imagem após a rotação ser aplicada
+        let logicalW = isVertical ? imagemOriginal.height : imagemOriginal.width
+        let logicalH = isVertical ? imagemOriginal.width : imagemOriginal.height
+    
+        // Escala base para que a largura lógica preencha a largura do canvas (CM selecionados)
+        let baseScale = targetWidthPx / logicalW
+    
+        let imgW = logicalW * baseScale * currentZoom
+        let imgH = logicalH * baseScale * currentZoom
+    
+        // 1. Bloqueia zoom que deixe espaços vazios nas laterais do canvas
+        if (imgW < canvas.width) {
+          currentZoom = canvas.width / (logicalW * baseScale)
+          imgW = canvas.width
+        }
+    
+        // 2. Bloqueia o Pan (arrasto) para não mostrar o fundo do canvas
+        const maxOffsetX = Math.max(0, (imgW - canvas.width) / 2)
+        const maxOffsetY = Math.max(0, (imgH - canvas.height) / 2)
+    
+        offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, offsetX))
+        offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, offsetY))
+      }
+    
+      function renderImageToCanvas(img) {
+        if (!img) return
+        imagemOriginal = img
+    
+        const targetWidthPx = getTargetPx()
+        const isVertical = (currentRotation / 90) % 2 !== 0
+    
+        // Ativa controlos
+        ;[btnRotate, btnReset, btnZoomIn, btnZoomOut, btnZoomReset, sliderBrightness, sliderContrast].forEach((el) => (el.disabled = false))
+    
+        // DIMENSÕES DINÂMICAS: Recalcula a altura do canvas baseada na rotação
+        let logicalW = isVertical ? img.height : img.width
+        let logicalH = isVertical ? img.width : img.height
+    
+        // O Canvas assume a largura proporcional aos CM e altura proporcional à imagem rotacionada
+        canvas.width = targetWidthPx
+        canvas.height = logicalH * (targetWidthPx / logicalW)
+    
+        // Ajusta o tamanho do container no ecrã (proporção visual)
+        canvas.parentElement.style.width = targetWidthPx / 2 + 'px'
+    
+        applyConstraints()
+    
+        ctx.save()
+        ctx.filter = `brightness(${sliderBrightness.value}%) contrast(${sliderContrast.value}%)`
+    
+        // Aplica Pan e Rotação no centro
+        ctx.translate(canvas.width / 2 + offsetX, canvas.height / 2 + offsetY)
+        ctx.rotate((currentRotation * Math.PI) / 180)
+        ctx.scale(currentZoom, currentZoom)
+    
+        // A escala de desenho usa as dimensões ORIGINAIS da imagem
+        // O contexto (ctx) já está rotacionado e escalado
+        const drawScale = targetWidthPx / logicalW
+        ctx.drawImage(img, (-img.width * drawScale) / 2, (-img.height * drawScale) / 2, img.width * drawScale, img.height * drawScale)
+    
+        ctx.restore()
+    
+        canvas.style.cursor = currentZoom > 1.01 ? 'grab' : 'default'
+      }
+    
+      // --- Listeners de Largura e Pan ---
+      selectWidth.addEventListener('change', () => {
+        // Resetamos zoom e pan ao mudar a largura para evitar erros de cálculo
+        currentZoom = 1.0
+        offsetX = 0
+        offsetY = 0
+        renderImageToCanvas(imagemOriginal)
+      })
+    
+      canvas.addEventListener('mousedown', (e) => {
+        if (currentZoom <= 1.01) return
+        isDragging = true
+        canvas.style.cursor = 'grabbing'
+        const rect = canvas.getBoundingClientRect()
+        const scaleX = canvas.width / rect.width
+        const scaleY = canvas.height / rect.height
+        startX = e.clientX * scaleX - offsetX
+        startY = e.clientY * scaleY - offsetY
+      })
+    
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return
+        const rect = canvas.getBoundingClientRect()
+        const scaleX = canvas.width / rect.width
+        const scaleY = canvas.height / rect.height
+        offsetX = e.clientX * scaleX - startX
+        offsetY = e.clientY * scaleY - startY
+        renderImageToCanvas(imagemOriginal)
+      })
+    
+      window.addEventListener('mouseup', () => {
+        isDragging = false
+      })
+    
+      // --- Botões de Zoom ---
+      btnZoomIn.addEventListener('click', () => {
+        currentZoom += 0.2
+        renderImageToCanvas(imagemOriginal)
+      })
+      btnZoomOut.addEventListener('click', () => {
+        currentZoom -= 0.2
+        renderImageToCanvas(imagemOriginal)
+      })
+      btnZoomReset.addEventListener('click', () => {
+        currentZoom = 1.0
+        offsetX = 0
+        offsetY = 0
+        renderImageToCanvas(imagemOriginal)
+      })
+    
+      // --- Rotação e Filtros ---
+      btnRotate.addEventListener('click', () => {
+        currentRotation = (currentRotation + 90) % 360
+        currentZoom = 1.0
+        offsetX = 0
+        offsetY = 0
+        renderImageToCanvas(imagemOriginal)
+      })
+      ;[sliderBrightness, sliderContrast].forEach((s) => {
+        s.addEventListener('input', () => renderImageToCanvas(imagemOriginal))
+      })
+    
+      btnTrigger.addEventListener('click', () => fileInput.click())
+    
+      btnReset.addEventListener('click', function () {
+        if (imagemOriginal && confirm('Descartar tudo?')) {
+          currentRotation = 0
+          currentZoom = 1.0
+          offsetX = 0
+          offsetY = 0
+          selectWidth.value = '14'
+          sliderBrightness.value = 100
+          sliderContrast.value = 100
+          renderImageToCanvas(imagemOriginal)
+        }
+      })
+    
+      fileInput.addEventListener('change', function (e) {
+        const file = e.target.files[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+          const img = new Image()
+          img.onload = () => {
+            currentRotation = 0
+            currentZoom = 1.0
+            offsetX = 0
+            offsetY = 0
+            renderImageToCanvas(img)
+          }
+          img.src = ev.target.result
+        }
+        reader.readAsDataURL(file)
+      })
+    
+      const initialUrl = editorEl.dataset.initialImageUrl
+      if (initialUrl) {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => renderImageToCanvas(img)
+        img.src = initialUrl
+      }
+    
+      form.addEventListener('submit', function (e) {
+        if (!imagemOriginal) return
+        e.preventDefault()
+        canvas.toBlob(
+          (blob) => {
+            const file = new File([blob], 'pericia_final.jpg', { type: 'image/jpeg' })
+            const dataTransfer = new DataTransfer()
+            dataTransfer.items.add(file)
+            fileInput.files = dataTransfer.files
+            form.submit()
+          },
+          'image/jpeg',
+          0.92
+        )
+      })
+    })
+  </script>
 {% endblock %}
