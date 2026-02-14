@@ -65,7 +65,7 @@
       </div>
     </footer>
 
-    {% comment %}CONTEÚDO{% endcomment %} 
+    {% comment %}CONTEÚDO{% endcomment %}
     <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
 
     {# Preâmbulo #}
@@ -130,10 +130,11 @@
             {% if o.images %}
               <div class="figure-grid">
                 {% for it in o.images %}
-                  <figure class="report-figure">
+                  <figure class="report-figure" style="width: {{ it.img.width_cm_dot }}cm; margin-left: auto; margin-right: auto;">
                     <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
                     <figcaption>
-                      {{ it.figure_label }}{% if it.img.caption %} - {{ it.img.caption }}
+                      <strong>{{ it.figure_label }}</strong>{% if it.img.caption %}
+                        — {{ it.img.caption }}
                       {% endif %}
                     </figcaption>
                   </figure>
@@ -170,9 +171,7 @@
         {% endfor %}
       </section>
     {% endif %}
-    <div class="mb-3">
-      {{ report.report_closing }}
-    </div>
+    <div class="mb-3">{{ report.report_closing }}</div>
     <div class="report-signature mt-5 text-end">
       <div>
         <strong>{{ report.report_signature_block.name }}</strong>

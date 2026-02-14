@@ -102,6 +102,17 @@ class ObjectImage(models.Model):
             .get("max_index")
         )
         return (last_index or 0) + 1
+    
+
+    @property
+    def width_cm_dot(self):
+        # Usamos float para garantir que a divisão funcione
+        # e forçamos a conversão para string com ponto
+        if self.original_width:
+            calculo = float(self.original_width) / 114.2857
+            return "{:.2f}".format(calculo)
+        return "14.00"
+        
 
     def save(self, *args, **kwargs):
         """

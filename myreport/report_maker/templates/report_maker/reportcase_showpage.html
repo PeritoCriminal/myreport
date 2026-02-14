@@ -124,13 +124,9 @@
                 {% if o.images %}
                   <div class="figure-grid">
                     {% for it in o.images %}
-                      <figure class="report-figure">
+                      <figure class="report-figure" style="width: {{ it.img.width_cm_dot }}cm; margin: 0 auto 14pt auto;">
                         <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
-                        <figcaption>
-                          {{ it.figure_label }}{% if it.img.caption %}
-                            — {{ it.img.caption }}
-                          {% endif %}
-                        </figcaption>
+                        <figcaption>{{ it.figure_label }} — {{ it.img.caption }}</figcaption>
                       </figure>
                     {% endfor %}
                   </div>
@@ -177,7 +173,6 @@
     </main>
 
     {% block scripts %}
-
       <script>
         document.addEventListener('click', (ev) => {
           const btn = ev.target.closest("[data-action='close-preview']")

@@ -203,25 +203,28 @@ h3 { font-size: 11pt; font-weight: 600; margin: 14pt 0 6pt 0; }
 
 .report-figure {
   display: block;
-  text-align: center;
-  margin: 0 0 18pt 0;
+  /* A largura agora é controlada pelo style="..." no HTML */
+  margin-bottom: 18pt;
+  page-break-inside: avoid; /* Evita que a imagem e a legenda fiquem em páginas diferentes */
 }
 
 .report-figure img {
   display: block;
-  margin: 0 auto;
-  max-width: 13cm;
-  max-height: 17cm;
+  width: 100%;       /* Ocupa 100% da largura do <figure> pai */
+  height: auto;
+  max-width: 100%;   /* Garante que não ultrapasse o pai */
+  max-height: 18cm;  /* Limite de altura para não "estourar" a folha A4 */
   object-fit: contain;
   border: 1px solid #222;
+  margin: 0 auto;
 }
 
 .report-figure figcaption {
-  margin-top: 3pt;
+  margin-top: 5pt;
   font-size: 11pt;
   font-style: italic;
-  line-height: 1.0;
-  white-space: pre-line;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .geo-table {

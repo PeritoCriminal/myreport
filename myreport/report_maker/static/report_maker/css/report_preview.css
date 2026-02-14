@@ -279,17 +279,19 @@ body {
 }
 
 .report-figure {
-  margin: 0;
-  page-break-inside: avoid;
-  display: flex;
-  flex-direction: column;
+  display: block !important;
+  /* Remova ou comente larguras fixas se houver */
+  margin: 0 auto 14pt auto !important; 
+  text-align: center !important;
 }
 
 .report-figure img {
-  max-width: 100%;
-  height: auto;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  /* A imagem deve seguir a largura do container pai (o figure) */
+  width: 100% !important; 
+  height: auto !important;
+  max-width: 100% !important; 
+  margin-top: 10px; /* Reduzi um pouco para ficar mais elegante */
+  border: 1px solid #ddd; /* Opcional: apenas para ver os limites da foto */
 }
 
 .report-figure figcaption {
