@@ -1,4 +1,5 @@
-# report_maker/forms/object_image.py
+# path: myreport/report_maker/forms/object_image.py
+
 from django import forms
 
 from common.mixins import BaseModelForm
