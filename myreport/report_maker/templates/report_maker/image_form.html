@@ -28,7 +28,7 @@
 
     <form method="post" enctype="multipart/form-data" id="image-form" novalidate>
       {% csrf_token %}
-      <input type="hidden" name="width_override" id="id_width_override">
+      <input type="hidden" name="width_override" id="id_width_override" />
       <input type="hidden" name="next" value="{{ request.GET.next }}" />
 
       <div class="image-editor card shadow-sm" data-editor data-mode="{{ mode|default:'create' }}" data-initial-image-url="{{ initial_image_url|default:'' }}">
@@ -45,6 +45,7 @@
               <button id="btn-zoom-out" type="button" class="btn btn-outline-secondary" title="Zoom -" disabled><i class="bi bi-zoom-out"></i></button>
               <button id="btn-zoom-reset" type="button" class="btn btn-outline-secondary" title="Reset zoom" disabled><i class="bi bi-aspect-ratio"></i></button>
               <button id="btn-zoom-in" type="button" class="btn btn-outline-secondary" title="Zoom +" disabled><i class="bi bi-zoom-in"></i></button>
+              <button id="btn-crop" type="button" class="btn btn-outline-secondary" title="Recortar" disabled><i class="bi bi-crop"></i></button>
             </div>
 
             {# Grupo: Ajustes de Imagem #}
@@ -113,24 +114,25 @@
       const btnTrigger = document.getElementById('btn-upload-trigger')
       const btnRotate = document.getElementById('btn-rotate')
       const btnReset = document.getElementById('btn-reset-editor')
+      const btnCrop = document.getElementById('btn-crop')
       const selectWidth = document.getElementById('select-width-cm')
-    
+
       const btnZoomIn = document.getElementById('btn-zoom-in')
       const btnZoomOut = document.getElementById('btn-zoom-out')
       const btnZoomReset = document.getElementById('btn-zoom-reset')
-    
+
       const fileInput = document.getElementById('id_image')
       const canvas = document.getElementById('main-canvas')
       const ctx = canvas.getContext('2d')
       const editorEl = document.querySelector('[data-editor]')
-    
+
       const sliderBrightness = document.getElementById('input-brightness')
       const sliderContrast = document.getElementById('input-contrast')
-    
+
       // Constante de densidade: 14cm = 1600px -> ~114.28 px/cm
       const PX_PER_CM = 1600 / 14
       let imagemOriginal = null
-    
+
       // Estados
       let currentRotation = 0
       let currentZoom = 1.0
@@ -138,11 +140,31 @@
       let offsetY = 0
       let isDragging = false
       let startX, startY
-    
+
+      // Estados do crop
+      let cropActive = false
+      let cropDragging = false
+      let cropStartX = 0
+      let cropStartY = 0
+      let cropRect = null // { x, y, w, h }
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v))
+      }
+
+      function canvasPointFromMouseEvent(e) {
+        const rect = canvas.getBoundingClientRect()
+        const scaleX = canvas.width / rect.width
+        const scaleY = canvas.height / rect.height
+        const x = (e.clientX - rect.left) * scaleX
+        const y = (e.clientY - rect.top) * scaleY
+        return { x, y }
+      }
+
       function getTargetPx() {
         return parseFloat(selectWidth.value) * PX_PER_CM
       }
-    
+
       function getClosestWidthCm(pixelWidth) {
         // Nossos pontos de parada em pixels (cm * 114.2857)
         const targets = [
@@ -150,106 +172,152 @@
           { cm: 10, px: 1143 },
           { cm: 14, px: 1600 }
         ]
-    
+
         // Encontra o alvo cuja diferença de pixels seja a menor
         const closest = targets.reduce((prev, curr) => {
           return Math.abs(curr.px - pixelWidth) < Math.abs(prev.px - pixelWidth) ? curr : prev
         })
-    
+
         return closest.cm
       }
-    
+
       function applyConstraints() {
         if (!imagemOriginal) return
-    
+
         const targetWidthPx = getTargetPx()
         const isVertical = (currentRotation / 90) % 2 !== 0
-    
+
         // Dimensões lógicas da imagem após a rotação ser aplicada
         let logicalW = isVertical ? imagemOriginal.height : imagemOriginal.width
         let logicalH = isVertical ? imagemOriginal.width : imagemOriginal.height
-    
+
         // Escala base para que a largura lógica preencha a largura do canvas (CM selecionados)
         let baseScale = targetWidthPx / logicalW
-    
+
         let imgW = logicalW * baseScale * currentZoom
         let imgH = logicalH * baseScale * currentZoom
-    
+
         // 1. Bloqueia zoom que deixe espaços vazios nas laterais do canvas
         if (imgW < canvas.width) {
           currentZoom = canvas.width / (logicalW * baseScale)
           imgW = canvas.width
         }
-    
+
         // 2. Bloqueia o Pan (arrasto) para não mostrar o fundo do canvas
         const maxOffsetX = Math.max(0, (imgW - canvas.width) / 2)
         const maxOffsetY = Math.max(0, (imgH - canvas.height) / 2)
-    
+
         offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, offsetX))
         offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, offsetY))
       }
-    
+
       function renderImageToCanvas(img) {
         if (!img) return
         imagemOriginal = img
-    
+
         const targetWidthPx = getTargetPx()
         const isVertical = (currentRotation / 90) % 2 !== 0
-    
+
         // Ativa controles
-        ;[btnRotate, btnReset, btnZoomIn, btnZoomOut, btnZoomReset, sliderBrightness, sliderContrast].forEach((el) => (el.disabled = false))
-    
+        ;[btnRotate, btnReset, btnCrop, btnZoomIn, btnZoomOut, btnZoomReset, sliderBrightness, sliderContrast].forEach(
+          (el) => (el.disabled = false)
+        )
+
         // DIMENSÕES DINÂMICAS: Recalcula a altura do canvas baseada na rotação
         let logicalW = isVertical ? img.height : img.width
         let logicalH = isVertical ? img.width : img.height
-    
+
         // O Canvas assume a largura proporcional aos CM e altura proporcional à imagem rotacionada
         canvas.width = targetWidthPx
         canvas.height = logicalH * (targetWidthPx / logicalW)
-    
+
         // Ajusta o tamanho do container no ecrã (proporção visual)
         canvas.parentElement.style.width = targetWidthPx / 2 + 'px'
-    
+
         // --- FUNDO BRANCO ---
-        // Pintamos o fundo de branco antes de qualquer coisa para evitar transparências pretas
         ctx.save()
         ctx.fillStyle = '#ffffff'
         ctx.fillRect(0, 0, canvas.width, canvas.height)
         ctx.restore()
-    
+
         applyConstraints()
-    
+
         ctx.save()
-    
+
         // Aplica os filtros de imagem
         ctx.filter = `brightness(${sliderBrightness.value}%) contrast(${sliderContrast.value}%)`
-    
+
         // Aplica Pan e Rotação no centro
         ctx.translate(canvas.width / 2 + offsetX, canvas.height / 2 + offsetY)
         ctx.rotate((currentRotation * Math.PI) / 180)
         ctx.scale(currentZoom, currentZoom)
-    
+
         // A escala de desenho usa as dimensões ORIGINAIS da imagem
         const drawScale = targetWidthPx / logicalW
-    
+
         // Desenha a imagem centralizada
-        ctx.drawImage(img, (-img.width * drawScale) / 2, (-img.height * drawScale) / 2, img.width * drawScale, img.height * drawScale)
-    
+        ctx.drawImage(
+          img,
+          (-img.width * drawScale) / 2,
+          (-img.height * drawScale) / 2,
+          img.width * drawScale,
+          img.height * drawScale
+        )
+
         ctx.restore()
-    
-        canvas.style.cursor = currentZoom > 1.01 ? 'grab' : 'default'
+
+        canvas.style.cursor = cropActive ? 'crosshair' : currentZoom > 1.01 ? 'grab' : 'default'
       }
-    
+
+      function drawCropOverlay() {
+        if (!cropRect) return
+        renderImageToCanvas(imagemOriginal)
+
+        ctx.save()
+        ctx.setLineDash([10, 6])
+        ctx.lineWidth = Math.max(2, Math.round(canvas.width / 800))
+        ctx.strokeStyle = '#111'
+        ctx.strokeRect(cropRect.x + 0.5, cropRect.y + 0.5, cropRect.w, cropRect.h)
+        ctx.restore()
+      }
+
+      function toggleCrop(active) {
+        cropActive = !!active
+        cropDragging = false
+        cropRect = null
+        btnCrop.classList.toggle('active', cropActive)
+        canvas.style.cursor = cropActive ? 'crosshair' : currentZoom > 1.01 ? 'grab' : 'default'
+        if (!cropActive) renderImageToCanvas(imagemOriginal)
+      }
+
       // --- Listeners de Largura e Pan ---
       selectWidth.addEventListener('change', () => {
-        // Resetamos zoom e pan ao mudar a largura para evitar erros de cálculo
         currentZoom = 1.0
         offsetX = 0
         offsetY = 0
         renderImageToCanvas(imagemOriginal)
       })
-    
+
+      // --- Botão Crop ---
+      btnCrop.addEventListener('click', () => {
+        if (!imagemOriginal) return
+        toggleCrop(!cropActive)
+      })
+
+      // --- Mouse down (Crop OU Pan) ---
       canvas.addEventListener('mousedown', (e) => {
+        if (!imagemOriginal) return
+
+        if (cropActive) {
+          cropDragging = true
+          const p = canvasPointFromMouseEvent(e)
+          cropStartX = clamp(p.x, 0, canvas.width)
+          cropStartY = clamp(p.y, 0, canvas.height)
+          cropRect = { x: cropStartX, y: cropStartY, w: 0, h: 0 }
+          drawCropOverlay()
+          return
+        }
+
         if (currentZoom <= 1.01) return
         isDragging = true
         canvas.style.cursor = 'grabbing'
@@ -259,8 +327,26 @@
         startX = e.clientX * scaleX - offsetX
         startY = e.clientY * scaleY - offsetY
       })
-    
+
+      // --- Mouse move (Crop OU Pan) ---
       window.addEventListener('mousemove', (e) => {
+        if (!imagemOriginal) return
+
+        if (cropActive && cropDragging) {
+          const p = canvasPointFromMouseEvent(e)
+          const endX = clamp(p.x, 0, canvas.width)
+          const endY = clamp(p.y, 0, canvas.height)
+
+          const x = Math.min(cropStartX, endX)
+          const y = Math.min(cropStartY, endY)
+          const w = Math.abs(endX - cropStartX)
+          const h = Math.abs(endY - cropStartY)
+
+          cropRect = { x, y, w, h }
+          drawCropOverlay()
+          return
+        }
+
         if (!isDragging) return
         const rect = canvas.getBoundingClientRect()
         const scaleX = canvas.width / rect.width
@@ -269,11 +355,63 @@
         offsetY = e.clientY * scaleY - startY
         renderImageToCanvas(imagemOriginal)
       })
-    
+
+      // --- Mouse up (finaliza Crop OU Pan) ---
       window.addEventListener('mouseup', () => {
+        if (cropActive && cropDragging) {
+          cropDragging = false
+
+          if (!cropRect || cropRect.w < 5 || cropRect.h < 5) {
+            cropRect = null
+            renderImageToCanvas(imagemOriginal)
+            return
+          }
+
+          const x = Math.round(cropRect.x)
+          const y = Math.round(cropRect.y)
+          const w = Math.round(cropRect.w)
+          const h = Math.round(cropRect.h)
+
+          const imgData = ctx.getImageData(x, y, w, h)
+
+          // destrutivo: resize do canvas para o recorte
+          canvas.width = w
+          canvas.height = h
+
+          // fundo branco
+          ctx.save()
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, w, h)
+          ctx.restore()
+
+          ctx.putImageData(imgData, 0, 0)
+
+          // Congela como nova imagem-base
+          const newImg = new Image()
+          newImg.onload = () => {
+            imagemOriginal = newImg
+
+            currentRotation = 0
+            currentZoom = 1.0
+            offsetX = 0
+            offsetY = 0
+
+            // Mantém sua lógica de sugestão (4/10/14)
+            const suggestedCm = getClosestWidthCm(canvas.width)
+            selectWidth.value = suggestedCm.toString()
+
+            toggleCrop(false)
+            renderImageToCanvas(imagemOriginal)
+          }
+          newImg.src = canvas.toDataURL('image/jpeg', 0.92)
+
+          cropRect = null
+          return
+        }
+
         isDragging = false
       })
-    
+
       // --- Botões de Zoom ---
       btnZoomIn.addEventListener('click', () => {
         currentZoom += 0.2
@@ -289,7 +427,7 @@
         offsetY = 0
         renderImageToCanvas(imagemOriginal)
       })
-    
+
       // --- Rotação e Filtros ---
       btnRotate.addEventListener('click', () => {
         currentRotation = (currentRotation + 90) % 360
@@ -301,11 +439,12 @@
       ;[sliderBrightness, sliderContrast].forEach((s) => {
         s.addEventListener('input', () => renderImageToCanvas(imagemOriginal))
       })
-    
+
       btnTrigger.addEventListener('click', () => fileInput.click())
-    
+
       btnReset.addEventListener('click', function () {
         if (imagemOriginal && confirm('Descartar tudo?')) {
+          toggleCrop(false)
           currentRotation = 0
           currentZoom = 1.0
           offsetX = 0
@@ -316,7 +455,7 @@
           renderImageToCanvas(imagemOriginal)
         }
       })
-    
+
       fileInput.addEventListener('change', function (e) {
         const file = e.target.files[0]
         if (!file) return
@@ -324,85 +463,69 @@
         reader.onload = (ev) => {
           const img = new Image()
           img.onload = () => {
+            toggleCrop(false)
             currentRotation = 0
             offsetX = 0
             offsetY = 0
-    
-            // 1. Descobrimos qual o melhor tamanho em CM para essa imagem
+
             const suggestedCm = getClosestWidthCm(img.width)
-    
-            // 2. Atualizamos o SELECT de largura para o usuário ver
             selectWidth.value = suggestedCm.toString()
-    
-            // 3. Disparamos a função que você já tem que ajusta o Canvas
-            // (Presumindo que sua função se chame ajustarTamanhoCanvas ou similar)
-            // Se não tiver uma função separada, aplique a lógica de redimensionar o canvas.width aqui
+
             const novoWidthPx = Math.round(suggestedCm * 114.2857)
             canvas.width = novoWidthPx
-    
-            // Opcional: ajustar a altura proporcionalmente ou manter fixa
-            // canvas.height = (img.height / img.width) * novoWidthPx;
-    
-            // 4. Forçamos o Zoom a ser 1.0 para que ela preencha o canvas novo exatamente
+
             currentZoom = canvas.width / img.width
-    
+
             renderImageToCanvas(img)
           }
           img.src = ev.target.result
         }
         reader.readAsDataURL(file)
       })
-    
-      // 1. Carregamento inicial da imagem (Modo Edição)
+
+      // Carregamento inicial da imagem (Modo Edição)
       const initialUrl = editorEl.dataset.initialImageUrl
       if (initialUrl) {
         const img = new Image()
         img.crossOrigin = 'anonymous'
         img.onload = () => {
-          // Tenta recuperar a largura salva no banco de dados para setar o selectWidth
           {% if object and object.original_width %}
             const savedPx = {{ object.original_width }}
-            // Converte pixels de volta para o valor aproximado da régua (4, 10 ou 14)
             const targetCm = Math.round(savedPx / 114.2857)
-            
-            // Se o valor calculado bater com nossas opções, define no select
             if ([4, 10, 14].includes(targetCm)) {
               selectWidth.value = targetCm.toString()
             }
           {% endif %}
 
-          // Reseta estados para garantir que a edição comece limpa
+          toggleCrop(false)
           currentRotation = 0
           currentZoom = 1.0
           offsetX = 0
           offsetY = 0
-          
+
           renderImageToCanvas(img)
         }
         img.src = initialUrl
       }
-    
-      // 2. Envio do formulário (Processamento do Canvas para Blob)
+
+      // Envio do formulário (Processamento do Canvas para Blob)
       form.addEventListener('submit', function (e) {
         if (!imagemOriginal) return
         e.preventDefault()
 
+        document.getElementById('id_width_override').value = getTargetPx()
 
-        document.getElementById('id_width_override').value = getTargetPx();
-        // O fundo branco já foi garantido na função renderImageToCanvas
         canvas.toBlob(
           (blob) => {
-            // Criamos o arquivo JPEG. O fundo branco preencherá qualquer transparência original.
             const file = new File([blob], 'pericia_final.jpg', { type: 'image/jpeg' })
             const dataTransfer = new DataTransfer()
             dataTransfer.items.add(file)
             fileInput.files = dataTransfer.files
-            
-            // Envia o formulário de fato
+
             form.submit()
           },
           'image/jpeg',
-          0.92 // Qualidade preservando detalhes periciais
+          0.92
         )
       })
     })
