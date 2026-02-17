@@ -47,16 +47,7 @@
               <button id="btn-zoom-in" type="button" class="btn btn-outline-secondary" title="Zoom +" disabled><i class="bi bi-zoom-in"></i></button>
               <button id="btn-crop" type="button" class="btn btn-outline-secondary" title="Recortar" disabled><i class="bi bi-crop"></i></button>
               <button id="btn-arrow" type="button" class="btn btn-outline-secondary" title="Seta" disabled><i class="bi bi-arrow-up-right"></i></button>
-
-              <!-- Paleta simples (pode ficar ao lado do botão seta) -->
-              <select id="select-arrow-color" class="form-select form-select-sm" style="width: 110px;" disabled title="Cor da seta">
-                <option value="#111111">Preto</option>
-                <option value="#d32f2f">Vermelho</option>
-                <option value="#1976d2">Azul</option>
-                <option value="#2e7d32">Verde</option>
-                <option value="#f9a825">Amarelo</option>
-                <option value="#ffffff">Branco</option>
-              </select>
+              <input type="color" id="select-arrow-color" class="form-control form-control-sm p-1" style="width: 45px; height: 31px;" value="#ff0000" disabled title="Cor da seta">
             </div>
 
             {# Grupo: Ajustes de Imagem #}
@@ -409,6 +400,7 @@
 
       // --- Mouse down (Crop OU Arrow OU Pan) ---
       canvas.addEventListener('mousedown', (e) => {
+        e.preventDefault()
         if (!imagemOriginal) return
 
         // CROP
@@ -562,6 +554,7 @@
       // --- Zoom ---
       btnZoomIn.addEventListener('click', () => {
         currentZoom += 0.2
+        applyConstraints()
         renderImageToCanvas(imagemOriginal)
       })
       btnZoomOut.addEventListener('click', () => {
@@ -599,7 +592,7 @@
           selectWidth.value = '14'
           sliderBrightness.value = 100
           sliderContrast.value = 100
-          if (selectArrowColor) selectArrowColor.value = '#111111'
+          if (selectArrowColor) selectArrowColor.value = '#ff0000'
           renderImageToCanvas(imagemOriginal)
         }
       })
