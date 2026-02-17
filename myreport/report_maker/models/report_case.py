@@ -117,6 +117,12 @@ class ReportCase(models.Model):
         blank=True,
         default="",
     )
+    city_name_snapshot = models.CharField(
+        "Nome da Cidade (snapshot)",
+        max_length=255,
+        blank=True,
+        default="",
+    )
     team_name_snapshot = models.CharField(
         "Nome da equipe (snapshot)",
         max_length=255,
@@ -333,6 +339,10 @@ class ReportCase(models.Model):
             self.emblem_secondary_snapshot = None
 
         self.organization_frozen_at = timezone.now()
+
+        if self.nucleus and self.nucleus.city:
+            self.city_name_snapshot = self.nucleus.city.name
+
 
     # ---------------------------------------------------------------------
     # Display helpers (OPEN -> FK, CLOSED -> snapshot) + metadata do laudo
@@ -636,36 +646,51 @@ class ReportCase(models.Model):
             return masculine
         return neutral
 
+
     @property
     def preamble(self) -> str:
         """
-        Preâmbulo institucional do laudo (modelo inspirado no sistema legado).
-
-        - Usa snapshots quando congelado.
-        - Usa data da designação (assignment_datetime) quando existir.
-        - Mantém redação objetiva no passado simples.
+        Preâmbulo institucional do laudo.
+        
+        - Utiliza snapshots de cidade e organização quando o laudo está congelado.
+        - Remove separadores '/' para garantir uma redação fluida e formal.
         """
-        examiner = (
-            getattr(self.author, "report_signature_name", "")
-            or getattr(self.author, "display_name", "")
-            or str(self.author)
-        )
-
+        # 1. Identificação do Perito e Autoridade
+        examiner = self.report_identity_name
         authority = self.requesting_authority or ""
 
+        # 2. Data da Designação
+        date_text = ""
         if self.assignment_datetime:
             full_date = date_format(
                 self.assignment_datetime.date(),
                 format="j \\d\\e F \\d\\e Y",
                 use_l10n=True,
             ).lower()
-        else:
-            full_date = ""
+            date_text = f"Aos {full_date}, "
 
-        inst = self.institution_display
+        # 3. Cidade (Snapshot ou Atual)
+        # Se estiver congelado, usa o snapshot; se não, tenta buscar no Nucleus.
+        city_name = self.city_name_snapshot if self.is_frozen else (
+            self.nucleus.city.name if (self.nucleus and self.nucleus.city) else ""
+        )
+        city_prefix = f"na cidade de {city_name} e " if city_name else ""
+
+        # 4. Estrutura Institucional (Fluida)
+        # Utilizamos as propriedades de display que já tratam a lógica de snapshot internamente.
+        inst = self.institution_name_for_display
         nuc = self.nucleus_display
         team = self.team_display
+        
+        org_parts = []
+        if inst: org_parts.append(f"no {inst}")
+        if nuc: org_parts.append(f"no {nuc}")
+        if team: org_parts.append(f"na {team}")
+        
+        # Concatena com vírgulas em vez de barras.
+        org_text = ", ".join(org_parts)
 
+        # 5. Tratamento de Gênero
         d_examiner = self._gendered_roles_from_name(
             examiner,
             masculine="foi designado o Perito Criminal",
@@ -679,26 +704,11 @@ class ReportCase(models.Model):
             neutral="pelo(a) Exmo(a). Sr(a). Delegado(a) de Polícia",
         )
 
-        org_parts = [p for p in [inst, nuc, team] if p]
-        org_text = " / ".join(org_parts)
-
-        if full_date and org_text:
-            return (
-                f"Aos {full_date}, em conformidade com o disposto no artigo 178 do Decreto-Lei nº 3.689, "
-                f"de 3 de outubro de 1941, {d_examiner} {examiner} para proceder ao exame pericial "
-                f"no âmbito de {org_text}, em atendimento à requisição expedida {d_authority} {authority}."
-            )
-
-        if full_date:
-            return (
-                f"Aos {full_date}, em conformidade com o disposto no artigo 178 do Decreto-Lei nº 3.689, "
-                f"de 3 de outubro de 1941, {d_examiner} {examiner} para proceder ao exame pericial "
-                f"em atendimento à requisição expedida {d_authority} {authority}."
-            )
-
+        # 6. Montagem Final da Redação
         return (
-            f"Em conformidade com o disposto no artigo 178 do Decreto-Lei nº 3.689, de 3 de outubro de 1941, "
-            f"{d_examiner} {examiner} para proceder ao exame pericial "
+            f"{date_text}{city_prefix}{org_text}, em conformidade com o disposto no "
+            f"artigo 178 do Decreto-Lei nº 3.689, de 3 de outubro de 1941, "
+            f"{d_examiner} {examiner} para proceder ao exame pericial, "
             f"em atendimento à requisição expedida {d_authority} {authority}."
         )
 
@@ -708,6 +718,7 @@ class ReportCase(models.Model):
             "Esse laudo foi assinado digitalmente e encontra-se arquivado no sistema GDL da "
             "Superintendência da Polícia Técnico-Científica do Estado de São Paulo."
         )
+
 
     @property
     def report_signature_block(self) -> dict:

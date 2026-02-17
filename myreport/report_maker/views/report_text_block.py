@@ -110,6 +110,12 @@ class ReportTextBlockCreateView(LoginRequiredMixin, ReportCaseContextMixin, Crea
             if group_key:
                 initial["group_key"] = group_key
 
+        # INJEÇÃO DO PREÂMBULO
+        if placement == "PREAMBLE":
+            # A property preamble do modelo ReportCase gera o texto formatado
+            # injetamos no campo 'body' do formulário
+            initial["body"] = self.report_case.preamble
+
         # Injeta APENAS no create (GET) e apenas se o body estiver vazio
         if placement == ReportTextBlock.Placement.CONCLUSION:
             author = getattr(self.report_case, "author", None)
