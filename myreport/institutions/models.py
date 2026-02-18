@@ -1,4 +1,6 @@
 # institutions/models.py
+
+from django.db.models import Q
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -172,6 +174,11 @@ class Team(models.Model):
         related_name="teams",
     )
 
+    is_nucleus_team = models.BooleanField(
+        default=False,
+        help_text="Indica que esta equipe representa o próprio núcleo.",
+    )
+
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255, blank=True, default="")
 
@@ -187,12 +194,11 @@ class Team(models.Model):
             "order",
             "name",
         ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["nucleus", "name"],
-                name="unique_team_name_per_nucleus",
-            )
-        ]
+        models.UniqueConstraint(
+            fields=["nucleus"],
+            condition=Q(is_nucleus_team=True),
+            name="unique_nucleus_team_per_nucleus",
+        )
 
     def __str__(self) -> str:
         return f"{self.name} ({self.nucleus.name} / {self.nucleus.institution.acronym})"

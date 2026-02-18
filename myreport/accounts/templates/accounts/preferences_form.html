@@ -20,7 +20,7 @@
     {% endfor %}
   {% endif %}
 
-  <form method="post">
+  <form method="post" novalidate>
     {% csrf_token %}
 
     {# garante retorno à página de origem após salvar #}
@@ -31,19 +31,45 @@
     {{ form.non_field_errors }}
 
     <div class="mb-3">
-      <label class="form-label">{{ form.theme.label }}</label>
+      <label class="form-label" for="{{ form.theme.id_for_label }}">{{ form.theme.label }}</label>
       {{ form.theme }}
       {{ form.theme.errors }}
     </div>
 
     <div class="mb-3">
-      <label class="form-label">{{ form.default_home.label }}</label>
+      <label class="form-label" for="{{ form.default_home.id_for_label }}">{{ form.default_home.label }}</label>
       {{ form.default_home }}
       {{ form.default_home.errors }}
     </div>
 
+    {% comment %}
+       Lotação / Unidade
+    {% endcomment %}
+
+    {% if form.nucleus %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.nucleus.id_for_label }}">{{ form.nucleus.label }}</label>
+        {{ form.nucleus }}
+        {% if form.nucleus.help_text %}
+          <div class="form-text">{{ form.nucleus.help_text }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if form.team %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.team.id_for_label }}">{{ form.team.label }}</label>
+        {{ form.team }}
+        {% if form.team.help_text %}
+          <div class="form-text">{{ form.team.help_text }}</div>
+        {% endif %}
+        <div class="form-text">
+        </div>
+      </div>
+    {% endif %}
+
     <div class="mb-3">
-      <label class="form-label">{{ form.closing_phrase.label }}</label>
+      <label class="form-label" for="{{ form.closing_phrase.id_for_label }}">{{ form.closing_phrase.label }}</label>
       {{ form.closing_phrase }}
       {% if form.closing_phrase.help_text %}
         <div class="form-text">{{ form.closing_phrase.help_text }}</div>

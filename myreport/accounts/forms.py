@@ -1,5 +1,4 @@
 # myreport/accounts/forms.py
-
 from __future__ import annotations
 
 # ─────────────────────────────────────
@@ -18,7 +17,7 @@ from django.utils import timezone
 # ─────────────────────────────────────
 # Apps do projeto
 # ─────────────────────────────────────
-from .home_registry import get_allowed_home_choices
+from .home_registry import get_allowed_home_choices, get_home_keys
 from institutions.models import (
     Institution,
     Nucleus,
@@ -34,6 +33,7 @@ from common.mixins import BaseForm, BaseModelForm, BootstrapFormMixin
 
 
 User = get_user_model()
+
 
 class _InstitutionNucleusTeamFieldsMixin(BaseForm):
     """
@@ -273,14 +273,12 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, BaseModelForm):
         return user
 
 
-
 class UserPasswordChangeForm(BootstrapFormMixin, PasswordChangeForm):
     pass
 
 
 class UserSetPasswordForm(BootstrapFormMixin, SetPasswordForm):
     pass
-
 
 
 class LinkInstitutionForm(_InstitutionNucleusTeamFieldsMixin):
@@ -384,36 +382,132 @@ class LinkInstitutionForm(_InstitutionNucleusTeamFieldsMixin):
             self.user.save(update_fields=["can_edit_reports"])
 
 
-
-from .home_registry import get_allowed_home_choices, get_home_keys
-
-
+# ─────────────────────────────────────
+# Preferências do usuário
+# ─────────────────────────────────────
 class UserPreferencesForm(BaseModelForm):
+    """
+    Form de preferências do usuário.
+
+    Observação:
+    - nucleus/team NÃO são campos do User; são preferências operacionais.
+    - o vínculo real continua sendo via UserTeamAssignment (e, se desejar, UserInstitutionAssignment).
+    """
+
+    nucleus = forms.ModelChoiceField(
+        queryset=Nucleus.objects.filter(is_active=True).order_by("name"),
+        required=True,
+        label="Núcleo",
+    )
+    team = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        required=False,
+        label="Equipe",
+        help_text="Se não selecionar uma equipe, será utilizada a equipe correspondente ao próprio núcleo.",
+    )
+
     class Meta:
         model = User
-        fields = ("theme", "default_home", "closing_phrase")
+        fields = (
+            "theme",
+            "default_home",
+            "closing_phrase",
+        )
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.user = user or self.instance
 
-        pref_user = user if user is not None else self.instance
-        if pref_user is None:
-            raise ValueError("UserPreferencesForm requires a user instance.")
+        # choices de default_home (com base no registro/flags do projeto)
+        if "default_home" in self.fields:
+            allowed = get_allowed_home_choices(self.user)
+            # allowed pode vir como list[tuple] ou dict; garantimos list[tuple]
+            if isinstance(allowed, dict):
+                allowed = list(allowed.items())
+            self.fields["default_home"].choices = allowed
 
-        self._allowed_home_choices = get_allowed_home_choices(pref_user)
-        self.fields["default_home"].choices = self._allowed_home_choices
+        # initial: assignment ativo (team -> nucleus)
+        active = (
+            self.user.team_assignments.filter(end_at__isnull=True)
+            .select_related("team__nucleus")
+            .order_by("-start_at")
+            .first()
+        )
+        if active:
+            self.fields["nucleus"].initial = active.team.nucleus_id
+            self.fields["team"].initial = active.team_id
 
-    def clean_default_home(self):
-        value = self.cleaned_data["default_home"]
+        # queryset encadeado de teams (POST ou initial)
+        nucleus_id = None
+        if self.is_bound:
+            nucleus_id = self.data.get("nucleus") or None
+        else:
+            nucleus_id = self.fields["nucleus"].initial or None
 
-        allowed_keys = [key for key, _ in self._allowed_home_choices]
+        if nucleus_id:
+            self.fields["team"].queryset = (
+                Team.objects.filter(nucleus_id=nucleus_id, is_active=True)
+                .order_by("order", "name")
+            )
+        else:
+            self.fields["team"].queryset = Team.objects.none()
 
-        if value not in allowed_keys:
-            raise ValidationError("Página inicial inválida para este usuário.")
+        # aplica bootstrap também nos campos adicionados manualmente (nucleus/team)
+        self.apply_bootstrap()
 
-        return value
+    def clean(self):
+        cleaned = super().clean()
+        nucleus: Nucleus | None = cleaned.get("nucleus")
+        team: Team | None = cleaned.get("team")
 
-    def clean_closing_phrase(self):
-        value = self.cleaned_data.get("closing_phrase") or ""
-        return value.strip()
+        if team and nucleus and team.nucleus_id != nucleus.id:
+            self.add_error("team", "A equipe selecionada não pertence ao núcleo informado.")
 
+        return cleaned
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+
+        nucleus: Nucleus = self.cleaned_data["nucleus"]
+        team: Team | None = self.cleaned_data.get("team")
+
+        # Se não escolheu equipe, usa (ou cria) a “equipe do núcleo”
+        if not team:
+            team, _ = Team.objects.get_or_create(
+                nucleus=nucleus,
+                is_nucleus_team=True,
+                defaults={"name": nucleus.name, "is_active": True, "order": 0},
+            )
+
+        now = timezone.now()
+
+        # Fecha assignment ativo anterior
+        UserTeamAssignment.objects.filter(user=user, end_at__isnull=True).update(end_at=now)
+
+        # Cria assignment ativo novo
+        UserTeamAssignment.objects.create(
+            user=user,
+            team=team,
+            start_at=now,
+            end_at=None,
+            is_primary=True,
+        )
+
+        # (Opcional) Se você quiser também manter InstitutionAssignment coerente:
+        # - pega a instituição do núcleo e grava como assignment ativo
+        # Se você não quiser mexer nisso agora, pode deixar comentado.
+        if getattr(nucleus, "institution_id", None):
+            UserInstitutionAssignment.objects.filter(user=user, end_at__isnull=True).update(end_at=now)
+            UserInstitutionAssignment.objects.create(
+                user=user,
+                institution=nucleus.institution,
+                start_at=now,
+                end_at=None,
+                is_primary=True,
+            )
+
+        if not user.can_edit_reports:
+            user.can_edit_reports = True
+            user.save(update_fields=["can_edit_reports"])
+
+        return user

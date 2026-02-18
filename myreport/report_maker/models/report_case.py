@@ -703,15 +703,15 @@ class ReportCase(models.Model):
         """
         Preâmbulo institucional do laudo.
 
-        - Utiliza snapshots quando o laudo está congelado.
-        - Inclui o Diretor (se cadastrado), também snapshotado.
-        - Não depende do tipo de exame.
+        - Usa snapshots quando congelado.
+        - Omite equipe quando for a equipe do próprio núcleo.
+        - Inclui Diretor, se houver.
         """
-        # 1. Identificação do Perito e Autoridade
+
         examiner = self.report_identity_name
         authority = self.requesting_authority or ""
 
-        # 2. Data da Designação
+        # Data
         date_text = ""
         if self.assignment_datetime:
             full_date = date_format(
@@ -721,43 +721,55 @@ class ReportCase(models.Model):
             ).lower()
             date_text = f"Aos {full_date}, "
 
-        # 3. Cidade (Snapshot ou Atual)
-        city_name = self.city_name_snapshot if self.is_frozen else (
-            self.nucleus.city.name if (self.nucleus and self.nucleus.city) else ""
+        # Cidade
+        city_name = (
+            self.city_name_snapshot
+            if self.is_frozen
+            else (self.nucleus.city.name if (self.nucleus and self.nucleus.city) else "")
         )
-        city_prefix = f"na cidade de {city_name} e " if city_name else ""
+        city_text = f"na cidade de {city_name}, " if city_name else ""
 
-        # 4. Estrutura Institucional (Fluida)
-        inst = self.institution_name_for_display
-        nuc = self.nucleus_display
-        team = self.team_display
+        # Estrutura institucional
+        inst = self.institution_name_for_display.strip()
+        nuc = self.nucleus_display.strip()
+        team = self.team_display.strip()
 
-        org_parts = []
+        # Detecta se a equipe representa o próprio núcleo
+        team_is_redundant = False
+        if self.team:
+            team_is_redundant = getattr(self.team, "is_nucleus_team", False)
+
+        org_parts = ["no Instituto de Criminalística"]
+
         if inst:
-            org_parts.append(f"na {inst}")
+            org_parts.append(f"da {inst}")
+
         if nuc:
             org_parts.append(f"no {nuc}")
-        if team:
+
+        if team and not team_is_redundant:
             org_parts.append(f"na {team}")
 
         org_text = ", ".join(org_parts)
 
-        # 5. Diretor (snapshot-safe)
+        # Diretor
         director_title = (self.director_title_for_display or "").strip()
         director_name = (self.director_name_for_display or "").strip()
+
         director_clause = ""
         if director_title and director_name:
-            director_clause = f"pelo {director_title}, {director_name}, "
+            director_clause = f"pelo {director_title} Diretor deste Instituto de Criminalística, {director_name}, "
         elif director_name:
             director_clause = f"pelo Diretor, {director_name}, "
 
-        # 6. Tratamento de Gênero
+        # Concordância
         d_examiner = self._gendered_roles_from_name(
             examiner,
             masculine="foi designado o Perito Criminal",
             feminine="foi designada a Perita Criminal",
             neutral="foi designado o Perito Criminal",
         )
+
         d_authority = self._gendered_roles_from_name(
             authority,
             masculine="pelo Exmo. Sr. Delegado de Polícia",
@@ -766,12 +778,15 @@ class ReportCase(models.Model):
         )
 
         return (
-            f"{date_text}{city_prefix}{org_text}, em conformidade com o disposto no "
-            f"artigo 178 do Decreto-Lei nº 3.689, de 3 de outubro de 1941, "
+            f"{date_text}"
+            f"{city_text}"
+            f"{org_text}, em conformidade com o disposto no artigo 178 "
+            f"do Decreto-Lei nº 3.689, de 3 de outubro de 1941, "
             f"{director_clause}"
             f"{d_examiner} {examiner} para proceder ao exame pericial, "
             f"em atendimento à requisição expedida {d_authority} {authority}."
         )
+
 
     @property
     def report_closing(self):
