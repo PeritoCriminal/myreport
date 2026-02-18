@@ -163,6 +163,7 @@ class Nucleus(models.Model):
         return f"{self.name} ({self.institution.acronym})"
 
 
+
 class Team(models.Model):
     """
     Team linked to a Nucleus.
@@ -194,11 +195,19 @@ class Team(models.Model):
             "order",
             "name",
         ]
-        models.UniqueConstraint(
-            fields=["nucleus"],
-            condition=Q(is_nucleus_team=True),
-            name="unique_nucleus_team_per_nucleus",
-        )
+        constraints = [
+            # 1) Impede nomes repetidos dentro do mesmo núcleo (isso faz o teste voltar a passar)
+            models.UniqueConstraint(
+                fields=["nucleus", "name"],
+                name="unique_team_name_per_nucleus",
+            ),
+            # 2) Garante que exista no máximo uma equipe "do próprio núcleo" por núcleo
+            models.UniqueConstraint(
+                fields=["nucleus"],
+                condition=Q(is_nucleus_team=True),
+                name="unique_nucleus_team_per_nucleus",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.name} ({self.nucleus.name} / {self.nucleus.institution.acronym})"
