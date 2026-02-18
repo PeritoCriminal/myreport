@@ -683,7 +683,7 @@ class ReportCase(models.Model):
         team = self.team_display
         
         org_parts = []
-        if inst: org_parts.append(f"no {inst}")
+        if inst: org_parts.append(f"na {inst}")
         if nuc: org_parts.append(f"no {nuc}")
         if team: org_parts.append(f"na {team}")
         
