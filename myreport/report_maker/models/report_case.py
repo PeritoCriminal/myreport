@@ -243,7 +243,7 @@ class ReportCase(models.Model):
     class Meta:
         verbose_name = "Laudo"
         verbose_name_plural = "Laudos"
-        ordering = ["-updated_at"]
+        ordering = ["is_locked", "-updated_at"]
         indexes = [
             models.Index(fields=["status", "updated_at"]),
             models.Index(fields=["organization_frozen_at", "updated_at"]),

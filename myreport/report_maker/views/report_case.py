@@ -63,7 +63,7 @@ class ReportCaseListView(LoginRequiredMixin, ListView):
         return (
             ReportCase.objects.filter(author=self.request.user)
             .select_related("institution", "nucleus", "team", "author")
-            .order_by("-updated_at")
+            .order_by("is_locked", "-updated_at")
         )
 
 
