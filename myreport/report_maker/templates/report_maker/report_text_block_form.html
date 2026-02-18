@@ -4,11 +4,7 @@
 {% load static %}
 
 {% block title %}
-  {% if object %}
-    Editar texto do laudo
-  {% else %}
-    Novo texto do laudo
-  {% endif %}
+  {% if object %}Editar texto do laudo{% else %}Novo texto do laudo{% endif %}
 {% endblock %}
 
 {% block page_header %}
@@ -27,17 +23,14 @@
               Novo {{ group_label|default:placement_label|default:'texto do laudo' }}
             {% endif %}
           </h4>
-
           <div class="text-muted small">Laudo nº {{ report.report_number }}</div>
         </div>
 
-        {# Contexto do texto (placement / grupo) #}
         {% if placement_label %}
           <div class="text-end">
             <span class="badge text-bg-secondary">{{ placement_label }}</span>
-
             {% if group_label %}
-              <span class="badge text-bg-light border">{{ group_label }}</span>
+               <span class="badge text-bg-info text-white">{{ group_label }}</span>
             {% endif %}
           </div>
         {% endif %}
@@ -46,90 +39,34 @@
 
     <form method="post" novalidate>
       {% csrf_token %}
-
+      
       {% if form.non_field_errors %}
         <div class="alert alert-danger">{{ form.non_field_errors }}</div>
       {% endif %}
 
-      {# Campos estruturais NÃO editáveis pelo usuário #}
-      {% if form.placement %}
-        {{ form.placement.as_hidden }}
-        {{ form.placement.errors }}
-      {% endif %}
-
-      {% if form.group_key %}
-        {{ form.group_key.as_hidden }}
-        {{ form.group_key.errors }}
-      {% endif %}
+      {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
 
       {% if form.body %}
-        {# 1) Define p (placement efetivo) #}
-        {% if object and object.placement %}
-          {% with p=object.placement %}
-            {# 2) Mapeia p -> ai_kind chamando include em cada ramo #}
-
-            {% if p == 'PREAMBLE' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='preamble' %}
-            {% elif p == 'SUMMARY' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='summary' %}
-            {% elif p == 'TOC' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='toc' %}
-            {% elif p == 'HISTORIC' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='historic' %}
-            {% elif p == 'OBJECT_GROUP_INTRO' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='object_group_intro' %}
-            {% elif p == 'OBSERVATIONS' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='observations' %}
-            {% elif p == 'FINAL_CONSIDERATIONS' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='final_considerations' %}
-            {% elif p == 'CONCLUSION' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='conclusion' %}
-            {% else %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='generic' %}
-            {% endif %}
-          {% endwith %}
-        {% else %}
-          {% with p=form.instance.placement %}
-            {% if p == 'PREAMBLE' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='preamble' %}
-            {% elif p == 'SUMMARY' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='summary' %}
-            {% elif p == 'TOC' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='toc' %}
-            {% elif p == 'HISTORIC' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='historic' %}
-            {% elif p == 'OBJECT_GROUP_INTRO' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='object_group_intro' %}
-            {% elif p == 'OBSERVATIONS' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='observations' %}
-            {% elif p == 'FINAL_CONSIDERATIONS' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='final_considerations' %}
-            {% elif p == 'CONCLUSION' %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='conclusion' %}
-            {% else %}
-              {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind='generic' %}
-            {% endif %}
-          {% endwith %}
-        {% endif %}
+        {# Definimos a variável 'p' uma vez para simplificar a chamada abaixo #}
+        {% with p=object.placement|default:form.instance.placement %}
+          {# Chamada do editor: mantida em poucas linhas para garantir compatibilidade total #}
+          {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind=p|lower report_id=report.pk %}
+        {% endwith %}
 
         {{ form.body.errors }}
       {% endif %}
 
       <div class="d-flex justify-content-between align-items-center mt-4">
         <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancelar</a>
-
         <div class="d-flex gap-2">
           {% if object %}
             <a href="{% url 'report_maker:textblock_delete' report.pk object.pk %}" class="btn btn-outline-danger">Excluir</a>
           {% endif %}
-
           <button type="submit" class="btn btn-primary">Salvar texto</button>
         </div>
       </div>
     </form>
   </div>
-{% endblock %}
 
-{% block scripts %}
-  {{ block.super }}
+  {% include 'report_maker/partials/ai_textblock_modal.html' %}
 {% endblock %}

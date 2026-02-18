@@ -1,4 +1,9 @@
+# path: myreport/report_maker/views/ai_textblock.py
+
 from __future__ import annotations
+
+from report_maker.models import ReportCase
+from django.shortcuts import get_object_or_404
 
 import json
 
@@ -135,6 +140,16 @@ def ai_textblock_generate(request):
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except json.JSONDecodeError:
         return JsonResponse({"error": "invalid_json"}, status=400)
+
+    report_id = payload.get("report_id")
+    this_report = get_object_or_404(ReportCase, pk=report_id, author=request.user)
+    past_reports = ReportCase.objects.filter(
+        author=request.user
+    ).exclude(
+        pk=this_report.pk
+    ).order_by('-created_at')[:10]
+
+    # Vou parar por aqui para commitar e depois seguimos.
 
     raw_kind = str(payload.get("kind") or payload.get("placement") or "generic")
     kind = _resolve_kind(raw_kind)

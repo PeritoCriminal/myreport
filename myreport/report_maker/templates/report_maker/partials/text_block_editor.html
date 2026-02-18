@@ -30,9 +30,9 @@
       <button type="button"
               class="btn btn-sm btn-outline-primary"
               data-ai-generate
-              {# AJUSTE AQUI: Tenta ai_kind, senão tenta o nome do campo, senão cai no generic #}
               data-ai-kind="{{ ai_kind|default:field_name|default:'generic' }}"
               data-ai-target="{{ field_name }}"
+              data-report-id="{{ report_id }}"
               data-ai-url="{% if ai_url %}{{ ai_url }}{% else %}{% url 'report_maker:ai_textblock_generate' %}{% endif %}">
         <i class="bi bi-robot"></i> Gerar (IA)
       </button>
