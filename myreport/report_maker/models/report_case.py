@@ -11,6 +11,7 @@ from django.utils.formats import date_format
 
 from institutions.models import Institution, Nucleus, Team
 
+
 def report_pdf_upload_path(instance, filename: str) -> str:
     """
     Mantida por compatibilidade com migrações antigas.
@@ -164,6 +165,20 @@ class ReportCase(models.Model):
         default="",
     )
 
+    # ✅ NOVO — Diretor (snapshot imutável)
+    director_title_snapshot = models.CharField(
+        "Cargo/Título do diretor (snapshot)",
+        max_length=255,
+        blank=True,
+        default="",
+    )
+    director_name_snapshot = models.CharField(
+        "Nome do diretor (snapshot)",
+        max_length=255,
+        blank=True,
+        default="",
+    )
+
     organization_frozen_at = models.DateTimeField(
         "Organização congelada em",
         null=True,
@@ -307,7 +322,7 @@ class ReportCase(models.Model):
         self.team_name_snapshot = self.team.name if self.team else ""
 
         # ─────────────────────────────────────────────
-        # Snapshots do cabeçalho (honraria / kind)
+        # Snapshots do cabeçalho (honraria / kind / diretor / emblemas)
         # ─────────────────────────────────────────────
         inst = self.institution
         if inst:
@@ -319,6 +334,10 @@ class ReportCase(models.Model):
                 if hasattr(inst, "get_kind_display")
                 else str(getattr(inst, "kind", "") or "")
             )
+
+            # ✅ Diretor: snapshot imutável
+            self.director_title_snapshot = getattr(inst, "director_title", "") or ""
+            self.director_name_snapshot = getattr(inst, "director_name", "") or ""
 
             # Emblemas: cópia real no storage do laudo
             self._snapshot_image_once(
@@ -335,6 +354,8 @@ class ReportCase(models.Model):
             self.honoree_title_snapshot = ""
             self.honoree_name_snapshot = ""
             self.institution_kind_snapshot = ""
+            self.director_title_snapshot = ""
+            self.director_name_snapshot = ""
             self.emblem_primary_snapshot = None
             self.emblem_secondary_snapshot = None
 
@@ -342,7 +363,6 @@ class ReportCase(models.Model):
 
         if self.nucleus and self.nucleus.city:
             self.city_name_snapshot = self.nucleus.city.name
-
 
     # ---------------------------------------------------------------------
     # Display helpers (OPEN -> FK, CLOSED -> snapshot) + metadata do laudo
@@ -458,6 +478,19 @@ class ReportCase(models.Model):
             return self.team_name_snapshot or ""
         return (self.team.name if self.team else "") or ""
 
+    # ✅ Diretor snapshot-safe
+    @property
+    def director_title_for_display(self) -> str:
+        if self.is_frozen:
+            return self.director_title_snapshot or ""
+        return (getattr(self.institution, "director_title", "") if self.institution else "") or ""
+
+    @property
+    def director_name_for_display(self) -> str:
+        if self.is_frozen:
+            return self.director_name_snapshot or ""
+        return (getattr(self.institution, "director_name", "") if self.institution else "") or ""
+
     # ---------------------------------------------------------------------
     # Header helper (OPEN -> FK, CLOSED -> snapshot)
     # ---------------------------------------------------------------------
@@ -478,6 +511,9 @@ class ReportCase(models.Model):
             hon_name = self.honoree_name_snapshot or ""
             kind_display = self.institution_kind_snapshot or ""
 
+            director_title = self.director_title_snapshot or ""
+            director_name = self.director_name_snapshot or ""
+
             emblem_primary = self.emblem_primary_snapshot
             emblem_secondary = self.emblem_secondary_snapshot
         else:
@@ -492,12 +528,20 @@ class ReportCase(models.Model):
                 else (str(getattr(inst, "kind", "") or "") if inst else "")
             )
 
+            director_title = (getattr(inst, "director_title", "") if inst else "") or ""
+            director_name = (getattr(inst, "director_name", "") if inst else "") or ""
+
             emblem_primary = inst.emblem_primary if (inst and getattr(inst, "emblem_primary", None)) else None
             emblem_secondary = inst.emblem_secondary if (inst and getattr(inst, "emblem_secondary", None)) else None
 
         honoree_line = f"{hon_title} {hon_name}".strip() if (hon_title and hon_name) else (hon_name or "")
-
         unit_line = " - ".join(p for p in [self.nucleus_display, self.team_display] if p)
+
+        director_line = ""
+        if director_title and director_name:
+            director_line = f"{director_title} {director_name}".strip()
+        else:
+            director_line = (director_name or director_title).strip()
 
         return {
             "name": name or None,
@@ -507,6 +551,10 @@ class ReportCase(models.Model):
             "unit_line": unit_line or None,
             "emblem_primary": emblem_primary,
             "emblem_secondary": emblem_secondary,
+            # extras (não quebra nada se template ignorar)
+            "director_line": director_line or None,
+            "director_title": director_title or None,
+            "director_name": director_name or None,
         }
 
     # ---------------------------------------------------------------------
@@ -552,6 +600,8 @@ class ReportCase(models.Model):
             "honoree_title_snapshot",
             "honoree_name_snapshot",
             "institution_kind_snapshot",
+            "director_title_snapshot",   # ✅ novo
+            "director_name_snapshot",    # ✅ novo
             "organization_frozen_at",
         ).first()
 
@@ -576,6 +626,8 @@ class ReportCase(models.Model):
             or old["honoree_title_snapshot"] != self.honoree_title_snapshot
             or old["honoree_name_snapshot"] != self.honoree_name_snapshot
             or old["institution_kind_snapshot"] != self.institution_kind_snapshot
+            or old["director_title_snapshot"] != self.director_title_snapshot   # ✅ novo
+            or old["director_name_snapshot"] != self.director_name_snapshot     # ✅ novo
             or old["organization_frozen_at"] != self.organization_frozen_at
         )
 
@@ -646,14 +698,14 @@ class ReportCase(models.Model):
             return masculine
         return neutral
 
-
     @property
     def preamble(self) -> str:
         """
         Preâmbulo institucional do laudo.
-        
-        - Utiliza snapshots de cidade e organização quando o laudo está congelado.
-        - Remove separadores '/' para garantir uma redação fluida e formal.
+
+        - Utiliza snapshots quando o laudo está congelado.
+        - Inclui o Diretor (se cadastrado), também snapshotado.
+        - Não depende do tipo de exame.
         """
         # 1. Identificação do Perito e Autoridade
         examiner = self.report_identity_name
@@ -670,27 +722,36 @@ class ReportCase(models.Model):
             date_text = f"Aos {full_date}, "
 
         # 3. Cidade (Snapshot ou Atual)
-        # Se estiver congelado, usa o snapshot; se não, tenta buscar no Nucleus.
         city_name = self.city_name_snapshot if self.is_frozen else (
             self.nucleus.city.name if (self.nucleus and self.nucleus.city) else ""
         )
         city_prefix = f"na cidade de {city_name} e " if city_name else ""
 
         # 4. Estrutura Institucional (Fluida)
-        # Utilizamos as propriedades de display que já tratam a lógica de snapshot internamente.
         inst = self.institution_name_for_display
         nuc = self.nucleus_display
         team = self.team_display
-        
+
         org_parts = []
-        if inst: org_parts.append(f"na {inst}")
-        if nuc: org_parts.append(f"no {nuc}")
-        if team: org_parts.append(f"na {team}")
-        
-        # Concatena com vírgulas em vez de barras.
+        if inst:
+            org_parts.append(f"na {inst}")
+        if nuc:
+            org_parts.append(f"no {nuc}")
+        if team:
+            org_parts.append(f"na {team}")
+
         org_text = ", ".join(org_parts)
 
-        # 5. Tratamento de Gênero
+        # 5. Diretor (snapshot-safe)
+        director_title = (self.director_title_for_display or "").strip()
+        director_name = (self.director_name_for_display or "").strip()
+        director_clause = ""
+        if director_title and director_name:
+            director_clause = f"pelo {director_title}, {director_name}, "
+        elif director_name:
+            director_clause = f"pelo Diretor, {director_name}, "
+
+        # 6. Tratamento de Gênero
         d_examiner = self._gendered_roles_from_name(
             examiner,
             masculine="foi designado o Perito Criminal",
@@ -704,10 +765,10 @@ class ReportCase(models.Model):
             neutral="pelo(a) Exmo(a). Sr(a). Delegado(a) de Polícia",
         )
 
-        # 6. Montagem Final da Redação
         return (
             f"{date_text}{city_prefix}{org_text}, em conformidade com o disposto no "
             f"artigo 178 do Decreto-Lei nº 3.689, de 3 de outubro de 1941, "
+            f"{director_clause}"
             f"{d_examiner} {examiner} para proceder ao exame pericial, "
             f"em atendimento à requisição expedida {d_authority} {authority}."
         )
@@ -718,7 +779,6 @@ class ReportCase(models.Model):
             "Esse laudo foi assinado digitalmente e encontra-se arquivado no sistema GDL da "
             "Superintendência da Polícia Técnico-Científica do Estado de São Paulo."
         )
-
 
     @property
     def report_signature_block(self) -> dict:
