@@ -736,8 +736,10 @@ class ReportCase(models.Model):
 
         # Detecta se a equipe representa o próprio núcleo
         team_is_redundant = False
-        if self.team:
-            team_is_redundant = getattr(self.team, "is_nucleus_team", False)
+        if self.team and getattr(self.team, "is_nucleus_team", False):
+            team_is_redundant = True
+        
+        # team_is_redundant = True
 
         org_parts = ["no Instituto de Criminalística"]
 
@@ -813,3 +815,58 @@ class ReportCase(models.Model):
             "name": name,
             "role": role,
         }
+    
+    # ---------------------------------------------------------------------
+    # Contexto do laudo em uso para IA
+    # ---------------------------------------------------------------------
+
+    def get_ai_context(self) -> str:
+        """
+        Consolidates narrative content, technical data, and image captions.
+        Returns a formatted string or an empty indicator if no data exists.
+        """
+        context_parts = []
+
+        # 1. Basic Info
+        context_parts.append(f"REPORT NUMBER: {self.report_number}")
+        context_parts.append(f"AUTHORITY: {self.authority_name}\n")
+
+        # 2. Narrative Blocks
+        narrative = []
+        for block in self.text_blocks.all().order_by('position'):
+            if block.body and block.body.strip():
+                narrative.append(f"[{block.display_title}]\n{block.body}")
+        
+        if narrative:
+            context_parts.append("=== EXISTING NARRATIVE CONTENT ===")
+            context_parts.extend(narrative)
+            context_parts.append("")
+
+        # 3. Technical Objects (Polymorphism)
+        objects_data = []
+        for base_obj in self.exam_objects.all():
+            obj = base_obj.concrete
+            obj_info = [f"OBJECT: {obj.title}"]
+            
+            # Fields from get_render_blocks
+            if hasattr(obj, 'get_render_blocks'):
+                for render_block in obj.get_render_blocks():
+                    field_name = render_block.get('field') or render_block.get('field_name')
+                    value = getattr(obj, field_name, None)
+                    if value and str(value).strip():
+                        obj_info.append(f"  {render_block.get('label')}: {value}")
+
+            # Image captions
+            if hasattr(obj, 'images'):
+                for img in obj.images.all().order_by('index'):
+                    obj_info.append(f"  (Photo {img.index}): {img.caption}")
+            
+            if len(obj_info) > 1: # Only add if there's more than just the title
+                objects_data.append("\n".join(obj_info))
+
+        if objects_data:
+            context_parts.append("=== TECHNICAL EXAM DATA ===")
+            context_parts.extend(objects_data)
+
+        # Retorna o contexto ou uma string vazia se nada foi encontrado
+        return "\n".join(context_parts).strip()
