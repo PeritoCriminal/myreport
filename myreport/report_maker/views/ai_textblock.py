@@ -141,16 +141,6 @@ def ai_textblock_generate(request):
     except json.JSONDecodeError:
         return JsonResponse({"error": "invalid_json"}, status=400)
 
-    report_id = payload.get("report_id")
-    this_report = get_object_or_404(ReportCase, pk=report_id, author=request.user)
-    past_reports = ReportCase.objects.filter(
-        author=request.user
-    ).exclude(
-        pk=this_report.pk
-    ).order_by('-created_at')[:10]
-
-    # Vou parar por aqui para commitar e depois seguimos.
-
     raw_kind = str(payload.get("kind") or payload.get("placement") or "generic")
     kind = _resolve_kind(raw_kind)
 
@@ -158,13 +148,21 @@ def ai_textblock_generate(request):
     if not notes:
         return JsonResponse({"error": "notes_required"}, status=400)
 
+    # report_id passa a ser opcional (frontend manda; testes antigos não)
+    report_id = (payload.get("report_id") or "").strip()
+    this_report = None
+    past_reports = ReportCase.objects.none()
+
+    if report_id:
+        this_report = get_object_or_404(ReportCase, pk=report_id, author=request.user)
+        past_reports = (
+            ReportCase.objects.filter(author=request.user)
+            .exclude(pk=this_report.pk)
+            .order_by("-created_at")[:10]
+        )
+
     instruction = KIND_PROMPTS.get(kind, KIND_PROMPTS["generic"])
 
-    # ⚠️ Contrato dos testes:
-    # - usar OpenAI().responses.create(...)
-    # - passar model="gpt-5.2"
-    # - passar input como lista de mensagens (system/user)
-    # - retornar resp.output_text
     try:
         client = OpenAI()
         resp = client.responses.create(
@@ -178,14 +176,10 @@ def ai_textblock_generate(request):
         return JsonResponse({"text": text}, status=200)
 
     except RateLimitError:
-        # contrato do teste: 429 + error == "insufficient_quota"
         return JsonResponse({"error": "insufficient_quota"}, status=429)
-
     except AuthenticationError:
         return JsonResponse({"error": "auth_error"}, status=401)
-
     except APIError:
         return JsonResponse({"error": "api_error"}, status=503)
-
     except Exception as e:
         return JsonResponse({"error": "server_error", "detail": str(e)}, status=500)
