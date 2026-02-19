@@ -210,7 +210,7 @@ class Team(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.name} ({self.nucleus.name} / {self.nucleus.institution.acronym})"
+        return f"{self.name} ({self.nucleus.name}"
 
 
 class UserTeamAssignment(models.Model):

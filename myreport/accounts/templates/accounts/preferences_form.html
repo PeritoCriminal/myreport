@@ -53,6 +53,7 @@
         {% if form.nucleus.help_text %}
           <div class="form-text">{{ form.nucleus.help_text }}</div>
         {% endif %}
+        {{ form.nucleus.errors }}
       </div>
     {% endif %}
 
@@ -62,9 +63,10 @@
         {{ form.team }}
         {% if form.team.help_text %}
           <div class="form-text">{{ form.team.help_text }}</div>
+        {% else %}
+          <div class="form-text">Deixe em branco para remover a equipe.</div>
         {% endif %}
-        <div class="form-text">
-        </div>
+        {{ form.team.errors }}
       </div>
     {% endif %}
 
