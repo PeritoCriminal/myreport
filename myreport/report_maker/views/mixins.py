@@ -93,7 +93,7 @@ class ReportCaseContextMixin(ReportCaseOwnedMixin):
         ctx = super().get_context_data(**kwargs)
         self.get_report_case()
         ctx["report"] = self.report_case
-
+        ctx["report_id"] = str(self.report_case.pk)
         # padrão "obj" em create/update
         ctx.setdefault("obj", getattr(self, "object", None))
 

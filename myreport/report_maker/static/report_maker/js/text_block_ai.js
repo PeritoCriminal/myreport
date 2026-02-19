@@ -49,6 +49,7 @@
   let currentTextarea = null;
 
   async function handle(btn) {
+    const reportId = btn.dataset.reportId;
     const url = btn.dataset.aiUrl;
     const kindRaw = btn.dataset.aiKind || "generic";
     const kind = String(kindRaw).trim().toLowerCase() || "generic";
@@ -62,6 +63,10 @@
 
     const { hasModal, modalEl, outputEl, errorEl, applyBtn } = getModalParts();
 
+    if (!reportId) {
+      const msg = "ID do laudo não encontrado (report_id). Recarregue a página.";
+    }
+    
     if (!notes) {
       if (hasModal) {
         currentTextarea = textarea;
@@ -100,7 +105,7 @@
           "Content-Type": "application/json",
           "X-CSRFToken": csrfToken,
         },
-        body: JSON.stringify({ kind, notes }),
+        body: JSON.stringify({ kind, notes, report_id: reportId }),
       });
 
       const contentType = resp.headers.get("content-type") || "";

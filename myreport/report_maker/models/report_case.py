@@ -829,7 +829,7 @@ class ReportCase(models.Model):
 
         # 1. Basic Info
         context_parts.append(f"REPORT NUMBER: {self.report_number}")
-        context_parts.append(f"AUTHORITY: {self.authority_name}\n")
+        context_parts.append(f"AUTHORITY: {self.requesting_authority}\n")
 
         # 2. Narrative Blocks
         narrative = []
