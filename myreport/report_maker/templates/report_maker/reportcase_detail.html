@@ -12,214 +12,185 @@
 {% endblock %}
 
 {% block content %}
-  <div class="container mt-4" style="max-width: 980px;">
-    {# Cabeçalho do laudo (apenas informativo) #}
-    <div class="d-flex justify-content-between align-items-start mb-4">
-      <div>
-        <h4 class="mb-1">Laudo nº {{ report.report_number }}</h4>
-      </div>
-
-      <div class="text-end">
-        {% if report.status == 'OPEN' %}
-          <span class="badge bg-success">Aberto</span>
-        {% else %}
-          <span class="badge bg-secondary">Concluído</span>
-        {% endif %}
-      </div>
+<div class="container mt-4" style="max-width: 980px;">
+  {# Cabeçalho do laudo #}
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+      <h4 class="mb-1">Laudo nº {{ report.report_number }}</h4>
     </div>
-
-    {# Preâmbulo #}
-    {% if preamble %}
-      <div class="mb-4">
-        <p class="text-justify">{{ preamble|linebreaks }}</p>
-      </div>
-    {% endif %}
-
-    {% if text_blocks_by_placement.SUMMARY %}
-      <div class="mb-5">
-        <h5>Resumo</h5>
-
-        {% for block in text_blocks_by_placement.SUMMARY %}
-          <div class="mb-3">{{ block.body|linebreaks }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    {% if text_blocks_by_placement.TOC %}
-      <div class="mb-5">
-        <h5>Sumário</h5>
-
-        {% for block in text_blocks_by_placement.TOC %}
-          <div class="mb-3">{{ block.body|linebreaks }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    {# Dados Gerais #}
-    <div class="mb-4">
-      {% include 'report_maker/partials/report_metadata_dl.html' with report=report %}
-    </div>
-
-    {# Objetos de exame (listagem + imagens) #}
-    <div class="mb-4">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Objetos de exame</h5>
-        {% include 'report_maker/partials/report_editorial_actions.html' with report=report %}
-      </div>
-
-      {% if exam_groups_ui %}
-        {% for g in exam_groups_ui %}
-          <div class="mb-3">
-            <div class="text-muted small fw-semibold mb-2">{{ g.label|default:'Outros' }}</div>
-
-            {% if g.intro_text %}
-              <div class="mb-2">{{ g.intro_text|linebreaks }}</div>
-            {% endif %}
-
-            <div class="list-group js-exam-objects-list" data-report-id="{{ report.pk }}" data-group-key="{{ g.key|default:'' }}" data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}">
-              {% for obj in g.objects %}
-                {% with obj_edit_url=obj.edit_url obj_delete_url=obj.delete_url %}
-                  <div class="list-group-item d-flex align-items-start gap-2" data-id="{{ obj.pk }}">
-                    {% if report.can_edit %}
-                      <span class="text-muted small js-drag-handle flex-shrink-0" title="Arrastar para reordenar" style="cursor: grab; user-select: none; padding-top: 2px;"><i class="bi bi-grip-vertical"></i></span>
-                    {% endif %}
-
-                    <div class="flex-grow-1">
-                      <div class="fw-semibold">{{ obj.title|default:'Objeto sem título' }} - Classe {{ obj.group_key|default:'Nulo' }}</div>
-
-                      {% if obj.description %}
-                        <div class="text-muted small">{{ obj.order }} - {{ obj.description|truncatechars:120 }}</div>
-                      {% endif %}
-
-                      {% include 'report_maker/partials/image_card_list.html' with obj=obj report=report %}
-                    </div>
-
-                    {% if report.can_edit %}
-                      <div class="d-flex gap-2 flex-shrink-0">
-                        {% if obj_edit_url %}
-                          <a class="btn btn-sm btn-outline-secondary" href="{{ obj_edit_url }}" title="Editar"><i class="bi bi-pencil"></i></a>
-                        {% endif %}
-
-                        {# IMPORTANT: usa o CONCRETO para montar a URL de image_add #}
-                        {% if obj.concrete_app_label and obj.concrete_model_name and obj.concrete.pk %}
-                          <a class="btn btn-sm btn-outline-primary" href="{% url 'report_maker:image_add' obj.concrete_app_label obj.concrete_model_name obj.concrete.pk %}" title="Inserir imagem"><i class="bi bi-image"></i></a>
-                        {% endif %}
-
-                        {% if obj_delete_url %}
-                          <a class="btn btn-sm btn-outline-danger" href="{{ obj_delete_url }}" title="Excluir"><i class="bi bi-trash"></i></a>
-                        {% endif %}
-                      </div>
-                    {% endif %}
-                  </div>
-                {% endwith %}
-              {% endfor %}
-            </div>
-          </div>
-        {% endfor %}
+    <div class="text-end">
+      {% if report.status == 'OPEN' %}
+        <span class="badge bg-success">Aberto</span>
       {% else %}
-        <p class="text-muted small mb-0">Nenhum objeto de exame cadastrado.</p>
-      {% endif %}
-    </div>
-
-    {% if text_blocks_by_placement.FINAL_CONSIDERATIONS %}
-      <div class="mb-5">
-        <h5>Considerações Finais</h5>
-
-        {% for block in text_blocks_by_placement.FINAL_CONSIDERATIONS %}
-          <div class="mb-3">{{ block.body|linebreaks }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    {# Conclusão #}
-    {% if text_blocks_by_placement.CONCLUSION %}
-      <div class="mb-5">
-        <h5>Conclusão</h5>
-
-        {% for block in text_blocks_by_placement.CONCLUSION %}
-          <div class="mb-3">{{ block.body|linebreaks }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    {# Rodapé (ações do laudo) #}
-    <div class="mt-5 d-flex justify-content-between align-items-center">
-      <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-outline-secondary">Voltar à lista</a>
-
-      <a href="{% url 'report_maker:reportcase_showpage' object.pk %}" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">Visualizar laudo</a>
-
-      {% if report.can_edit %}
-        <div class="btn-group">
-          <a href="{% url 'report_maker:reportcase_update' report.pk %}" class="btn btn-outline-primary btn-sm">Editar laudo</a>
-          <a href="{% url 'report_maker:reportcase_delete' report.pk %}" class="btn btn-outline-danger btn-sm">Excluir laudo</a>
-          <a class="btn btn-success btn-sm" href="{% url 'report_maker:reportcase_close' report.pk %}">Concluir laudo</a>
-        </div>
+        <span class="badge bg-secondary">Concluído</span>
       {% endif %}
     </div>
   </div>
 
-  {# Garante que o csrftoken exista nesta página (mesmo sem formulário visível) #}
-  {% if report.can_edit %}
-    <form method="post" style="display:none;">
-      {% csrf_token %}
-    </form>
-  {% endif %}
-{% endblock %}
+  <div class="accordion mb-4" id="reportAccordion">
+    
+    {# Preâmbulo #}
+    {% if preamble %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="headingPreamble">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePreamble">
+          <strong>Preâmbulo:</strong>&nbsp;<span class="text-muted">{{ preamble|truncatechars:60 }}</span>
+        </button>
+      </h2>
+      <div id="collapsePreamble" class="accordion-collapse collapse" data-bs-parent="#reportAccordion">
+        <div class="accordion-body">
+          <p class="text-justify mb-0">{{ preamble|linebreaks }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
-{% block scripts %}
-  {{ block.super }}
-  <script src="{% static 'report_maker/js/sortable.min.js' %}"></script>
-  <script src="{% static 'report_maker/js/image_sortable.js' %}?v=4"></script>
+    {# Resumo #}
+    {% if text_blocks_by_placement.SUMMARY %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="headingSummary">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSummary">
+          <strong>Resumo</strong>
+        </button>
+      </h2>
+      <div id="collapseSummary" class="accordion-collapse collapse" data-bs-parent="#reportAccordion">
+        <div class="accordion-body">
+          {% for block in text_blocks_by_placement.SUMMARY %}
+            <div class="mb-2">{{ block.body|linebreaks }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
-  <script>
-    ;(function () {
-      const lists = Array.from(document.querySelectorAll('.js-exam-objects-list'))
-      if (!lists.length) return
-    
-      // Se não tem handle (can_edit=false), não inicializa nada
-      if (!document.querySelector('.js-drag-handle')) return
-    
-      function getCSRFToken() {
-        const el = document.querySelector('input[name=csrfmiddlewaretoken]')
-        return el ? el.value : ''
-      }
-    
-      async function postReorder(listEl) {
-        const reorderUrl = listEl.dataset.reorderUrl
-        const reportId = listEl.dataset.reportId
-        const groupKey = listEl.dataset.groupKey || ''
-    
-        const rows = Array.from(listEl.querySelectorAll(':scope > .list-group-item[data-id]'))
-        const items = rows.map((row) => ({ id: row.dataset.id }))
-    
-        const resp = await fetch(reorderUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken(),
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          body: JSON.stringify({ report_id: reportId, group_key: groupKey, items })
-        })
-    
-        if (!resp.ok) {
-          console.error('Falha ao reordenar objetos do grupo:', groupKey)
-        }
-      }
-    
-      lists.forEach((list) => {
-        // IMPORTANTE: não define "group" compartilhado => não arrasta entre grupos
-        Sortable.create(list, {
-          animation: 150,
-          handle: '.js-drag-handle',
-          draggable: '.list-group-item',
-          ghostClass: 'sortable-ghost',
-          chosenClass: 'sortable-chosen',
-          onEnd: function () {
-            postReorder(list)
-          }
-        })
-      })
-    })()
-  </script>
+    {# Sumário #}
+    {% if text_blocks_by_placement.TOC %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="headingTOC">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTOC">
+          <strong>Sumário</strong>
+        </button>
+      </h2>
+      <div id="collapseTOC" class="accordion-collapse collapse" data-bs-parent="#reportAccordion">
+        <div class="accordion-body">
+          {% for block in text_blocks_by_placement.TOC %}
+            <div class="mb-2">{{ block.body|linebreaks }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Dados Gerais #}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="headingMetadata">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMetadata">
+          <strong>Dados Gerais</strong>
+        </button>
+      </h2>
+      <div id="collapseMetadata" class="accordion-collapse collapse" data-bs-parent="#reportAccordion">
+        <div class="accordion-body">
+          {% include 'report_maker/partials/report_metadata_dl.html' with report=report %}
+        </div>
+      </div>
+    </div>
+
+    {# Considerações Finais #}
+    {% if text_blocks_by_placement.FINAL_CONSIDERATIONS %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="headingFinal">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFinal">
+          <strong>Considerações Finais</strong>
+        </button>
+      </h2>
+      <div id="collapseFinal" class="accordion-collapse collapse" data-bs-parent="#reportAccordion">
+        <div class="accordion-body">
+          {% for block in text_blocks_by_placement.FINAL_CONSIDERATIONS %}
+            <div class="mb-2">{{ block.body|linebreaks }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Conclusão #}
+    {% if text_blocks_by_placement.CONCLUSION %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="headingConclusion">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseConclusion">
+          <strong>Conclusão</strong>
+        </button>
+      </h2>
+      <div id="collapseConclusion" class="accordion-collapse collapse" data-bs-parent="#reportAccordion">
+        <div class="accordion-body">
+          {% for block in text_blocks_by_placement.CONCLUSION %}
+            <div class="mb-2">{{ block.body|linebreaks }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Objetos de exame (Mantido fora do accordion principal para facilitar o Drag & Drop) #}
+  <div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Objetos de exame</h5>
+      {% include 'report_maker/partials/report_editorial_actions.html' with report=report %}
+    </div>
+
+    {% if exam_groups_ui %}
+      {% for g in exam_groups_ui %}
+        <div class="mb-3">
+          <div class="text-muted small fw-semibold mb-2">{{ g.label|default:'Outros' }}</div>
+          {% if g.intro_text %}
+            <div class="mb-2">{{ g.intro_text|linebreaks }}</div>
+          {% endif %}
+
+          <div class="list-group js-exam-objects-list" data-report-id="{{ report.pk }}" data-group-key="{{ g.key|default:'' }}" data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}">
+            {% for obj in g.objects %}
+              {% with obj_edit_url=obj.edit_url obj_delete_url=obj.delete_url %}
+                <div class="list-group-item d-flex align-items-start gap-2" data-id="{{ obj.pk }}">
+                  {% if report.can_edit %}
+                    <span class="text-muted small js-drag-handle flex-shrink-0" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
+                  {% endif %}
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold">{{ obj.title|default:'Objeto sem título' }} - Classe {{ obj.group_key|default:'Nulo' }}</div>
+                    {% if obj.description %}
+                      <div class="text-muted small">{{ obj.order }} - {{ obj.description|truncatechars:120 }}</div>
+                    {% endif %}
+                    {% include 'report_maker/partials/image_card_list.html' with obj=obj report=report %}
+                  </div>
+                  {% if report.can_edit %}
+                    <div class="d-flex gap-2 flex-shrink-0">
+                      {% if obj_edit_url %}<a class="btn btn-sm btn-outline-secondary" href="{{ obj_edit_url }}"><i class="bi bi-pencil"></i></a>{% endif %}
+                      {% if obj.concrete.pk %}<a class="btn btn-sm btn-outline-primary" href="{% url 'report_maker:image_add' obj.concrete_app_label obj.concrete_model_name obj.concrete.pk %}"><i class="bi bi-image"></i></a>{% endif %}
+                      {% if obj_delete_url %}<a class="btn btn-sm btn-outline-danger" href="{{ obj_delete_url }}"><i class="bi bi-trash"></i></a>{% endif %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endwith %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-muted small mb-0">Nenhum objeto de exame cadastrado.</p>
+    {% endif %}
+  </div>
+
+  {# Rodapé (ações do laudo) #}
+  <div class="mt-5 d-flex justify-content-between align-items-center">
+    <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-outline-secondary">Voltar à lista</a>
+    <a href="{% url 'report_maker:reportcase_showpage' object.pk %}" class="btn btn-outline-secondary" target="_blank">Visualizar laudo</a>
+
+    {% if report.can_edit %}
+      <div class="btn-group">
+        <a href="{% url 'report_maker:reportcase_update' report.pk %}" class="btn btn-outline-primary btn-sm">Editar laudo</a>
+        <a href="{% url 'report_maker:reportcase_delete' report.pk %}" class="btn btn-outline-danger btn-sm">Excluir laudo</a>
+        <a class="btn btn-success btn-sm" href="{% url 'report_maker:reportcase_close' report.pk %}">Concluir laudo</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

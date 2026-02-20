@@ -4,7 +4,11 @@
 {% load static %}
 
 {% block title %}
-  {% if object %}Editar texto do laudo{% else %}Novo texto do laudo{% endif %}
+  {% if object %}
+    Editar texto do laudo
+  {% else %}
+    Novo texto do laudo
+  {% endif %}
 {% endblock %}
 
 {% block page_header %}
@@ -30,7 +34,7 @@
           <div class="text-end">
             <span class="badge text-bg-secondary">{{ placement_label }}</span>
             {% if group_label %}
-               <span class="badge text-bg-info text-white">{{ group_label }}</span>
+              <span class="badge text-bg-info text-white">{{ group_label }}</span>
             {% endif %}
           </div>
         {% endif %}
@@ -39,27 +43,41 @@
 
     <form method="post" novalidate>
       {% csrf_token %}
-      
-      {% if form.non_field_errors %}
-        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+
+      {# 1. CAMPOS OCULTOS: Necessários para o ReportTextBlockForm.clean() validar com sucesso #}
+      <input type="hidden" name="placement" value="{{ current_placement }}" />
+      <input type="hidden" name="group_key" value="{{ current_group_key }}" />
+
+      {# 2. EXIBIÇÃO DE ERROS: Ajuda a ver se algo mais está a falhar #}
+      {% if form.errors %}
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}
+                <li>
+                  <strong>{{ field|capfirst }}:</strong> {{ error }}
+                </li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
       {% endif %}
 
-      {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+      {% for hidden in form.hidden_fields %}
+        {{ hidden }}
+      {% endfor %}
 
       {% if form.body %}
-        {# Definimos a variável 'p' uma vez para simplificar a chamada abaixo #}
-        {% with p=object.placement|default:form.instance.placement %}
-          {# Chamada do editor: mantida em poucas linhas para garantir compatibilidade total #}
-          {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value help_text=form.body.help_text rows=10 enable_ai=report.can_edit ai_kind=p|lower report_id=report.pk %}
+        {% with p=current_placement %}
+          {% include 'report_maker/partials/text_block_editor.html' with field_name=form.body.name label=form.body.label value=form.body.value|default:'' help_text=form.body.help_text rows=12 enable_ai=report.can_edit ai_kind=p|lower report_id=report.pk %}
         {% endwith %}
-
         {{ form.body.errors }}
       {% endif %}
 
       <div class="d-flex justify-content-between align-items-center mt-4">
         <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancelar</a>
         <div class="d-flex gap-2">
-          {% if object %}
+          {% if object.pk %}
             <a href="{% url 'report_maker:textblock_delete' report.pk object.pk %}" class="btn btn-outline-danger">Excluir</a>
           {% endif %}
           <button type="submit" class="btn btn-primary">Salvar texto</button>

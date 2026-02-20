@@ -165,25 +165,21 @@ class ReportTextBlockCreateView(LoginRequiredMixin, ReportCaseContextMixin, Crea
         return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
 
     def get_context_data(self, **kwargs):
-        """
-        Adiciona metadados “de UI” para o template:
-        - cancel_url
-        - placement_label / group_label (para título do form)
-        """
-        ctx = super().get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
+        
+        # Busca o valor do objeto (se edição) ou da URL (se criação)
+        placement = getattr(self.object, 'placement', self.request.GET.get('placement', ''))
+        group_key = getattr(self.object, 'group_key', self.request.GET.get('group_key', ''))
 
-        placement = (self.request.GET.get("placement") or "").strip()
-        group_key = (self.request.GET.get("group_key") or "").strip()
-
-        ctx["cancel_url"] = reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
-        ctx["placement_label"] = dict(ReportTextBlock.Placement.choices).get(placement, placement)
-
-        if placement == ReportTextBlock.Placement.OBJECT_GROUP_INTRO and group_key:
-            ctx["group_label"] = dict(ExamObjectGroup.choices).get(group_key, group_key)
-        else:
-            ctx["group_label"] = ""
-
-        return ctx
+        # Labels para o cabeçalho
+        context["placement_label"] = dict(ReportTextBlock.Placement.choices).get(placement, placement)
+        context["current_placement"] = placement
+        context["current_group_key"] = group_key
+        
+        # URL de cancelamento (ajuste o nome da sua url se necessário)
+        context["cancel_url"] = reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
+        
+        return context
 
 
 class ReportTextBlockUpdateView(LoginRequiredMixin, ReportCaseContextMixin, UpdateView):
@@ -224,20 +220,21 @@ class ReportTextBlockUpdateView(LoginRequiredMixin, ReportCaseContextMixin, Upda
         return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
+        
+        # Busca o valor do objeto (se edição) ou da URL (se criação)
+        placement = getattr(self.object, 'placement', self.request.GET.get('placement', ''))
+        group_key = getattr(self.object, 'group_key', self.request.GET.get('group_key', ''))
 
-        placement = (self.object.placement or "").strip()
-        group_key = (self.object.group_key or "").strip()
-
-        ctx["cancel_url"] = reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
-        ctx["placement_label"] = dict(ReportTextBlock.Placement.choices).get(placement, placement)
-
-        if placement == ReportTextBlock.Placement.OBJECT_GROUP_INTRO and group_key:
-            ctx["group_label"] = dict(ExamObjectGroup.choices).get(group_key, group_key)
-        else:
-            ctx["group_label"] = ""
-
-        return ctx
+        # Labels para o cabeçalho
+        context["placement_label"] = dict(ReportTextBlock.Placement.choices).get(placement, placement)
+        context["current_placement"] = placement
+        context["current_group_key"] = group_key
+        
+        # URL de cancelamento (ajuste o nome da sua url se necessário)
+        context["cancel_url"] = reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
+        
+        return context
 
 
 class ReportTextBlockDeleteView(LoginRequiredMixin, ReportCaseContextMixin, DeleteView):
