@@ -1,5 +1,3 @@
-// path: myreport/report_maker/static/report_maker/js/image_sortable.js
-
 ;(function () {
   function getCsrfToken() {
     const input = document.querySelector('input[name="csrfmiddlewaretoken"]')
@@ -12,7 +10,7 @@
     return null
   }
 
-  function initImageSortable(container) {
+  function initExamObjectSortable(container) {
     if (typeof Sortable === 'undefined') {
       console.error('SortableJS não carregado.')
       return
@@ -21,29 +19,35 @@
     const reorderUrl = container.dataset.reorderUrl
     if (!reorderUrl) return
 
-    const items = container.querySelectorAll('.js-image-card')
-    if (items.length < 2) return
+    const itemsEls = container.querySelectorAll('.list-group-item[data-id]')
+    if (itemsEls.length < 2) return
 
-    // DEBUG rápido (depois pode remover)
-    console.log('[images-sortable] init', { items: items.length, reorderUrl })
+    console.log('[exam-objects-sortable] init', {
+      items: itemsEls.length,
+      reorderUrl,
+      groupKey: container.dataset.groupKey,
+    })
 
     Sortable.create(container, {
       animation: 150,
-      handle: '.js-img-drag-handle',
-      draggable: '.js-image-card',
+      handle: '.js-drag-handle',
+      draggable: '.list-group-item',
       ghostClass: 'opacity-50',
       chosenClass: 'opacity-75',
-      forceFallback: true, // <- força funcionar mesmo quando HTML5 drag falha
+      forceFallback: true,
 
       onEnd: async function () {
-        const orderedIds = Array.from(container.querySelectorAll('.js-image-card'))
-          .map((el) => el.dataset.imageId)
+        const ids = Array.from(container.querySelectorAll('.list-group-item[data-id]'))
+          .map((el) => el.dataset.id)
           .filter(Boolean)
 
-        if (!orderedIds.length) return
+        if (!ids.length) return
 
         const csrftoken = getCsrfToken()
         if (!csrftoken) return
+
+        // ✅ contrato do backend: {"items":[{"id":...}, ...]}
+        const payload = { items: ids.map((id) => ({ id })) }
 
         const resp = await fetch(reorderUrl, {
           method: 'POST',
@@ -51,17 +55,20 @@
             'Content-Type': 'application/json',
             'X-CSRFToken': csrftoken,
           },
-          body: JSON.stringify({ ordered_ids: orderedIds }),
+          body: JSON.stringify(payload),
         })
 
         if (!resp.ok) {
-          console.error('Reorder imagens falhou:', resp.status, await resp.text())
+          console.error('Reorder objetos falhou:', resp.status, await resp.text())
+        } else {
+          // opcional: log do retorno
+          // console.log(await resp.json())
         }
       },
     })
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('[data-sortable="images"]').forEach(initImageSortable)
+    document.querySelectorAll('.js-exam-objects-list').forEach(initExamObjectSortable)
   })
 })()

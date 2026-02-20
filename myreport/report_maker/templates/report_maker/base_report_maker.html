@@ -12,6 +12,17 @@
 
 {% block scripts %}
   {{ block.super }}
+
+  {# dependência #}
+  <script src="{% static 'report_maker/js/sortable.min.js' %}"></script>
+
+  {# reorder imagens (você já tem) #}
+  <script src="{% static 'report_maker/js/image_sortable.js' %}"></script>
+
+  {# reorder objetos (criar) #}
+  <script src="{% static 'report_maker/js/exam_object_sortable.js' %}"></script>
+
+  {# já existentes #}
   <script src="{% static 'report_maker/js/markdown_editor.js' %}"></script>
   <script src="{% static 'report_maker/js/text_block_ai.js' %}"></script>
 {% endblock %}
