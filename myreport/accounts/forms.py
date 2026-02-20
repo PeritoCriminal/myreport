@@ -326,25 +326,36 @@ class LinkInstitutionForm(_InstitutionNucleusTeamFieldsMixin):
 # ─────────────────────────────────────
 # Preferências do usuário
 # ─────────────────────────────────────
+
 class UserPreferencesForm(BaseModelForm):
     """
     Form de preferências do usuário.
 
     Observação:
-    - nucleus/team NÃO são campos do User; são preferências operacionais.
+    - institution/nucleus/team NÃO são campos do User; são preferências operacionais.
     - o vínculo institucional é inferido por User.team (modelo simplificado).
     """
 
+    institution = forms.ModelChoiceField(
+        queryset=Institution.objects.filter(is_active=True).order_by("name"),
+        required=True,
+        label="Instituição",
+    )
+
     nucleus = forms.ModelChoiceField(
-        queryset=Nucleus.objects.filter(is_active=True).order_by("name"),
+        queryset=Nucleus.objects.none(),
         required=True,
         label="Núcleo",
     )
+
     team = forms.ModelChoiceField(
         queryset=Team.objects.none(),
         required=False,
         label="Equipe",
-        help_text="Se não selecionar uma equipe, será utilizada a equipe correspondente ao próprio núcleo.",
+        help_text=(
+            "Se não selecionar uma equipe, será utilizada (ou criada) a equipe "
+            "correspondente ao próprio núcleo."
+        ),
     )
 
     class Meta:
@@ -359,28 +370,41 @@ class UserPreferencesForm(BaseModelForm):
         super().__init__(*args, **kwargs)
         self.user = user or self.instance
 
-        # choices de default_home (com base no registro/flags do projeto)
+        # choices de default_home
         if "default_home" in self.fields:
             allowed = get_allowed_home_choices(self.user)
-            # allowed pode vir como list[tuple] ou dict; garantimos list[tuple]
             if isinstance(allowed, dict):
                 allowed = list(allowed.items())
             self.fields["default_home"].choices = allowed
 
-        # initial: assignment ativo (team -> nucleus)
-        team = self.user.team
-        if team:
-            self.fields["nucleus"].initial = team.nucleus_id
-            self.fields["team"].initial = team.id
+        # initial: a partir de user.team (se existir)
+        current_team = getattr(self.user, "team", None)
+        if current_team and current_team.nucleus_id:
+            self.fields["institution"].initial = current_team.nucleus.institution_id
+            self.fields["nucleus"].initial = current_team.nucleus_id
+            self.fields["team"].initial = current_team.id
 
-
-        # queryset encadeado de teams (POST ou initial)
+        # Descobrir institution_id / nucleus_id (POST ou initial)
+        institution_id = None
         nucleus_id = None
+
         if self.is_bound:
+            institution_id = self.data.get("institution") or None
             nucleus_id = self.data.get("nucleus") or None
         else:
+            institution_id = self.fields["institution"].initial or None
             nucleus_id = self.fields["nucleus"].initial or None
 
+        # Queryset encadeado: Núcleo depende de Instituição
+        if institution_id:
+            self.fields["nucleus"].queryset = (
+                Nucleus.objects.filter(institution_id=institution_id, is_active=True)
+                .order_by("name")
+            )
+        else:
+            self.fields["nucleus"].queryset = Nucleus.objects.none()
+
+        # Queryset encadeado: Equipe depende de Núcleo
         if nucleus_id:
             self.fields["team"].queryset = (
                 Team.objects.filter(nucleus_id=nucleus_id, is_active=True)
@@ -389,13 +413,17 @@ class UserPreferencesForm(BaseModelForm):
         else:
             self.fields["team"].queryset = Team.objects.none()
 
-        # aplica bootstrap também nos campos adicionados manualmente (nucleus/team)
+        # aplica bootstrap também nos campos adicionados manualmente
         self.apply_bootstrap()
 
     def clean(self):
         cleaned = super().clean()
+        institution: Institution | None = cleaned.get("institution")
         nucleus: Nucleus | None = cleaned.get("nucleus")
         team: Team | None = cleaned.get("team")
+
+        if nucleus and institution and nucleus.institution_id != institution.id:
+            self.add_error("nucleus", "O núcleo selecionado não pertence à instituição informada.")
 
         if team and nucleus and team.nucleus_id != nucleus.id:
             self.add_error("team", "A equipe selecionada não pertence ao núcleo informado.")
@@ -418,6 +446,7 @@ class UserPreferencesForm(BaseModelForm):
 
         user.team = team
 
+        # Mantive seu comportamento original
         if not user.can_edit_reports:
             user.can_edit_reports = True
 

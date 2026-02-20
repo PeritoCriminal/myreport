@@ -4,15 +4,18 @@
   {% include 'headerbars/report_maker.html' %}
 {% endblock %}
 
-{% block content %}
+{% block report_maker_content %}
   <div class="container mt-4" style="max-width: 720px;">
     <h4 class="mb-3">Concluir laudo</h4>
 
     <div class="alert alert-warning">
-      <p class="mb-1">
-        Ao concluir, o laudo será <strong>bloqueado para edição</strong> e a
-        <strong>organização (instituição / núcleo / equipe)</strong> será
-        <strong>congelada</strong> para preservação do histórico.
+      <p class="mb-2">
+        Ao concluir, o laudo será <strong>congelado</strong> e não poderá mais ser editado.
+      </p>
+      <p class="mb-2">
+        A <strong>organização institucional</strong> (instituição, núcleo e equipe)
+        será <strong>registrada por snapshot</strong>, preservando o histórico
+        do contexto administrativo vigente no momento da conclusão.
       </p>
       <p class="mb-0">
         Esta ação é <strong>irreversível</strong>.
@@ -22,10 +25,14 @@
     <form method="post" class="card p-3">
       {% csrf_token %}
 
+      {# caso o form tenha campos ocultos ou validações futuras #}
+      {{ form.non_field_errors }}
+
       <div class="d-flex gap-2">
-        <button class="btn btn-primary" type="submit">
+        <button class="btn btn-success" type="submit">
           Confirmar conclusão
         </button>
+
         <a class="btn btn-outline-secondary"
            href="{% url 'report_maker:reportcase_detail' object.pk %}">
           Cancelar

@@ -49,7 +49,8 @@ class ReportCaseCloseView(
         return report
 
     def dispatch(self, request, *args, **kwargs):
-        report = self.get_object()
+        self.object = self.get_object()
+        report = self.object
 
         # se já estiver fechado/bloqueado, não entra na tela
         if not report.can_edit:
