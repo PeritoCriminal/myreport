@@ -15,7 +15,6 @@ from institutions.models import (
     InstitutionCity,
     Nucleus,
     Team,
-    UserInstitutionAssignment,
 )
 from report_maker.models import ReportCase
 from report_maker.models.report_text_block import ReportTextBlock

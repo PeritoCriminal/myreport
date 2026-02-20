@@ -13,7 +13,6 @@ from institutions.models import (
     InstitutionCity,
     Nucleus,
     Team,
-    UserInstitutionAssignment,
 )
 from report_maker.models import ReportCase
 

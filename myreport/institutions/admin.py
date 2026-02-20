@@ -5,9 +5,7 @@ from .models import (
     Institution,
     InstitutionCity,
     Nucleus,
-    Team,
-    UserTeamAssignment,
-    UserInstitutionAssignment,
+    Team
 )
 
 
@@ -129,37 +127,3 @@ class TeamAdmin(admin.ModelAdmin):
     )
     def institution_acronym(self, obj):
         return obj.nucleus.institution.acronym
-
-
-# ---------------------------------------------------------------------
-# User ↔ Team assignment (history)
-# ---------------------------------------------------------------------
-@admin.register(UserTeamAssignment)
-class UserTeamAssignmentAdmin(admin.ModelAdmin):
-    list_display = ("user", "team", "start_at", "end_at", "is_primary")
-    list_filter = ("is_primary", "team__nucleus__institution")
-    search_fields = (
-        "user__username",
-        "user__display_name",
-        "team__name",
-        "team__nucleus__name",
-    )
-    ordering = ("-start_at",)
-    autocomplete_fields = ("user", "team")
-
-
-# ---------------------------------------------------------------------
-# User ↔ Institution assignment (history)
-# ---------------------------------------------------------------------
-@admin.register(UserInstitutionAssignment)
-class UserInstitutionAssignmentAdmin(admin.ModelAdmin):
-    list_display = ("user", "institution", "start_at", "end_at", "is_primary")
-    list_filter = ("is_primary", "institution")
-    search_fields = (
-        "user__username",
-        "user__display_name",
-        "institution__acronym",
-        "institution__name",
-    )
-    ordering = ("-start_at",)
-    autocomplete_fields = ("user", "institution")

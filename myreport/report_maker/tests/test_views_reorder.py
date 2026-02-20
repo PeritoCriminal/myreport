@@ -9,7 +9,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from institutions.models import Institution, InstitutionCity, Nucleus, Team, UserInstitutionAssignment
+from institutions.models import Institution, InstitutionCity, Nucleus, Team
 from report_maker.models import ReportCase
 
 UserModel = get_user_model()
