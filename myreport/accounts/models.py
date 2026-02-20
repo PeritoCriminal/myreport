@@ -42,7 +42,7 @@ class User(AbstractUser):
     Permissões de laudos (Report Maker):
     - can_create_reports / can_create_reports_until: controlam a CRIAÇÃO de novos laudos.
     - can_edit_reports: controla a EDIÇÃO de laudos já existentes.
-    - As permissões “effective” exigem vínculo institucional ativo.
+    - As permissões “effective” exigem vínculo institucional ativo (inferido por equipe).
     """
 
     id = models.UUIDField(
@@ -85,6 +85,59 @@ class User(AbstractUser):
         blank=True,
         help_text="Função do usuário no sistema.",
     )
+
+    # ─────────────────────────────────────
+    # Lotação / Equipe
+    # ─────────────────────────────────────
+    team = models.ForeignKey(
+        "institutions.Team",
+        on_delete=models.PROTECT,
+        related_name="users",
+        null=True,
+        blank=True,
+        verbose_name="Equipe",
+    )
+
+    # ─────────────────────────────────────
+    # Propriedades institucionais (derivadas da equipe)
+    # ─────────────────────────────────────
+
+    @property
+    def nucleus(self):
+        return self.team.nucleus if self.team else None
+
+    @property
+    def institution(self):
+        return self.team.nucleus.institution if self.team else None
+
+    @property
+    def team_city(self):
+        if not self.team:
+            return None
+        return getattr(self.team, "city", None)
+
+    # ─────────────────────────────────────
+    # Versões em texto (úteis para snapshots)
+    # ─────────────────────────────────────
+
+    @property
+    def team_name(self) -> str:
+        return self.team.name if self.team else ""
+
+    @property
+    def nucleus_name(self) -> str:
+        n = self.nucleus
+        return n.name if n else ""
+
+    @property
+    def institution_name(self) -> str:
+        inst = self.institution
+        return inst.name if inst else ""
+
+    @property
+    def team_city_name(self) -> str:
+        c = self.team_city
+        return c.name if c else ""
 
     # ─────────────────────────────────────
     # Preferências (UI/UX)
@@ -168,7 +221,8 @@ class User(AbstractUser):
         db_index=True,
         help_text=(
             "Data limite para criação de laudos. "
-            "Se vazio (NULL), a criação permanece habilitada sem expiração (desde que can_create_reports=True). "
+            "Se vazio (NULL), a criação permanece habilitada sem expiração "
+            "(desde que can_create_reports=True). "
             "Padrão: 90 dias a partir da data de criação do registro."
         ),
     )
@@ -178,6 +232,46 @@ class User(AbstractUser):
         db_index=True,
         help_text="Habilita o usuário a editar laudos já existentes (exige vínculo institucional ativo).",
     )
+
+    # ─────────────────────────────────────
+    # Permissões efetivas (novo modelo)
+    # ─────────────────────────────────────
+
+    @property
+    def has_institutional_link(self) -> bool:
+        """
+        No modelo simplificado, o vínculo institucional é inferido
+        pela existência de equipe.
+        """
+        return bool(self.team_id)
+
+    @property
+    def can_edit_reports_effective(self) -> bool:
+        """
+        Pode EDITAR laudos se:
+        - can_edit_reports=True
+        - possui equipe vinculada
+        """
+        return bool(self.can_edit_reports and self.has_institutional_link)
+
+    @property
+    def can_create_reports_effective(self) -> bool:
+        """
+        Pode CRIAR laudos se:
+        - can_create_reports=True
+        - possui equipe vinculada
+        - respeita data limite (se houver)
+        """
+        if not self.can_create_reports:
+            return False
+
+        if not self.has_institutional_link:
+            return False
+
+        if self.can_create_reports_until is None:
+            return True
+
+        return timezone.now().date() <= self.can_create_reports_until
 
     class Meta:
         verbose_name = "Usuário"
@@ -189,81 +283,13 @@ class User(AbstractUser):
 
     def clean(self) -> None:
         """
-        Garante que `default_home` armazene somente as chaves suportadas (HOME_*).
-
-        Isso evita salvar valores inválidos via admin/shell/código.
+        Garante que `default_home` armazene somente as chaves suportadas.
         """
         super().clean()
         allowed_keys = {k for k, _ in self.HOME_CHOICES}
         if self.default_home and self.default_home not in allowed_keys:
             raise ValidationError({"default_home": "Página inicial inválida."})
 
-    # ─────────────────────────────────────
-    # Vínculos (atribuições ativas)
-    # ─────────────────────────────────────
-    @property
-    def active_institution_assignment(self):
-        """
-        Retorna a atribuição institucional ativa mais recente (ou None).
-
-        Requer que exista um related_name `institution_assignments` no model de vínculo.
-        """
-        return (
-            self.institution_assignments.filter(end_at__isnull=True)
-            .select_related("institution")
-            .order_by("-start_at")
-            .first()
-        )
-
-    @property
-    def active_team_assignment(self):
-        """
-        Retorna a atribuição de equipe ativa mais recente (ou None).
-
-        Requer que exista um related_name `team_assignments` no model de vínculo.
-        """
-        return (
-            self.team_assignments.filter(end_at__isnull=True)
-            .select_related("team")
-            .order_by("-start_at")
-            .first()
-        )
-
-    # ─────────────────────────────────────
-    # Permissões efetivas (com vínculo ativo)
-    # ─────────────────────────────────────
-    @property
-    def can_edit_reports_effective(self) -> bool:
-        """
-        Indica se o usuário pode EDITAR laudos.
-
-        Regra:
-        - can_edit_reports precisa estar True;
-        - precisa haver vínculo institucional ativo.
-        """
-        return bool(self.can_edit_reports and self.active_institution_assignment)
-
-    @property
-    def can_create_reports_effective(self) -> bool:
-        """
-        Indica se o usuário pode CRIAR novos laudos.
-
-        Regra:
-        - can_create_reports precisa estar True;
-        - precisa haver vínculo institucional ativo;
-        - se can_create_reports_until estiver preenchido, a data atual deve ser <= limite;
-        - se can_create_reports_until for NULL, considera-se sem expiração.
-        """
-        if not self.can_create_reports:
-            return False
-
-        if not self.active_institution_assignment:
-            return False
-
-        if self.can_create_reports_until is None:
-            return True
-
-        return timezone.now().date() <= self.can_create_reports_until
 
 
 # ─────────────────────────────────────

@@ -192,15 +192,20 @@ class ReportCaseCreateView(LoginRequiredMixin, CanCreateReportsRequiredMixin, Cr
         # ─────────────────────────────────────
         # Contexto institucional do usuário
         # ─────────────────────────────────────
-        inst_assignment = user.active_institution_assignment
-        team_assignment = user.active_team_assignment
+        team = user.team
+        nucleus = user.nucleus
+        institution = user.institution
+        city = user.team_city
 
-        if inst_assignment:
-            report.institution = inst_assignment.institution
+        # No modelo simplificado, o vínculo institucional vem da equipe.
+        # Se não houver equipe, não preenche (mantém o que já estiver no report, se houver).
+        if institution:
+            report.institution = institution
 
-        if team_assignment:
-            report.team = team_assignment.team
-            report.nucleus = team_assignment.team.nucleus
+        if team:
+            report.team = team
+            report.nucleus = nucleus  # pode ser None se team estiver inconsistente, mas em regra existe
+
 
         # ─────────────────────────────────────
         # Validação defensiva (não cria laudo sem contexto)
@@ -240,16 +245,17 @@ class ReportCaseUpdateView(
         # ─────────────────────────────────────
         # Contexto institucional do usuário
         # ─────────────────────────────────────
-        inst_assignment = user.active_institution_assignment
-        team_assignment = user.active_team_assignment
+        team = user.team
+        institution = user.institution
 
         # Preenche somente se ainda não estiver definido
-        if inst_assignment and not report.institution_id:
-            report.institution = inst_assignment.institution
+        if institution and not report.institution_id:
+            report.institution = institution
 
-        if team_assignment and not report.team_id:
-            report.team = team_assignment.team
-            report.nucleus = team_assignment.team.nucleus
+        if team and not report.team_id:
+            report.team = team
+            report.nucleus = team.nucleus
+
 
         # ─────────────────────────────────────
         # Validação defensiva

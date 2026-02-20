@@ -31,10 +31,8 @@ class ExamObjectsReorderContractTests(TestCase):
 
         self.user.can_create_reports = True
         self.user.can_edit_reports = True
-        self.user.can_create_reports_until = timezone.now() + timedelta(days=90)
-        self.user.save(update_fields=["can_create_reports", "can_edit_reports", "can_create_reports_until"])
+        self.user.can_create_reports_until = timezone.now().date() + timedelta(days=90)
 
-        # Organização mínima (igual ao seu smoke)
         self.inst = Institution.objects.create(
             acronym="SPTC",
             name="Superintendência da Polícia Técnico-Científica",
@@ -45,12 +43,15 @@ class ExamObjectsReorderContractTests(TestCase):
         self.nucleus = Nucleus.objects.create(institution=self.inst, name="Núcleo Campinas", city=self.city)
         self.team = Team.objects.create(nucleus=self.nucleus, name="Equipe 01", description="")
 
-        UserInstitutionAssignment.objects.create(
-            user=self.user,
-            institution=self.inst,
-            start_at=timezone.now(),
-            end_at=None,
-            is_primary=True,
+        self.user.team = self.team
+
+        self.user.save(
+            update_fields=[
+                "can_edit_reports",
+                "can_create_reports",
+                "can_create_reports_until",
+                "team",
+            ]
         )
 
         self.report = self._make_report(author=self.user, report_number="123.123/2026")

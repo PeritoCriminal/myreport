@@ -35,12 +35,6 @@ class ReportCaseViewsTests(TestCase):
         self.user = UserModel.objects.create_user(username="u1", password="pass123")
         self.other = UserModel.objects.create_user(username="u2", password="pass123")
 
-        # Permissões do usuário (mixin costuma depender disso)
-        self.user.can_edit_reports = True
-        self.user.can_create_reports = True
-        self.user.can_create_reports_until = timezone.now() + timedelta(days=30)
-        self.user.save(update_fields=["can_edit_reports", "can_create_reports", "can_create_reports_until"])
-
         # Organização mínima
         self.inst = Institution.objects.create(
             acronym="SPTC",
@@ -52,12 +46,19 @@ class ReportCaseViewsTests(TestCase):
         self.nucleus = Nucleus.objects.create(institution=self.inst, name="Núcleo Campinas", city=self.city)
         self.team = Team.objects.create(nucleus=self.nucleus, name="Equipe 01", description="")
 
-        UserInstitutionAssignment.objects.create(
-            user=self.user,
-            institution=self.inst,
-            start_at=timezone.now(),
-            end_at=None,
-            is_primary=True,
+        # Permissões + vínculo institucional
+        self.user.can_edit_reports = True
+        self.user.can_create_reports = True
+        self.user.can_create_reports_until = timezone.now().date() + timedelta(days=30)
+        self.user.team = self.team
+
+        self.user.save(
+            update_fields=[
+                "can_edit_reports",
+                "can_create_reports",
+                "can_create_reports_until",
+                "team",
+            ]
         )
 
         self.report = self._make_report(author=self.user, report_number="123.123/2026")

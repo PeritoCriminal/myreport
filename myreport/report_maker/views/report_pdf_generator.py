@@ -35,12 +35,10 @@ def _build_header_from_user(request) -> dict:
     """
     user = request.user
 
-    aia = getattr(user, "active_institution_assignment", None)
-    inst = getattr(aia, "institution", None)
-
-    ata = getattr(user, "active_team_assignment", None)
-    team = getattr(ata, "team", None)
-    nucleus = getattr(team, "nucleus", None) if team else None
+    # Novo modelo: vínculo institucional vem da equipe
+    team = user.team
+    nucleus = user.nucleus
+    inst = user.institution
 
     name = (getattr(inst, "name", "") or "") if inst else ""
     acronym = (getattr(inst, "acronym", "") or "") if inst else ""
@@ -72,6 +70,7 @@ def _build_header_from_user(request) -> dict:
         "emblem_primary": getattr(inst, "emblem_primary", None) if inst else None,
         "emblem_secondary": getattr(inst, "emblem_secondary", None) if inst else None,
     }
+
 
 
 def _build_header_from_snapshots(report: ReportCase) -> dict:

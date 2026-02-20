@@ -361,8 +361,11 @@ class ReportCase(models.Model):
 
         self.organization_frozen_at = timezone.now()
 
-        if self.nucleus and self.nucleus.city:
-            self.city_name_snapshot = self.nucleus.city.name
+        self.city_name_snapshot = (
+            self.nucleus.city.name
+            if (self.nucleus and self.nucleus.city)
+            else ""
+)
 
     # ---------------------------------------------------------------------
     # Display helpers (OPEN -> FK, CLOSED -> snapshot) + metadata do laudo

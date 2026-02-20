@@ -1,17 +1,13 @@
-# institutions/tests/test_models.py
+# path: myreport/institutions/tests/tests_model.py
 
 from django.db import IntegrityError, transaction
 from django.test import TestCase
-from django.utils import timezone
 
-from accounts.models import User
 from institutions.models import (
     Institution,
     InstitutionCity,
     Nucleus,
     Team,
-    UserInstitutionAssignment,
-    UserTeamAssignment,
 )
 
 
@@ -77,7 +73,6 @@ class InstitutionCityModelTests(TestCase):
 
     def test_same_city_name_allowed_for_different_state(self):
         InstitutionCity.objects.create(institution=self.inst, name="Limeira", state="SP")
-        # outro estado = permitido
         InstitutionCity.objects.create(institution=self.inst, name="Limeira", state="MG")
 
 
@@ -105,7 +100,6 @@ class NucleusModelTests(TestCase):
         )
 
         Nucleus.objects.create(institution=self.inst, name="Núcleo Regional")
-        # mesmo nome em outra instituição = permitido
         Nucleus.objects.create(institution=other_inst, name="Núcleo Regional")
 
 
@@ -130,67 +124,4 @@ class TeamModelTests(TestCase):
         other_nucleus = Nucleus.objects.create(institution=self.inst, name="Núcleo Americana")
 
         Team.objects.create(nucleus=self.nucleus, name="Equipe 1")
-        # mesmo nome em outro núcleo = permitido
         Team.objects.create(nucleus=other_nucleus, name="Equipe 1")
-
-
-class UserAssignmentConstraintTests(TestCase):
-    """
-    Testa constraints condicionais:
-    - unique_active_team_per_user (end_at IS NULL)
-    - unique_active_institution_per_user (end_at IS NULL)
-    """
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = User.objects.create_user(
-            username="u1",
-            email="u1@example.com",
-            password="TestPass!12345",
-        )
-
-        cls.inst = Institution.objects.create(
-            acronym="SPTC",
-            name="SPTC",
-            kind=Institution.Kind.SCIENTIFIC_POLICE,
-        )
-        cls.city = InstitutionCity.objects.create(institution=cls.inst, name="Limeira", state="SP")
-        cls.nucleus = Nucleus.objects.create(institution=cls.inst, name="Núcleo Limeira", city=cls.city)
-
-        cls.team_a = Team.objects.create(nucleus=cls.nucleus, name="Equipe A")
-        cls.team_b = Team.objects.create(nucleus=cls.nucleus, name="Equipe B")
-
-        cls.inst2 = Institution.objects.create(
-            acronym="PCSP",
-            name="Polícia Civil",
-            kind=Institution.Kind.CIVIL_POLICE,
-        )
-
-    def test_unique_active_team_per_user_blocks_second_active(self):
-        UserTeamAssignment.objects.create(user=self.user, team=self.team_a, end_at=None)
-
-        with self.assertRaises(IntegrityError):
-            with transaction.atomic():
-                UserTeamAssignment.objects.create(user=self.user, team=self.team_b, end_at=None)
-
-    def test_unique_active_team_per_user_allows_new_after_closing_previous(self):
-        a1 = UserTeamAssignment.objects.create(user=self.user, team=self.team_a, end_at=None)
-        a1.end_at = timezone.now()
-        a1.save(update_fields=["end_at"])
-
-        # agora pode criar novo ativo
-        UserTeamAssignment.objects.create(user=self.user, team=self.team_b, end_at=None)
-
-    def test_unique_active_institution_per_user_blocks_second_active(self):
-        UserInstitutionAssignment.objects.create(user=self.user, institution=self.inst, end_at=None)
-
-        with self.assertRaises(IntegrityError):
-            with transaction.atomic():
-                UserInstitutionAssignment.objects.create(user=self.user, institution=self.inst2, end_at=None)
-
-    def test_unique_active_institution_per_user_allows_new_after_closing_previous(self):
-        ia1 = UserInstitutionAssignment.objects.create(user=self.user, institution=self.inst, end_at=None)
-        ia1.end_at = timezone.now()
-        ia1.save(update_fields=["end_at"])
-
-        UserInstitutionAssignment.objects.create(user=self.user, institution=self.inst2, end_at=None)

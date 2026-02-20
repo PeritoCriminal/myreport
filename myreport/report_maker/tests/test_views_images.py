@@ -47,8 +47,7 @@ class ObjectImageViewsTests(TestCase):
         self.other = UserModel.objects.create_user(username="u2", password="pass123")
 
         self.user.can_edit_reports = True
-        self.user.can_create_reports_until = timezone.now() + timedelta(days=30)
-        self.user.save(update_fields=["can_edit_reports", "can_create_reports_until"])
+        self.user.can_create_reports_until = timezone.now().date() + timedelta(days=30)
 
         # Organização mínima
         self.inst = Institution.objects.create(
@@ -61,12 +60,15 @@ class ObjectImageViewsTests(TestCase):
         self.nucleus = Nucleus.objects.create(institution=self.inst, name="Núcleo Campinas", city=self.city)
         self.team = Team.objects.create(nucleus=self.nucleus, name="Equipe 01", description="")
 
-        UserInstitutionAssignment.objects.create(
-            user=self.user,
-            institution=self.inst,
-            start_at=timezone.now(),
-            end_at=None,
-            is_primary=True,
+        self.user.team = self.team
+
+        self.user.save(
+            update_fields=[
+                "can_edit_reports",
+                "can_create_reports",
+                "can_create_reports_until",
+                "team",
+            ]
         )
 
         self.report = self._make_report(author=self.user)

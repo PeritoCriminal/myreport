@@ -15,7 +15,6 @@ from institutions.models import (
     InstitutionCity,
     Nucleus,
     Team,
-    UserInstitutionAssignment,
 )
 from report_maker.models import ReportCase
 
@@ -46,18 +45,21 @@ class ReportCaseSnapshotModelTests(TestCase):
             emblem_secondary=make_png_file("emblem_b.png"),
             is_active=True,
         )
-        UserInstitutionAssignment.objects.create(
-            user=cls.user,
-            institution=cls.inst,
-            start_at=timezone.now(),
-            end_at=None,
-            is_primary=True,
-        )
 
         # Núcleo / Equipe (para unit_line / snapshots)
-        cls.city = InstitutionCity.objects.create(institution=cls.inst, name="Campinas", state="SP")
-        cls.nucleus = Nucleus.objects.create(institution=cls.inst, name="Núcleo Campinas", city=cls.city)
-        cls.team = Team.objects.create(nucleus=cls.nucleus, name="Equipe 01", description="")
+        cls.city = InstitutionCity.objects.create(
+            institution=cls.inst, name="Campinas", state="SP"
+        )
+        cls.nucleus = Nucleus.objects.create(
+            institution=cls.inst, name="Núcleo Campinas", city=cls.city
+        )
+        cls.team = Team.objects.create(
+            nucleus=cls.nucleus, name="Equipe 01", description=""
+        )
+
+        # Novo modelo: vínculo institucional é inferido por user.team
+        cls.user.team = cls.team
+        cls.user.save(update_fields=["team"])
 
     def _create_open_report(self):
         return ReportCase.objects.create(
@@ -79,7 +81,9 @@ class ReportCaseSnapshotModelTests(TestCase):
         report.refresh_from_db()
         return report
 
-    def test_close_freezes_organization_snapshot_and_header_stays_stable_after_institution_changes(self):
+    def test_close_freezes_organization_snapshot_and_header_stays_stable_after_institution_changes(
+        self,
+    ):
         """
         Garante:
         - close() preenche snapshots e marca organization_frozen_at
@@ -98,7 +102,9 @@ class ReportCaseSnapshotModelTests(TestCase):
         self.assertIsNotNone(report.organization_frozen_at)
 
         self.assertEqual(report.institution_acronym_snapshot, "SPTC")
-        self.assertEqual(report.institution_name_snapshot, "Superintendência da Polícia Técnico-Científica")
+        self.assertEqual(
+            report.institution_name_snapshot, "Superintendência da Polícia Técnico-Científica"
+        )
         self.assertEqual(report.nucleus_name_snapshot, "Núcleo Campinas")
         self.assertEqual(report.team_name_snapshot, "Equipe 01")
         self.assertEqual(report.honoree_title_snapshot, "Perito Criminal Dr.")
@@ -109,15 +115,21 @@ class ReportCaseSnapshotModelTests(TestCase):
         self.assertTrue(report.emblem_primary_snapshot)
         self.assertTrue(report.emblem_secondary_snapshot)
         self.assertNotEqual(report.emblem_primary_snapshot.name, self.inst.emblem_primary.name)
-        self.assertNotEqual(report.emblem_secondary_snapshot.name, self.inst.emblem_secondary.name)
+        self.assertNotEqual(
+            report.emblem_secondary_snapshot.name, self.inst.emblem_secondary.name
+        )
 
         # Caminho esperado do snapshot
         self.assertIn(f"reports/{report.id}/header/", report.emblem_primary_snapshot.name)
         self.assertIn(f"reports/{report.id}/header/", report.emblem_secondary_snapshot.name)
 
         header_before = report.header_context
-        snap_primary_name_before = report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else ""
-        snap_secondary_name_before = report.emblem_secondary_snapshot.name if report.emblem_secondary_snapshot else ""
+        snap_primary_name_before = (
+            report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else ""
+        )
+        snap_secondary_name_before = (
+            report.emblem_secondary_snapshot.name if report.emblem_secondary_snapshot else ""
+        )
 
         # Muda a Institution "no mundo real" (nome/acrônimo/honraria/emblemas)
         self.inst.acronym = "XPTC"
@@ -132,7 +144,9 @@ class ReportCaseSnapshotModelTests(TestCase):
 
         # Display do laudo deve permanecer pelo snapshot
         self.assertEqual(report.institution_acronym_for_display, "SPTC")
-        self.assertEqual(report.institution_name_for_display, "Superintendência da Polícia Técnico-Científica")
+        self.assertEqual(
+            report.institution_name_for_display, "Superintendência da Polícia Técnico-Científica"
+        )
         self.assertEqual(report.nucleus_display, "Núcleo Campinas")
         self.assertEqual(report.team_display, "Equipe 01")
 
@@ -144,8 +158,12 @@ class ReportCaseSnapshotModelTests(TestCase):
         self.assertEqual(header_after["unit_line"], header_before["unit_line"])
 
         # Emblemas devem continuar apontando para snapshot gravado no laudo
-        snap_primary_name_after = report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else ""
-        snap_secondary_name_after = report.emblem_secondary_snapshot.name if report.emblem_secondary_snapshot else ""
+        snap_primary_name_after = (
+            report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else ""
+        )
+        snap_secondary_name_after = (
+            report.emblem_secondary_snapshot.name if report.emblem_secondary_snapshot else ""
+        )
         self.assertEqual(snap_primary_name_after, snap_primary_name_before)
         self.assertEqual(snap_secondary_name_after, snap_secondary_name_before)
 
@@ -183,11 +201,9 @@ class ReportCaseSnapshotModelTests(TestCase):
         """
         report = self._close_report(self._create_open_report())
 
-        # Encerra o vínculo do usuário (simula troca de base/instituição/demissão)
-        assign = self.user.active_institution_assignment
-        self.assertIsNotNone(assign)
-        assign.end_at = timezone.now()
-        assign.save(update_fields=["end_at"])
+        # Remove a equipe do usuário (simula troca de base/instituição/demissão)
+        self.user.team = None
+        self.user.save(update_fields=["team"])
 
         self.user.refresh_from_db()
         self.assertFalse(self.user.can_edit_reports_effective)
@@ -240,8 +256,12 @@ class ReportCaseSnapshotModelTests(TestCase):
         report = self._close_report(self._create_open_report())
 
         frozen_at_1 = report.organization_frozen_at
-        snap_primary_1 = report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else ""
-        snap_secondary_1 = report.emblem_secondary_snapshot.name if report.emblem_secondary_snapshot else ""
+        snap_primary_1 = (
+            report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else ""
+        )
+        snap_secondary_1 = (
+            report.emblem_secondary_snapshot.name if report.emblem_secondary_snapshot else ""
+        )
         inst_name_snap = report.institution_name_snapshot
         acr_snap = report.institution_acronym_snapshot
         hon_snap = report.honoree_name_snapshot
@@ -253,8 +273,14 @@ class ReportCaseSnapshotModelTests(TestCase):
         report.refresh_from_db()
 
         self.assertEqual(report.organization_frozen_at, frozen_at_1)
-        self.assertEqual(report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else "", snap_primary_1)
-        self.assertEqual(report.emblem_secondary_snapshot.name if report.emblem_secondary_snapshot else "", snap_secondary_1)
+        self.assertEqual(
+            report.emblem_primary_snapshot.name if report.emblem_primary_snapshot else "",
+            snap_primary_1,
+        )
+        self.assertEqual(
+            report.emblem_secondary_snapshot.name if report.emblem_secondary_snapshot else "",
+            snap_secondary_1,
+        )
         self.assertEqual(report.institution_name_snapshot, inst_name_snap)
         self.assertEqual(report.institution_acronym_snapshot, acr_snap)
         self.assertEqual(report.honoree_name_snapshot, hon_snap)

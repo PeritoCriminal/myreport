@@ -35,10 +35,10 @@ class ReportTextBlockViewsTests(TestCase):
         self.user = UserModel.objects.create_user(username="u1", password="pass123")
         self.other = UserModel.objects.create_user(username="u2", password="pass123")
 
-        # Permissões do usuário (mixin costuma depender disso)
+        # Permissões necessárias
         self.user.can_edit_reports = True
-        self.user.can_create_reports_until = timezone.now() + timedelta(days=30)
-        self.user.save(update_fields=["can_edit_reports", "can_create_reports_until"])
+        self.user.can_create_reports = True
+        self.user.can_create_reports_until = timezone.now().date() + timedelta(days=30)
 
         # Organização mínima
         self.inst = Institution.objects.create(
@@ -51,12 +51,16 @@ class ReportTextBlockViewsTests(TestCase):
         self.nucleus = Nucleus.objects.create(institution=self.inst, name="Núcleo Campinas", city=self.city)
         self.team = Team.objects.create(nucleus=self.nucleus, name="Equipe 01", description="")
 
-        UserInstitutionAssignment.objects.create(
-            user=self.user,
-            institution=self.inst,
-            start_at=timezone.now(),
-            end_at=None,
-            is_primary=True,
+        # Vínculo institucional
+        self.user.team = self.team
+
+        self.user.save(
+            update_fields=[
+                "can_edit_reports",
+                "can_create_reports",
+                "can_create_reports_until",
+                "team",
+            ]
         )
 
         self.report = self._make_report(author=self.user)

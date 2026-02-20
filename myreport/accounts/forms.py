@@ -22,8 +22,6 @@ from institutions.models import (
     Institution,
     Nucleus,
     Team,
-    UserInstitutionAssignment,
-    UserTeamAssignment,
 )
 
 # ─────────────────────────────────────
@@ -96,8 +94,7 @@ class _InstitutionNucleusTeamFieldsMixin(BaseForm):
 
     def _set_initial_from_active_assignments(self, user):
         """
-        Preenche initial a partir das atribuições ativas do usuário.
-        Observação: hoje seu código pega institution e team; aqui também inferimos nucleus via team.
+        Preenche initial a partir da equipe atual do usuário (modelo simplificado).
         """
         if (
             "institution" not in self.fields
@@ -106,28 +103,16 @@ class _InstitutionNucleusTeamFieldsMixin(BaseForm):
         ):
             return
 
-        active_inst = (
-            user.institution_assignments.filter(end_at__isnull=True)
-            .select_related("institution")
-            .order_by("-start_at")
-            .first()
-        )
-        if active_inst:
-            self.initial.setdefault("institution", active_inst.institution_id)
+        team = user.team
+        if not team:
+            return
 
-        active_team = (
-            user.team_assignments.filter(end_at__isnull=True)
-            .select_related("team", "team__nucleus", "team__nucleus__institution")
-            .order_by("-start_at")
-            .first()
-        )
-        if active_team:
-            team_obj = active_team.team
-            self.initial.setdefault("team", team_obj.id)
-            if getattr(team_obj, "nucleus_id", None):
-                self.initial.setdefault("nucleus", team_obj.nucleus_id)
-            if "institution" not in self.initial and getattr(team_obj, "nucleus", None):
-                self.initial.setdefault("institution", team_obj.nucleus.institution_id)
+        self.initial.setdefault("team", team.id)
+        if team.nucleus_id:
+            self.initial.setdefault("nucleus", team.nucleus_id)
+            if team.nucleus.institution_id:
+                self.initial.setdefault("institution", team.nucleus.institution_id)
+
 
     def _clean_institution_nucleus_team_triple(self):
         institution = self.cleaned_data.get("institution")
@@ -157,29 +142,17 @@ class _InstitutionNucleusTeamFieldsMixin(BaseForm):
         return institution, nucleus, team
 
     def _apply_assignments(self, user, institution: Institution, team: Team):
-        now = timezone.now()
-
-        UserInstitutionAssignment.objects.filter(user=user, end_at__isnull=True).update(end_at=now)
-        UserInstitutionAssignment.objects.create(
-            user=user,
-            institution=institution,
-            start_at=now,
-            end_at=None,
-            is_primary=True,
-        )
-
-        UserTeamAssignment.objects.filter(user=user, end_at__isnull=True).update(end_at=now)
-        UserTeamAssignment.objects.create(
-            user=user,
-            team=team,
-            start_at=now,
-            end_at=None,
-            is_primary=True,
-        )
+        """
+        No modelo simplificado, apenas define a equipe do usuário.
+        A instituição é inferida via team -> nucleus -> institution.
+        """
+        user.team = team
 
         if not user.can_edit_reports:
             user.can_edit_reports = True
-            user.save(update_fields=["can_edit_reports"])
+
+        user.save(update_fields=["team", "can_edit_reports"])
+
 
 
 class UserRegistrationForm(_InstitutionNucleusTeamFieldsMixin, UserCreationForm):
@@ -261,16 +234,16 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, BaseModelForm):
         self._clean_institution_nucleus_team_triple()
         return cleaned
 
-    def save(self, commit=True):
-        user = super().save(commit=commit)
+    def save(self) -> None:
+        team: Team = self.cleaned_data["team"]
 
-        institution = self.cleaned_data.get("institution")
-        team = self.cleaned_data.get("team")
+        self.user.team = team
 
-        if institution and team:
-            self._apply_assignments(user, institution, team)
+        if not self.user.can_edit_reports:
+            self.user.can_edit_reports = True
 
-        return user
+        self.user.save(update_fields=["team", "can_edit_reports"])
+
 
 
 class UserPasswordChangeForm(BootstrapFormMixin, PasswordChangeForm):
@@ -303,26 +276,11 @@ class LinkInstitutionForm(_InstitutionNucleusTeamFieldsMixin):
         self.user = user
 
         if not self.is_bound:
-            active_inst = (
-                user.institution_assignments.filter(end_at__isnull=True)
-                .select_related("institution")
-                .order_by("-start_at")
-                .first()
-            )
-            active_team = (
-                user.team_assignments.filter(end_at__isnull=True)
-                .select_related("team", "team__nucleus", "team__nucleus__institution")
-                .order_by("-start_at")
-                .first()
-            )
-            if active_inst:
-                self.initial.setdefault("institution", active_inst.institution_id)
-            if active_team:
-                self.initial.setdefault("team", active_team.team_id)
-                if active_team.team.nucleus_id:
-                    self.initial.setdefault("nucleus", active_team.team.nucleus_id)
-                if "institution" not in self.initial:
-                    self.initial.setdefault("institution", active_team.team.nucleus.institution_id)
+            team = user.team
+            if team:
+                self.initial.setdefault("team", team.id)
+                self.initial.setdefault("nucleus", team.nucleus_id)
+                self.initial.setdefault("institution", team.nucleus.institution_id)
 
         institution_id = (
             (self.data.get("institution") if self.is_bound else self.initial.get("institution")) or None
@@ -355,31 +313,14 @@ class LinkInstitutionForm(_InstitutionNucleusTeamFieldsMixin):
         return cleaned
 
     def save(self) -> None:
-        institution: Institution = self.cleaned_data["institution"]
         team: Team = self.cleaned_data["team"]
-        now = timezone.now()
 
-        UserInstitutionAssignment.objects.filter(user=self.user, end_at__isnull=True).update(end_at=now)
-        UserInstitutionAssignment.objects.create(
-            user=self.user,
-            institution=institution,
-            start_at=now,
-            end_at=None,
-            is_primary=True,
-        )
-
-        UserTeamAssignment.objects.filter(user=self.user, end_at__isnull=True).update(end_at=now)
-        UserTeamAssignment.objects.create(
-            user=self.user,
-            team=team,
-            start_at=now,
-            end_at=None,
-            is_primary=True,
-        )
+        self.user.team = team
 
         if not self.user.can_edit_reports:
             self.user.can_edit_reports = True
-            self.user.save(update_fields=["can_edit_reports"])
+
+        self.user.save(update_fields=["team", "can_edit_reports"])
 
 
 # ─────────────────────────────────────
@@ -391,7 +332,7 @@ class UserPreferencesForm(BaseModelForm):
 
     Observação:
     - nucleus/team NÃO são campos do User; são preferências operacionais.
-    - o vínculo real continua sendo via UserTeamAssignment (e, se desejar, UserInstitutionAssignment).
+    - o vínculo institucional é inferido por User.team (modelo simplificado).
     """
 
     nucleus = forms.ModelChoiceField(
@@ -427,15 +368,11 @@ class UserPreferencesForm(BaseModelForm):
             self.fields["default_home"].choices = allowed
 
         # initial: assignment ativo (team -> nucleus)
-        active = (
-            self.user.team_assignments.filter(end_at__isnull=True)
-            .select_related("team__nucleus")
-            .order_by("-start_at")
-            .first()
-        )
-        if active:
-            self.fields["nucleus"].initial = active.team.nucleus_id
-            self.fields["team"].initial = active.team_id
+        team = self.user.team
+        if team:
+            self.fields["nucleus"].initial = team.nucleus_id
+            self.fields["team"].initial = team.id
+
 
         # queryset encadeado de teams (POST ou initial)
         nucleus_id = None
@@ -479,35 +416,10 @@ class UserPreferencesForm(BaseModelForm):
                 defaults={"name": nucleus.name, "is_active": True, "order": 0},
             )
 
-        now = timezone.now()
-
-        # Fecha assignment ativo anterior
-        UserTeamAssignment.objects.filter(user=user, end_at__isnull=True).update(end_at=now)
-
-        # Cria assignment ativo novo
-        UserTeamAssignment.objects.create(
-            user=user,
-            team=team,
-            start_at=now,
-            end_at=None,
-            is_primary=True,
-        )
-
-        # (Opcional) Se você quiser também manter InstitutionAssignment coerente:
-        # - pega a instituição do núcleo e grava como assignment ativo
-        # Se você não quiser mexer nisso agora, pode deixar comentado.
-        if getattr(nucleus, "institution_id", None):
-            UserInstitutionAssignment.objects.filter(user=user, end_at__isnull=True).update(end_at=now)
-            UserInstitutionAssignment.objects.create(
-                user=user,
-                institution=nucleus.institution,
-                start_at=now,
-                end_at=None,
-                is_primary=True,
-            )
+        user.team = team
 
         if not user.can_edit_reports:
             user.can_edit_reports = True
-            user.save(update_fields=["can_edit_reports"])
 
+        user.save(update_fields=["team", "can_edit_reports"])
         return user

@@ -1,14 +1,15 @@
-# accounts/tests/tests_models.py
+# path: myreport/accounts/tests/tests_models.py
 
 from __future__ import annotations
 
 from datetime import timedelta
-from unittest.mock import PropertyMock, patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
+
+from institutions.models import Institution, Nucleus, Team
 
 
 User = get_user_model()
@@ -22,8 +23,14 @@ class UserModelTests(TestCase):
     - __str__
     - validação (clean) de default_home
     - helpers de path (upload_to)
-    - permissões efetivas (create/edit) com mock de vínculo institucional ativo
+    - permissões efetivas (create/edit) no modelo simplificado (via user.team)
     """
+
+    def _create_team(self):
+        inst = Institution.objects.create(name="Inst", acronym="I")
+        nucleus = Nucleus.objects.create(name="Nuc", institution=inst)
+        team = Team.objects.create(name="Team A", nucleus=nucleus)
+        return team
 
     def test_str_prefers_display_name_when_present(self) -> None:
         user = User.objects.create_user(username="u1", password="x", display_name="Marcos")
@@ -34,7 +41,7 @@ class UserModelTests(TestCase):
         self.assertEqual(str(user), "u2")
 
     def test_clean_rejects_invalid_default_home_key(self) -> None:
-        user = User(username="u3", default_home="document_list")  # chave inválida
+        user = User(username="u3", default_home="document_list")
         with self.assertRaises(ValidationError) as ctx:
             user.full_clean()
 
@@ -64,82 +71,78 @@ class UserModelTests(TestCase):
         self.assertTrue(path.endswith("/background/bg.png"))
         self.assertIn(str(user.id), path)
 
-    def test_can_edit_reports_effective_requires_flag_and_active_assignment(self) -> None:
+    # ---------------------------------------------------------
+    # Permissões efetivas (modelo simplificado)
+    # ---------------------------------------------------------
+
+    def test_can_edit_reports_effective_requires_flag_and_team(self) -> None:
         user = User.objects.create_user(username="u7", password="x")
+
+        team = self._create_team()
+
         # flag false => nunca edita
         user.can_edit_reports = False
+        user.team = team
         user.save()
 
-        with patch.object(User, "active_institution_assignment", new_callable=PropertyMock) as p_active:
-            p_active.return_value = object()
-            self.assertFalse(user.can_edit_reports_effective)
+        self.assertFalse(user.can_edit_reports_effective)
 
-        # flag true + vínculo ativo => edita
+        # flag true + team => edita
         user.can_edit_reports = True
         user.save()
 
-        with patch.object(User, "active_institution_assignment", new_callable=PropertyMock) as p_active:
-            p_active.return_value = object()
-            self.assertTrue(user.can_edit_reports_effective)
+        self.assertTrue(user.can_edit_reports_effective)
 
-        # flag true + sem vínculo => não edita
-        with patch.object(User, "active_institution_assignment", new_callable=PropertyMock) as p_active:
-            p_active.return_value = None
-            self.assertFalse(user.can_edit_reports_effective)
+        # flag true + sem team => não edita
+        user.team = None
+        user.save()
+
+        self.assertFalse(user.can_edit_reports_effective)
 
     def test_can_create_reports_effective_rules(self) -> None:
         """
-        Regras esperadas (modelo atual):
+        Regras esperadas:
         - can_create_reports precisa estar True
-        - precisa haver vínculo institucional ativo
+        - precisa haver team definido
         - se can_create_reports_until for NULL => sem expiração
         - se estiver preenchido => hoje <= until
         """
         user = User.objects.create_user(username="u8", password="x")
-
-        # Se o projeto ainda não tiver esses campos (antes da migração),
-        # este teste falharia; por isso fazemos asserts explícitos:
-        self.assertTrue(hasattr(user, "can_create_reports"))
-        self.assertTrue(hasattr(user, "can_create_reports_until"))
-        self.assertTrue(hasattr(user, "can_create_reports_effective"))
+        team = self._create_team()
 
         today = timezone.now().date()
 
         # 1) flag false => não cria
         user.can_create_reports = False
         user.can_create_reports_until = today + timedelta(days=30)
+        user.team = team
         user.save()
 
-        with patch.object(User, "active_institution_assignment", new_callable=PropertyMock) as p_active:
-            p_active.return_value = object()
-            self.assertFalse(user.can_create_reports_effective)
+        self.assertFalse(user.can_create_reports_effective)
 
-        # 2) flag true + sem vínculo => não cria
+        # 2) flag true + sem team => não cria
         user.can_create_reports = True
+        user.team = None
         user.can_create_reports_until = today + timedelta(days=30)
         user.save()
 
-        with patch.object(User, "active_institution_assignment", new_callable=PropertyMock) as p_active:
-            p_active.return_value = None
-            self.assertFalse(user.can_create_reports_effective)
+        self.assertFalse(user.can_create_reports_effective)
 
-        # 3) flag true + vínculo ativo + until no futuro => cria
-        with patch.object(User, "active_institution_assignment", new_callable=PropertyMock) as p_active:
-            p_active.return_value = object()
-            self.assertTrue(user.can_create_reports_effective)
+        # 3) flag true + team + until futuro => cria
+        user.team = team
+        user.can_create_reports_until = today + timedelta(days=30)
+        user.save()
 
-        # 4) flag true + vínculo ativo + until no passado => não cria
+        self.assertTrue(user.can_create_reports_effective)
+
+        # 4) flag true + team + until passado => não cria
         user.can_create_reports_until = today - timedelta(days=1)
         user.save()
 
-        with patch.object(User, "active_institution_assignment", new_callable=PropertyMock) as p_active:
-            p_active.return_value = object()
-            self.assertFalse(user.can_create_reports_effective)
+        self.assertFalse(user.can_create_reports_effective)
 
-        # 5) flag true + vínculo ativo + until NULL => cria (sem expiração)
+        # 5) flag true + team + until NULL => cria
         user.can_create_reports_until = None
         user.save()
 
-        with patch.object(User, "active_institution_assignment", new_callable=PropertyMock) as p_active:
-            p_active.return_value = object()
-            self.assertTrue(user.can_create_reports_effective)
+        self.assertTrue(user.can_create_reports_effective)

@@ -57,13 +57,15 @@ class ReportMakerViewsSmokeTests(TestCase):
         self.nucleus = Nucleus.objects.create(institution=self.inst, name="Núcleo Campinas", city=self.city)
         self.team = Team.objects.create(nucleus=self.nucleus, name="Equipe 01", description="")
 
-        # Vínculo institucional ativo (se seu mixin exigir)
-        UserInstitutionAssignment.objects.create(
-            user=self.user,
-            institution=self.inst,
-            start_at=timezone.now(),
-            end_at=None,
-            is_primary=True,
+        self.user.team = self.team
+
+        self.user.save(
+            update_fields=[
+                "can_create_reports",
+                "can_edit_reports",
+                "can_create_reports_until",
+                "team",
+            ]
         )
 
         self.report = self._make_report(author=self.user, report_number="123.123/2026")
