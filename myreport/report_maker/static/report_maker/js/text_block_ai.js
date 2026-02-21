@@ -58,25 +58,14 @@
     const textarea = document.getElementById(target) || document.querySelector(`[name="${target}"]`);
     if (!textarea) return;
 
+    // Agora permitimos que 'notes' seja enviado vazio para que o backend devolva orientações
     const notes = (textarea.value || "").trim();
     const csrfToken = getCsrfToken();
 
     const { hasModal, modalEl, outputEl, errorEl, applyBtn } = getModalParts();
 
     if (!reportId) {
-      const msg = "ID do laudo não encontrado (report_id). Recarregue a página.";
-    }
-    
-    if (!notes) {
-      if (hasModal) {
-        currentTextarea = textarea;
-        outputEl.value = "";
-        clearModalError(errorEl);
-        setModalError(errorEl, "Digite algumas informações no campo antes de gerar.");
-        showModal(modalEl);
-      } else {
-        alert("Digite algumas informações no campo antes de gerar.");
-      }
+      console.error("ID do laudo não encontrado (report_id).");
       return;
     }
 
@@ -95,7 +84,7 @@
 
     const originalText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = "Gerando...";
+    btn.textContent = "Processando..."; // Alterado de "Gerando..." para refletir a análise
 
     try {
       const resp = await fetch(url, {
@@ -113,7 +102,7 @@
 
       if (!resp.ok) {
         console.error("IA erro HTTP:", resp.status, raw);
-        const msg = `Falha ao gerar texto com IA (HTTP ${resp.status}). Veja o console (F12).`;
+        const msg = `Falha ao processar (HTTP ${resp.status}).`;
 
         if (hasModal) {
           currentTextarea = textarea;
@@ -129,7 +118,7 @@
 
       if (!contentType.includes("application/json")) {
         console.error("IA resposta não-JSON:", raw);
-        const msg = "Falha ao gerar texto com IA (resposta inesperada). Veja o console (F12).";
+        const msg = "Falha ao processar resposta da IA.";
 
         if (hasModal) {
           currentTextarea = textarea;
@@ -182,7 +171,7 @@
       }
     } catch (e) {
       console.error("IA exceção JS:", e);
-      const msg = "Falha ao gerar texto com IA. Veja o console (F12).";
+      const msg = "Falha ao processar requisição.";
 
       if (hasModal) {
         currentTextarea = textarea;
