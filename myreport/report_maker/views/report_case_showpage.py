@@ -65,7 +65,6 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         """
         user = self.request.user
 
-        # Novo modelo: vínculo institucional vem da equipe
         team = user.team
         nucleus = user.nucleus
         inst = user.institution
@@ -86,14 +85,25 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         else:
             honoree_line = hon_name or ""
 
-        unit_line = " - ".join(
-            p
-            for p in [
-                (getattr(nucleus, "name", "") or "") if nucleus else "",
-                (getattr(team, "name", "") or "") if team else "",
-            ]
-            if p
-        )
+        # ─────────────────────────────────────────────
+        # Unit line (evita repetir núcleo/equipe)
+        # ─────────────────────────────────────────────
+        nucleus_txt = (getattr(nucleus, "name", "") or "").strip() if nucleus else ""
+        team_txt = (getattr(team, "name", "") or "").strip() if team else ""
+
+        team_is_redundant = False
+        if team and getattr(team, "is_nucleus_team", False):
+            team_is_redundant = True
+        elif nucleus_txt and team_txt and nucleus_txt.casefold() == team_txt.casefold():
+            team_is_redundant = True
+
+        unit_parts = []
+        if nucleus_txt:
+            unit_parts.append(nucleus_txt)
+        if team_txt and not team_is_redundant:
+            unit_parts.append(team_txt)
+
+        unit_line = " - ".join(unit_parts)
 
         return {
             "name": name or None,
@@ -128,7 +138,25 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         else:
             honoree_line = hon_name or ""
 
-        unit_line = " - ".join(p for p in [report.nucleus_display, report.team_display] if p)
+        # ─────────────────────────────────────────────
+        # Unit line (snapshot-safe) — evita repetir núcleo/equipe
+        # ─────────────────────────────────────────────
+        nucleus_txt = (report.nucleus_display or "").strip()
+        team_txt = (report.team_display or "").strip()
+
+        team_is_redundant = False
+        if report.team and getattr(report.team, "is_nucleus_team", False):
+            team_is_redundant = True
+        elif nucleus_txt and team_txt and nucleus_txt.casefold() == team_txt.casefold():
+            team_is_redundant = True
+
+        unit_parts = []
+        if nucleus_txt:
+            unit_parts.append(nucleus_txt)
+        if team_txt and not team_is_redundant:
+            unit_parts.append(team_txt)
+
+        unit_line = " - ".join(unit_parts)
 
         emblem_primary = report.emblem_primary_snapshot or (inst.emblem_primary if inst else None)
         emblem_secondary = report.emblem_secondary_snapshot or (inst.emblem_secondary if inst else None)

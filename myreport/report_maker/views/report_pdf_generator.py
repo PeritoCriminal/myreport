@@ -35,7 +35,7 @@ def _build_header_from_user(request) -> dict:
     """
     user = request.user
 
-    # Novo modelo: vínculo institucional vem da equipe
+    # Vínculo institucional atual do usuário
     team = user.team
     nucleus = user.nucleus
     inst = user.institution
@@ -52,14 +52,25 @@ def _build_header_from_user(request) -> dict:
     hon_name = (getattr(inst, "honoree_name", "") or "") if inst else ""
     honoree_line = f"{hon_title} {hon_name}" if (hon_title and hon_name) else (hon_name or "")
 
-    unit_line = " - ".join(
-        p
-        for p in [
-            (getattr(nucleus, "name", "") or "") if nucleus else "",
-            (getattr(team, "name", "") or "") if team else "",
-        ]
-        if p
-    )
+    # ─────────────────────────────────────────────
+    # Unit line (evita repetir núcleo/equipe)
+    # ─────────────────────────────────────────────
+    nucleus_txt = (getattr(nucleus, "name", "") or "").strip() if nucleus else ""
+    team_txt = (getattr(team, "name", "") or "").strip() if team else ""
+
+    team_is_redundant = False
+    if team and getattr(team, "is_nucleus_team", False):
+        team_is_redundant = True
+    elif nucleus_txt and team_txt and nucleus_txt.casefold() == team_txt.casefold():
+        team_is_redundant = True
+
+    unit_parts = []
+    if nucleus_txt:
+        unit_parts.append(nucleus_txt)
+    if team_txt and not team_is_redundant:
+        unit_parts.append(team_txt)
+
+    unit_line = " - ".join(unit_parts)
 
     return {
         "name": name or None,
@@ -72,7 +83,6 @@ def _build_header_from_user(request) -> dict:
     }
 
 
-
 def _build_header_from_snapshots(report: ReportCase) -> dict:
     """
     Monta o cabeçalho institucional usando snapshots persistidos no ReportCase.
@@ -80,7 +90,7 @@ def _build_header_from_snapshots(report: ReportCase) -> dict:
     Usado quando o laudo está concluído/bloqueado, garantindo coerência histórica:
     - mudanças futuras no vínculo do usuário não alteram o documento.
     """
-    inst = report.institution
+    inst = report.institution  # fallback opcional para emblemas
 
     name = (report.institution_name_snapshot or "").strip()
     acronym = (report.institution_acronym_snapshot or "").strip()
@@ -88,9 +98,27 @@ def _build_header_from_snapshots(report: ReportCase) -> dict:
 
     hon_title = (report.honoree_title_snapshot or "").strip()
     hon_name = (report.honoree_name_snapshot or "").strip()
-
     honoree_line = f"{hon_title} {hon_name}" if (hon_title and hon_name) else (hon_name or "")
-    unit_line = " - ".join(p for p in [report.nucleus_display, report.team_display] if p)
+
+    # ─────────────────────────────────────────────
+    # Unit line (snapshot-safe) — evita repetir núcleo/equipe
+    # ─────────────────────────────────────────────
+    nucleus_txt = (report.nucleus_display or "").strip()
+    team_txt = (report.team_display or "").strip()
+
+    team_is_redundant = False
+    if report.team and getattr(report.team, "is_nucleus_team", False):
+        team_is_redundant = True
+    elif nucleus_txt and team_txt and nucleus_txt.casefold() == team_txt.casefold():
+        team_is_redundant = True
+
+    unit_parts = []
+    if nucleus_txt:
+        unit_parts.append(nucleus_txt)
+    if team_txt and not team_is_redundant:
+        unit_parts.append(team_txt)
+
+    unit_line = " - ".join(unit_parts)
 
     emblem_primary = report.emblem_primary_snapshot or (inst.emblem_primary if inst else None)
     emblem_secondary = report.emblem_secondary_snapshot or (inst.emblem_secondary if inst else None)

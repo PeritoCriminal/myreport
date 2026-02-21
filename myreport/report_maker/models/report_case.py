@@ -538,7 +538,25 @@ class ReportCase(models.Model):
             emblem_secondary = inst.emblem_secondary if (inst and getattr(inst, "emblem_secondary", None)) else None
 
         honoree_line = f"{hon_title} {hon_name}".strip() if (hon_title and hon_name) else (hon_name or "")
-        unit_line = " - ".join(p for p in [self.nucleus_display, self.team_display] if p)
+        team_is_redundant = False
+        
+        if self.team and getattr(self.team, "is_nucleus_team", False):
+            team_is_redundant = True
+        else:
+            # fallback por texto (funciona também congelado)
+            nuc_txt = (self.nucleus_display or "").strip()
+            team_txt = (self.team_display or "").strip()
+            if nuc_txt and team_txt and nuc_txt.casefold() == team_txt.casefold():
+                team_is_redundant = True
+
+        unit_parts = []
+        if self.nucleus_display:
+            unit_parts.append(self.nucleus_display)
+
+        if self.team_display and not team_is_redundant:
+            unit_parts.append(self.team_display)
+
+        unit_line = " - ".join(unit_parts)
 
         director_line = ""
         if director_title and director_name:
