@@ -4,37 +4,50 @@
   {% include 'headerbars/report_maker.html' %}
 {% endblock %}
 
-
 {% block content %}
 <div class="container py-4">
-  <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-    <h4 class="m-0">Adicionar objeto de exame</h4>
-    <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-sm btn-outline-secondary">
-      Voltar
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="fw-bold mb-1">Adicionar Objeto de Exame</h4>
+      <p class="text-muted small mb-0">Selecione o tipo de objeto para o laudo</p>
+    </div>
+    <a href="{% url 'report_maker:reportcase_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Voltar
     </a>
   </div>
 
   <div class="row g-3">
     {% for c in cards %}
       <div class="col-12 col-md-6 col-lg-4">
-        <div class="card h-100 shadow-sm border-0">
-          <div class="card-body">
-            <div class="d-flex align-items-start gap-2">
-              <i class="bi {{ c.icon }} fs-3"></i>
-              <div>
-                <h5 class="card-title mb-1">{{ c.title }}</h5>
-                <p class="card-text text-muted mb-3">{{ c.description }}</p>
-
-                {% if c.enabled %}
-                  <a href="{{ c.url }}" class="btn btn-sm btn-primary">
-                    Criar
-                  </a>
-                {% else %}
-                  <button class="btn btn-sm btn-secondary" disabled>Bloqueado</button>
-                {% endif %}
+        <div class="card h-100 shadow-sm border-light {% if not c.enabled %}opacity-50 bg-light{% endif %} position-relative">
+          
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="bg-primary bg-opacity-10 text-primary rounded p-3 d-inline-flex">
+                <i class="bi {{ c.icon }} fs-4 lh-1"></i>
               </div>
+              
+              <h5 class="card-title fw-bold m-0">{{ c.title }}</h5>
             </div>
+
+            <p class="card-text text-muted small">
+              {{ c.description }}
+            </p>
+
+            {% if c.enabled %}
+              <a href="{{ c.url }}" class="stretched-link"></a>
+              <div class="text-primary small fw-semibold mt-3">
+                Criar objeto <i class="bi bi-chevron-right ms-1"></i>
+              </div>
+            {% else %}
+              <div class="mt-3">
+                <span class="badge rounded-pill text-bg-secondary px-3">
+                  <i class="bi bi-lock-fill me-1"></i> Bloqueado
+                </span>
+              </div>
+            {% endif %}
           </div>
+          
         </div>
       </div>
     {% endfor %}
