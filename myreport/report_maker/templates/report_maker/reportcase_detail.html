@@ -162,7 +162,7 @@
         <div class="mb-3">
           <div class="text-muted small fw-semibold mb-2">{{ g.label|default:'Outros' }}</div>
           {% if g.intro_text %}
-            <div class="mb-2">{{ g.intro_text|linebreaks }}</div>
+            <div class="mb-2">{{ g.intro_text|truncatechars:80 }}</div>
           {% endif %}
 
           <div class="list-group js-exam-objects-list" data-report-id="{{ report.pk }}" data-group-key="{{ g.key|default:'' }}" data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}">
@@ -175,7 +175,7 @@
                   <div class="flex-grow-1">
                     <div class="fw-semibold">{{ obj.order }} - {{ obj.title|default:'Objeto sem título' }} - Classe {{ obj.group_key|default:'Nulo' }}</div>
                     {% if obj.description %}
-                      <div class="text-muted small">{{ obj.order }} - {{ obj.description|truncatechars:120 }}</div>
+                      <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
                     {% endif %}
                     {% include 'report_maker/partials/image_card_list.html' with obj=obj report=report %}
                   </div>
