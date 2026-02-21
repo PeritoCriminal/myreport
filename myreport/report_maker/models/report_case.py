@@ -840,11 +840,9 @@ class ReportCase(models.Model):
     # ---------------------------------------------------------------------
     # Contexto do laudo em uso para IA
     # ---------------------------------------------------------------------
-
     def get_ai_context(self) -> str:
         """
-        Consolidates narrative content, technical data, and image captions.
-        Returns a formatted string or an empty indicator if no data exists.
+        Preciso descrever essa parte ainda.
         """
         context_parts = []
 
