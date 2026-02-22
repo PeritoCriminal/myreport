@@ -111,108 +111,107 @@ def _resolve_kind(raw_kind: str) -> str:
     k = (raw_kind or "").strip().lower()
     return k if k in KIND_PROMPTS else "generic"
 
+
 # --- VIEW PRINCIPAL ---
 @login_required
 @require_POST
 def ai_textblock_generate(request):
     """
-    View principal para geração de texto pericial.
-    Lógica: 
-    1. Se houver 'notes', a IA atua como redatora técnica.
-    2. Se 'notes' estiver vazio, a IA atua como tutora/assistente.
-    3. Para a 'conclusion', a IA lê o conteúdo do laudo e de seus objetos (ExamObjects).
+    Gera texto pericial com filtragem seletiva de contexto.
+    Para conclusões, utiliza apenas dados de materialidade para evitar 
+    repetição de estruturas de tópicos e focar na síntese discursiva.
     """
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except json.JSONDecodeError:
         return JsonResponse({"error": "invalid_json"}, status=400)
 
-    raw_kind = str(payload.get("kind") or payload.get("placement") or "generic")
-    kind = _resolve_kind(raw_kind)
+    raw_kind = payload.get("kind") or payload.get("placement") or "generic"
+    kind = _resolve_kind(str(raw_kind))
     notes = (payload.get("notes") or "").strip()
     report_id = (payload.get("report_id") or "").strip()
 
-    # --- INJEÇÃO DE CONTEXTO DO LAUDO E OBJETOS CONCRETOS ---
-    report_context_str = ""
+    # --- 1. COLETA ESTRUTURADA (Dicionário de Contexto) ---
+    report_data = {"general": {}, "objects": []}
+    
     if report_id:
         this_report = get_object_or_404(ReportCase, pk=report_id, author=request.user)
+        report_data["general"] = {
+            "descricao": getattr(this_report, 'description', ''),
+            "exames": getattr(this_report, 'examination', '')
+        }
+
+        for obj in this_report.exam_objects.all():
+            actual_obj = obj.concrete
+            report_data["objects"].append({
+                "tipo": actual_obj._meta.verbose_name,
+                "description": getattr(actual_obj, 'description', '').strip(),
+                "observed_elements": getattr(actual_obj, 'observed_elements', '').strip(),
+                "service_context": getattr(actual_obj, 'service_context', '').strip(),
+            })
+
+    # --- 2. FILTRAGEM SELETIVA PARA O PROMPT ---
+    # Se for conclusão, ignoramos 'service_context' e 'tipo' para não viciar o texto
+    if kind == "conclusion":
+        raw_materiality = [o["description"] + " " + o["observed_elements"] for o in report_data["objects"]]
+        context_for_ai = "\n".join(raw_materiality)
         
-        # Coletamos dados do laudo em si
-        report_context_str = (
-            f"\n--- CONTEXTO DO LAUDO ---\n"
-            f"Descrição Geral: {getattr(this_report, 'description', 'Não preenchido')}\n"
-            f"Exames Realizados: {getattr(this_report, 'examination', 'Não preenchido')}\n"
-        )
-
-        # AGORA: Buscamos os objetos concretos (ExamObject) via related_name
-        # Usamos uma lista para construir o texto de cada objeto encontrado
-        this_report_objects = this_report.exam_objects.all()
+        role_behavior = "AJA COMO PERITO CRIMINAL SÉNIOR REDIGINDO A CONCLUSÃO."
         
-        if this_report_objects.exists():
-            report_context_str += "\n--- OBJETOS EXAMINADOS NO LAUDO ---\n"
-            for i, obj in enumerate(this_report_objects, 1):
-                # Pegamos os campos description e observed_elements (do Mixin)
-                # O getattr é essencial aqui porque nem todo objeto terá o Mixin aplicado
-                d = getattr(obj, 'description', '').strip()
-                o = getattr(obj, 'observed_elements', '').strip()
-                
-                if d or o:
-                    report_context_str += f"Objeto {i}:\n"
-                    if d: report_context_str += f"  - Descrição: {d}\n"
-                    if o: report_context_str += f"  - Elementos Observados: {o}\n"
-
-    # Busca a instrução específica no dicionário
-    instruction = KIND_PROMPTS.get(kind, KIND_PROMPTS["generic"])
-
-    # --- CONSTRUÇÃO DINÂMICA DO PROMPT ---
-    if not notes:
-        # MODO TUTOR: Campo vazio
-        if kind == "conclusion":
-            role_behavior = "AJA COMO UM PERITO SÉNIOR PROPONDO UMA CONCLUSÃO FINAL."
+        if notes:
+            # SE HÁ NOTAS: O perito manda, o contexto apenas apoia a precisão técnica.
             user_message = (
-                f"O perito solicitou uma proposta de conclusão baseada nos dados do laudo e dos objetos examinados:\n"
-                f"{report_context_str}\n"
-                "Instrução: Formule uma conclusão técnica, lógica e elegante. "
-                "Siga as regras de início e fim (itálico) definidas na sua instrução específica."
+                f"DADOS DE APOIO (Vestígios): {context_for_ai}\n\n"
+                f"COMANDO DO PERITO (Prioridade Máxima): {notes}\n\n"
+                "TAREFA: Escreva a conclusão seguindo estritamente as instruções do 'COMANDO DO PERITO'. "
+                "Use os 'DADOS DE APOIO' apenas para garantir termos técnicos corretos. "
+                "Se o perito pediu um resumo ou uma frase específica, entregue exatamente isso, "
+                "mantendo o tom formal e encerrando com a frase em itálico padrão."
             )
         else:
-            role_behavior = "AJA COMO UM ASSISTENTE/TUTOR TÉCNICO."
+            # SE NÃO HÁ NOTAS: IA propõe do zero (Modo Tutor)
             user_message = (
-                f"O perito está na seção '{kind}' e o campo está vazio. "
-                f"Considere o contexto atual do laudo: {report_context_str}\n"
-                "Explique o que deve constar nesta seção e ofereça exemplos para ajudá-lo a começar."
+                f"VESTÍGIOS MATERIAIS: {context_for_ai}\n\n"
+                "TAREFA: Formule uma proposta de conclusão discursiva correlacionando os vestígios acima. "
+                "Foque na materialidade do dano e do combustível. Não use listas. "
+                "Encerre com a frase em itálico padrão."
             )
-    else:
-        # MODO REDATOR: O perito forneceu anotações
-        role_behavior = "AJA COMO UM REDATOR TÉCNICO PERICIAL."
+        
+        # Criamos uma massa de dados bruta, sem rótulos de "Objeto 1"
+        context_for_ai = "\n".join(raw_materiality)
+        
+        role_behavior = "AJA COMO PERITO CRIMINAL SÉNIOR EMITINDO PARECER FINAL."
         user_message = (
-            f"CONTEXTO DO LAUDO E OBJETOS:{report_context_str}\n"
-            f"INSTRUÇÃO DA SEÇÃO: {instruction}\n"
-            f"ANOTAÇÕES DO PERITO PARA FORMATAR:\n{notes}"
+            f"VESTÍGIOS MATERIAIS PARA ANÁLISE:\n{context_for_ai}\n\n"
+            "TAREFA: Redija a CONCLUSÃO do laudo pericial.\n"
+            "REGRAS OBRIGATÓRIAS:\n"
+            "1. Use texto DISCURSIVO e CORRELACIONADO (mínimo 1 parágrafo, máximo 3).\n"
+            "2. Proibido usar listas, tópicos ou repetir nomes de seções (ex: não escreva 'Objeto:').\n"
+            "3. Sintetize a materialidade: vincule os danos e vestígios à dinâmica do evento.\n"
+            "4. Encerre estritamente com: *Nada mais havendo a consignar, encerra-se o presente laudo.*"
         )
+    else:
+        # Para outras seções, mantemos o contexto completo para auxílio
+        full_context = f"{report_data['general'].get('descricao')}\n"
+        for o in report_data["objects"]:
+            full_context += f"- {o['tipo']}: {o['description']} {o['observed_elements']}\n"
+        
+        context_for_ai = full_context
+        role_behavior = "AJA COMO ASSISTENTE TÉCNICO PERICIAL."
+        user_message = f"CONTEXTO: {context_for_ai}\n\nSEÇÃO: {kind}\nTEXTO ATUAL: {notes}\nTAREFA: Refine ou sugira o texto para esta seção."
 
+    # --- 3. CHAMADA À API ---
     try:
         client = OpenAI()
         resp = client.chat.completions.create(
             model="gpt-4o", 
             messages=[
-                {"role": "system", "content": SYSTEM_STYLE},
+                {"role": "system", "content": "Você é um perito criminal detalhista e técnico. Não cite leis."},
                 {"role": "system", "content": role_behavior},
                 {"role": "user", "content": user_message},
             ],
-            temperature=0.6
+            temperature=0.2
         )
-        
-        generated_text = resp.choices[0].message.content.strip()
-        return JsonResponse({"text": generated_text}, status=200)
-
-    except RateLimitError:
-        return JsonResponse({"error": "insufficient_quota"}, status=429)
-    except AuthenticationError:
-        return JsonResponse({"error": "auth_error"}, status=401)
+        return JsonResponse({"text": resp.choices[0].message.content.strip()}, status=200)
     except Exception as e:
-        # Retorna o erro detalhado para debug
-        return JsonResponse({
-            "error": "server_error", 
-            "detail": str(e)
-        }, status=500)
+        return JsonResponse({"error": str(e)}, status=500)
