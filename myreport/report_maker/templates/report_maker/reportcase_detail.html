@@ -137,36 +137,49 @@
             {% endif %}
 
             <div class="list-group js-exam-objects-list" data-report-id="{{ report.pk }}" data-group-key="{{ g.key|default:'' }}" data-reorder-url="{% url 'report_maker:exam_objects_reorder' report.pk %}">
-              {% for obj in g.objects %}
-                {% with obj_edit_url=obj.edit_url obj_delete_url=obj.delete_url %}
-                  <div class="list-group-item d-flex align-items-start gap-2" data-id="{{ obj.pk }}">
-                    {% if report.can_edit %}
-                      <span class="text-muted small js-drag-handle flex-shrink-0" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
-                    {% endif %}
-                    <div class="flex-grow-1">
-                      <div class="fw-semibold">{{ obj.order }} - {{ obj.title|default:'Objeto sem título' }} - Classe {{ obj.group_key|default:'Nulo' }}</div>
-                      {% if obj.description %}
-                        <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
-                      {% endif %}
-                      {% include 'report_maker/partials/image_card_list.html' with obj=obj report=report %}
-                    </div>
-                    {% if report.can_edit %}
-                      <div class="d-flex gap-2 flex-shrink-0">
-                        {% if obj_edit_url %}
-                          <a class="btn btn-sm btn-outline-secondary" href="{{ obj_edit_url }}"><i class="bi bi-pencil"></i></a>
-                        {% endif %}
-                        {% if obj.concrete.pk %}
-                          <a class="btn btn-sm btn-outline-primary" href="{% url 'report_maker:image_add' obj.concrete_app_label obj.concrete_model_name obj.concrete.pk %}"><i class="bi bi-image"></i></a>
-                        {% endif %}
-                        {% if obj_delete_url %}
-                          <a class="btn btn-sm btn-outline-danger" href="{{ obj_delete_url }}"><i class="bi bi-trash"></i></a>
-                        {% endif %}
-                      </div>
-                    {% endif %}
-                  </div>
-                {% endwith %}
-              {% endfor %}
-            </div>
+  {% for obj in g.objects %}
+    {% with obj_edit_url=obj.edit_url obj_delete_url=obj.delete_url %}
+      
+      {# Ajuste: Mantemos a classe list-group-item e adicionamos border-2 para destacar no drop #}
+      <div class="list-group-item d-flex align-items-start gap-2 js-drag-drop-zone" 
+        data-id="{{ obj.pk }}"
+        data-app-label="{{ obj.concrete_app_label }}"
+        data-model-name="{{ obj.concrete_model_name }}"
+        style="transition: background-color 0.2s ease;">
+
+        {% if report.can_edit %}
+          <span class="text-muted small js-drag-handle flex-shrink-0" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
+        {% endif %}
+
+        <div class="flex-grow-1">
+          <div class="fw-semibold">{{ obj.order }} - {{ obj.title|default:'Objeto sem título' }} - Classe {{ obj.group_key|default:'Nulo' }}</div>
+          
+          {% if obj.description %}
+            <div class="text-muted small">{{ obj.description|truncatechars:120 }}</div>
+          {% endif %}
+          
+          {% include 'report_maker/partials/image_card_list.html' with obj=obj report=report %}
+        </div>
+
+        {% if report.can_edit %}
+          <div class="d-flex gap-2 flex-shrink-0">
+            {% if obj_edit_url %}
+              <a class="btn btn-sm btn-outline-secondary" href="{{ obj_edit_url }}"><i class="bi bi-pencil"></i></a>
+            {% endif %}
+
+            {% if obj.concrete.pk %}
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'report_maker:image_add' obj.concrete_app_label obj.concrete_model_name obj.concrete.pk %}"><i class="bi bi-image"></i></a>
+            {% endif %}
+
+            {% if obj_delete_url %}
+              <a class="btn btn-sm btn-outline-danger" href="{{ obj_delete_url }}"><i class="bi bi-trash"></i></a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    {% endwith %}
+  {% endfor %}
+</div>
           </div>
         {% endfor %}
       {% else %}
@@ -193,4 +206,8 @@
       {% endif %}
     </div>
   </div>
+{% endblock %}
+{% block scripts %}
+  {{ block.super }}
+    <script src="{% static 'report_maker/js/image_upload_dragdrop.js' %}"></script>
 {% endblock %}

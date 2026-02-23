@@ -3,6 +3,13 @@ from __future__ import annotations
 
 from collections import OrderedDict
 
+from django.http import JsonResponse
+from PIL import Image
+from django.contrib.contenttypes.models import ContentType
+from django.core.files.base import ContentFile
+import io
+import uuid
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Prefetch, Count
@@ -173,6 +180,71 @@ class ReportCaseDetailView(LoginRequiredMixin, ReportCaseAuthorQuerySetMixin, De
         ctx["exam_groups_ui"] = [groups[k] for k in sorted(groups.keys(), key=_group_sort_key)]
 
         return ctx
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        
+        if not self.object.can_edit:
+            return JsonResponse({'error': 'Laudo bloqueado.'}, status=403)
+
+        file = request.FILES.get('file')
+        obj_id_raw = request.POST.get('object_id')
+        app_label = request.POST.get('app_label')
+        model_name = request.POST.get('model_name')
+
+        if not file:
+            return JsonResponse({'error': 'Nenhum arquivo enviado.'}, status=400)
+
+        try:
+            obj_id = uuid.UUID(obj_id_raw)
+            
+            # --- PROCESSAMENTO DA IMAGEM ---
+            img = Image.open(file)
+            
+            # Converte para RGB se for RGBA (evita erro ao salvar em JPEG)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            # Regra dos 14cm (14 * 114.2857 ≈ 1600px)
+            MAX_WIDTH = 1600
+            
+            orig_width, orig_height = img.size
+            if orig_width > MAX_WIDTH:
+                ratio = MAX_WIDTH / float(orig_width)
+                new_height = int(float(orig_height) * float(ratio))
+                img = img.resize((MAX_WIDTH, new_height), Image.Resampling.LANCZOS)
+                final_width, final_height = MAX_WIDTH, new_height
+            else:
+                final_width, final_height = orig_width, orig_height
+
+            # Salva a imagem processada em um buffer de memória
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=85)
+            buffer.seek(0)
+            
+            # Substitui o arquivo original pelo processado
+            new_file_name = f"{uuid.uuid4()}.jpg"
+            processed_file = ContentFile(buffer.read(), name=new_file_name)
+            # -------------------------------
+
+            ct = ContentType.objects.get(app_label=app_label, model=model_name)
+
+            # Criar o objeto com as novas dimensões
+            new_image = ObjectImage.objects.create(
+                content_type=ct,
+                object_id=obj_id,
+                image=processed_file,
+                original_width=final_width,
+                original_height=final_height
+            )
+
+            return JsonResponse({
+                'success': True,
+                'url': new_image.image.url
+            })
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)     
 
 
 # ─────────────────────────────────────────────────────────────
