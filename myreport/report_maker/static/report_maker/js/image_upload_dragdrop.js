@@ -1,6 +1,6 @@
 /**
  * Módulo de upload via Arrastar e Soltar ou Botão "Colar".
- * A função de teclado (Ctrl+V) foi removida para evitar disparos acidentais.
+ * Suporta múltiplos arquivos e fornece feedback visual de zona ativa.
  */
 (function () {
     "use strict";
@@ -14,15 +14,27 @@
     const zones = document.querySelectorAll(".js-drag-drop-zone");
 
     zones.forEach((zone) => {
-        // Drag & Drop
+        // Eventos de Drag & Drop
         ["dragenter", "dragover", "dragleave", "drop"].forEach((name) => {
-            zone.addEventListener(name, (e) => { e.preventDefault(); e.stopPropagation(); });
+            zone.addEventListener(name, (e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+            });
         });
 
-        zone.addEventListener("dragover", () => zone.classList.add("drag-over"));
-        zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+        // Adiciona destaque visual ao sobrevoar a zona específica
+        zone.addEventListener("dragover", () => {
+            zone.classList.add("drag-over", "border-primary", "shadow-sm");
+        });
+
+        // Remove destaque ao sair ou soltar
+        ["dragleave", "drop"].forEach((name) => {
+            zone.addEventListener(name, () => {
+                zone.classList.remove("drag-over", "border-primary", "shadow-sm");
+            });
+        });
+
         zone.addEventListener("drop", (e) => {
-            zone.classList.remove("drag-over");
             handleFileSelection(e.dataTransfer.files, zone);
         });
 
@@ -34,16 +46,13 @@
                 e.stopPropagation();
 
                 try {
-                    // Solicita permissão e lê os itens da área de transferência
                     const items = await navigator.clipboard.read();
                     const files = [];
 
                     for (const item of items) {
-                        // Filtra apenas tipos de imagem
                         const imageTypes = item.types.filter(type => type.startsWith("image/"));
                         for (const type of imageTypes) {
                             const blob = await item.getType(type);
-                            // Cria um ficheiro a partir do blob (o Django precisa de um nome de ficheiro)
                             const file = new File([blob], `colagem_${Date.now()}.png`, { type });
                             files.push(file);
                         }
@@ -56,16 +65,18 @@
                     }
                 } catch (err) {
                     console.error("Erro ao aceder ao clipboard:", err);
-                    if (err.name === 'NotAllowedError') {
-                        alert("Acesso negado. Por favor, permita que o site aceda à área de transferência nas definições do seu browser (clique no ícone do cadeado na barra de endereços).");
-                    } else {
-                        alert("Erro ao colar imagem. Verifique se copiou uma imagem (PrintScreen ou Copiar Imagem).");
-                    }
+                    const msg = err.name === 'NotAllowedError' 
+                        ? "Acesso negado. Permita o acesso ao clipboard nas definições do browser." 
+                        : "Erro ao colar imagem. Verifique o conteúdo copiado.";
+                    alert(msg);
                 }
             });
         }
     });
 
+    /**
+     * Processa a fila de arquivos selecionados.
+     */
     async function handleFileSelection(files, zone) {
         const imageFiles = Array.from(files).filter(f => f.type.startsWith("image/"));
         if (imageFiles.length === 0) return;
@@ -86,11 +97,14 @@
         }
     }
 
+    /**
+     * Atualiza o estado visual da zona durante o upload.
+     */
     function updateZoneUI(zone, message) {
         zone.innerHTML = `
-            <div class="d-flex align-items-center justify-content-center p-4 w-100 border border-primary bg-light rounded">
+            <div class="d-flex align-items-center justify-content-center p-4 w-100 border border-primary rounded">
                 <div class="spinner-border spinner-border-sm text-primary me-2"></div>
-                <span class="small fw-bold">${message}</span>
+                <span class="small fw-bold text-primary">${message}</span>
             </div>
         `;
     }
@@ -102,15 +116,13 @@
         formData.append("app_label", zone.dataset.appLabel);
         formData.append("model_name", zone.dataset.modelName);
 
-        const token = getCsrfToken();
         const response = await fetch(window.location.href, {
             method: "POST",
-            headers: { "X-CSRFToken": token },
+            headers: { "X-CSRFToken": getCsrfToken() },
             body: formData,
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
             throw new Error(`Erro ${response.status}: Verifique se o laudo está aberto para edição.`);
         }
     }
