@@ -152,43 +152,25 @@ def ai_textblock_generate(request):
 
     # --- 2. FILTRAGEM SELETIVA PARA O PROMPT ---
     # Se for conclusão, ignoramos 'service_context' e 'tipo' para não viciar o texto
+    # --- 2. FILTRAGEM SELETIVA PARA O PROMPT ---
     if kind == "conclusion":
-        raw_materiality = [o["description"] + " " + o["observed_elements"] for o in report_data["objects"]]
+        # Extraímos apenas o essencial da materialidade para o contexto
+        raw_materiality = [f"{o['tipo']}: {o['description']} | Vestígios: {o['observed_elements']}" for o in report_data["objects"]]
         context_for_ai = "\n".join(raw_materiality)
         
-        role_behavior = "AJA COMO PERITO CRIMINAL SÉNIOR REDIGINDO A CONCLUSÃO."
+        role_behavior = "AJA COMO PERITO CRIMINAL SÉNIOR EMITINDO PARECER FINAL INTERPRETATIVO."
         
-        if notes:
-            # SE HÁ NOTAS: O perito manda, o contexto apenas apoia a precisão técnica.
-            user_message = (
-                f"DADOS DE APOIO (Vestígios): {context_for_ai}\n\n"
-                f"COMANDO DO PERITO (Prioridade Máxima): {notes}\n\n"
-                "TAREFA: Escreva a conclusão seguindo estritamente as instruções do 'COMANDO DO PERITO'. "
-                "Use os 'DADOS DE APOIO' apenas para garantir termos técnicos corretos. "
-                "Se o perito pediu um resumo ou uma frase específica, entregue exatamente isso, "
-                "mantendo o tom formal e encerrando com a frase em itálico padrão."
-            )
-        else:
-            # SE NÃO HÁ NOTAS: IA propõe do zero (Modo Tutor)
-            user_message = (
-                f"VESTÍGIOS MATERIAIS: {context_for_ai}\n\n"
-                "TAREFA: Formule uma proposta de conclusão discursiva correlacionando os vestígios acima. "
-                "Foque na materialidade do dano e do combustível. Não use listas. "
-                "Encerre com a frase em itálico padrão."
-            )
-        
-        # Criamos uma massa de dados bruta, sem rótulos de "Objeto 1"
-        context_for_ai = "\n".join(raw_materiality)
-        
-        role_behavior = "AJA COMO PERITO CRIMINAL SÉNIOR EMITINDO PARECER FINAL."
+        # Construção de um prompt focado em síntese e não em repetição
         user_message = (
-            f"VESTÍGIOS MATERIAIS PARA ANÁLISE:\n{context_for_ai}\n\n"
-            "TAREFA: Redija a CONCLUSÃO do laudo pericial.\n"
-            "REGRAS OBRIGATÓRIAS:\n"
-            "1. Use texto DISCURSIVO e CORRELACIONADO (mínimo 1 parágrafo, máximo 3).\n"
-            "2. Proibido usar listas, tópicos ou repetir nomes de seções (ex: não escreva 'Objeto:').\n"
-            "3. Sintetize a materialidade: vincule os danos e vestígios à dinâmica do evento.\n"
-            "4. Encerre estritamente com: *Nada mais havendo a consignar, encerra-se o presente laudo.*"
+            f"DADOS DE APOIO (Contexto dos Vestígios):\n{context_for_ai}\n\n"
+            f"NOTAS ADICIONAIS DO PERITO: {notes if notes else 'Nenhuma.'}\n\n"
+            "TAREFA: Redija a CONCLUSÃO do laudo pericial seguindo estas diretrizes rigorosas:\n"
+            "1. NÃO REPITA descrições detalhadas, placas, modelos ou cores que já constam no corpo do laudo.\n"
+            "2. SÍNTESE INTERPRETATIVA: Em vez de listar 'o que havia', explique 'o que isso significa' tecnicamente.\n"
+            "3. EVITE REDUNDÂNCIA: Se o dado já está nos 'Dados de Apoio', use-o apenas para fundamentar a lógica, não para transcrevê-lo novamente.\n"
+            "4. ESTILO: Texto discursivo, fluido, sem tópicos, focando na dinâmica ou na constatação final (ex: 'os danos são congruentes com...', 'evidencia-se a materialidade de...').\n"
+            "5. OBRIGATÓRIO: Inicie com 'Conforme se extrai do exame do local e dos vestígios observados, conclui-se que...'\n"
+            "6. OBRIGATÓRIO: Encerre com '*Nada mais havendo a consignar, encerra-se o presente laudo.*'"
         )
     else:
         # Para outras seções, mantemos o contexto completo para auxílio
