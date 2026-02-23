@@ -55,6 +55,6 @@
   >{{ value|default_if_none:"" }}</textarea>
 
   {% if help_text %}
-    <div class="form-text">{{ help_text }}</div>
+    <div class="form-text">{{ help_text|linebreaksbr }}</div>
   {% endif %}
 </div>
