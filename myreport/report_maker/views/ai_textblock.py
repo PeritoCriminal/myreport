@@ -11,6 +11,37 @@ from django.views.decorators.http import require_POST
 from report_maker.models import ReportCase
 from openai import OpenAI
 
+# ============================================================
+# TODO – Implementar análise automatizada de imagens por IA
+# ============================================================
+#
+# Implementar, oportunamente, módulo de leitura e interpretação
+# automatizada de imagens pela IA, integrado ao fluxo do
+# ai_textblock, permitindo:
+#
+# - Extração de elementos visuais relevantes (vestígios, danos,
+#   manchas, disposições espaciais, objetos e estruturas).
+# - Geração de descrição técnica baseada exclusivamente no
+#   conteúdo visual objetivamente identificado.
+# - Aplicação automática das diretrizes verbais padronizadas
+#   do projeto (pretérito imperfeito para estados contínuos,
+#   pretérito perfeito para atos pontuais e presente impessoal
+#   na conclusão).
+# - Integração com o ImageReportModel para análise individual
+#   ou em lote.
+# - Possibilidade de validação humana antes da incorporação
+#   definitiva ao laudo.
+# - Registro de rastreabilidade (imagem analisada, data,
+#   versão do modelo utilizado).
+#
+# Observação:
+# A funcionalidade deverá respeitar o princípio da não inferência,
+# limitando-se à descrição de elementos objetivamente identificáveis,
+# vedada qualquer suposição não suportada pela imagem.
+#
+# Status: Planejado para implementação futura.
+# ============================================================
+
 # Configuração de exceções para garantir compatibilidade com os testes unitários
 try:
     from openai import APIError, AuthenticationError, RateLimitError
@@ -25,7 +56,20 @@ SYSTEM_STYLE = (
     "Você é um perito criminal redigindo laudos técnicos. "
     "Use tom assertivo, impessoal e linguagem culta brasileira. "
     "NÃO acrescente informações que não estejam explicitamente contidas nas anotações. "
-    "Se faltar dado, omita — não presuma, não complete, não estime."
+    "Se faltar dado, omita — não presuma, não complete, não estime. "
+    "Não utilize termos como 'aparentemente', 'possivelmente', 'provavelmente'."
+)
+
+TENSE_STYLE = (
+    "DIRETRIZES VERBAIS (OBRIGATÓRIAS): "
+    "1) Use pretérito imperfeito para estados e condições contínuas ou características observadas "
+    "(ex.: 'o local encontrava-se...', 'a via apresentava...', 'a ponte exibia...'). "
+    "2) Use pretérito perfeito para atos pontuais praticados "
+    "(ex.: 'foram coletadas...', 'realizou-se...', 'registrou-se...'). "
+    "3) Na conclusão, utilize presente impessoal "
+    "(ex.: 'conclui-se que', 'evidencia-se que', 'verifica-se que'). "
+    "4) Sempre que possível, descreva o estado do local em vez da ação do agente "
+    "(prefira 'o local encontrava-se preservado' a 'a equipe preservou/preservava')."
 )
 
 KIND_PROMPTS: dict[str, str] = {
@@ -151,7 +195,7 @@ def ai_textblock_generate(request):
             })
 
     # --- 2. FILTRAGEM SELETIVA PARA O PROMPT ---
-    # Se for conclusão, ignoramos 'service_context' e 'tipo' para não viciar o texto
+    # Se for conclusão, ignorar 'service_context' e 'tipo' para não viciar o texto
     # --- 2. FILTRAGEM SELETIVA PARA O PROMPT ---
     if kind == "conclusion":
         # Extraímos apenas o essencial da materialidade para o contexto
@@ -186,13 +230,14 @@ def ai_textblock_generate(request):
     try:
         client = OpenAI()
         resp = client.chat.completions.create(
-            model="gpt-4o", 
+            model="gpt-4o",
             messages=[
-                {"role": "system", "content": "Você é um perito criminal detalhista e técnico. Não cite leis."},
+                {"role": "system", "content": SYSTEM_STYLE},
+                {"role": "system", "content": TENSE_STYLE},
                 {"role": "system", "content": role_behavior},
                 {"role": "user", "content": user_message},
             ],
-            temperature=0.2
+            temperature=0.1
         )
         return JsonResponse({"text": resp.choices[0].message.content.strip()}, status=200)
     except Exception as e:
