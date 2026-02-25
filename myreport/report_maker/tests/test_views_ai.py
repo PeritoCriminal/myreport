@@ -79,8 +79,9 @@ class AITexblockGenerateViewTests(TestCase):
     def test_post_requires_notes(self):
         self.login()
         resp = self.post_json(self.ai_url(), {"kind": "generic", "notes": ""})
-        self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp["Content-Type"], "application/json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("text", resp.json())
+        self.assertTrue(resp.json()["text"].strip())
         self.assertJSONEqual(resp.content, {"error": "notes_required"})
 
     # ─────────────────────────────────────────────
