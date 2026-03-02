@@ -25,6 +25,18 @@ from report_maker.models import ReportCase, ReportTextBlock
 from report_maker.models.images import ObjectImage
 from report_maker.views.report_outline import build_report_outline
 
+import os
+import sys
+
+# CORREÇÃO PARA WINDOWS / WEASYPRINT
+if sys.platform == 'win32':
+    # Caminho onde as DLLs (pango, cairo, glib) residem no seu PC
+    msys_bin = r"C:\msys64\mingw64\bin"
+    if os.path.exists(msys_bin):
+        # Para Python 3.8+ isso é obrigatório para carregar DLLs externas
+        os.add_dll_directory(msys_bin)
+        # Garante que o sistema também procure no PATH
+        os.environ['PATH'] = msys_bin + os.pathsep + os.environ.get('PATH', '')
 
 def _build_header_from_user(request) -> dict:
     """
