@@ -234,15 +234,19 @@ class UserProfileEditForm(_InstitutionNucleusTeamFieldsMixin, BaseModelForm):
         self._clean_institution_nucleus_team_triple()
         return cleaned
 
-    def save(self) -> None:
-        team: Team = self.cleaned_data["team"]
+    def save(self, commit=True):
+        user = super().save(commit=False)
 
-        self.user.team = team
+        team: Team = self.cleaned_data.get("team")
+        institution = self.cleaned_data.get("institution")
 
-        if not self.user.can_edit_reports:
-            self.user.can_edit_reports = True
+        if institution and team:
+            self._apply_assignments(user, institution, team)
 
-        self.user.save(update_fields=["team", "can_edit_reports"])
+        if commit:
+            user.save()
+
+        return user
 
 
 
