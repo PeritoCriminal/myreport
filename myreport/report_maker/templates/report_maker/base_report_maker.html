@@ -3,26 +3,58 @@
 {% load static %}
 
 {% block content %}
-  {# Conteúdo real das páginas do report_maker vai aqui #}
-  {% block report_maker_content %}{% endblock %}
+{# Conteúdo real das páginas do report_maker vai aqui #}
+{% block report_maker_content %}{% endblock %}
 
-  {# Modal fica garantido (não será sobrescrito pelos filhos) #}
-  {% include "report_maker/partials/ai_textblock_modal.html" %}
+{# Modal fica garantido (não será sobrescrito pelos filhos) #}
+{% include "report_maker/partials/ai_textblock_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
-  {{ block.super }}
+{{ block.super }}
 
-  {# dependência #}
-  <script src="{% static 'report_maker/js/sortable.min.js' %}"></script>
+{# dependência #}
+<script src="{% static 'report_maker/js/sortable.min.js' %}"></script>
 
-  {# reorder imagens (você já tem) #}
-  <script src="{% static 'report_maker/js/image_sortable.js' %}"></script>
+{# reorder imagens (você já tem) #}
+<script src="{% static 'report_maker/js/image_sortable.js' %}"></script>
 
-  {# reorder objetos (criar) #}
-  <script src="{% static 'report_maker/js/exam_object_sortable.js' %}"></script>
+{# reorder objetos (criar) #}
+<script src="{% static 'report_maker/js/exam_object_sortable.js' %}"></script>
 
-  {# já existentes #}
-  <script src="{% static 'report_maker/js/markdown_editor.js' %}"></script>
-  <script src="{% static 'report_maker/js/text_block_ai.js' %}"></script>
+{# já existentes #}
+<script src="{% static 'report_maker/js/markdown_editor.js' %}"></script>
+<script src="{% static 'report_maker/js/text_block_ai.js' %}"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+
+    // 1️⃣ Remove botões da toolbar do fluxo do TAB
+    document.querySelectorAll(".markdown-toolbar button").forEach(function (btn) {
+      btn.tabIndex = -1;
+    });
+
+    // 2️⃣ Impede que botão receba foco ao clicar
+    document.addEventListener("mousedown", function (e) {
+      const btn = e.target.closest(".markdown-toolbar button");
+      if (btn) {
+        e.preventDefault();
+      }
+    });
+
+    // 3️⃣ Foca automaticamente na primeira textarea visível
+    const firstTextarea = document.querySelector(
+      "textarea:not([disabled]):not([readonly])"
+    );
+
+    if (firstTextarea) {
+      firstTextarea.focus();
+
+      // Opcional: posiciona cursor no final do texto
+      const length = firstTextarea.value.length;
+      firstTextarea.setSelectionRange(length, length);
+    }
+
+  });
+</script>
 {% endblock %}
