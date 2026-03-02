@@ -9,7 +9,13 @@
 {% if report.can_edit %}
 
   {% if compact %}
-    <div class="btn-group btn-group-sm">
+    <div class="btn-group btn-group-sm" role="group" aria-label="Ações editoriais (compacto)">
+      <a href="{% url 'report_maker:text_block_upsert' report.pk 'PREAMBLE' %}"
+         class="btn btn-outline-secondary"
+         title="Preâmbulo">
+        <i class="bi bi-journal-text"></i>
+      </a>
+
       <a href="{% url 'report_maker:text_block_upsert' report.pk 'SUMMARY' %}"
          class="btn btn-outline-secondary"
          title="Resumo">
@@ -22,6 +28,18 @@
         <i class="bi bi-clock-history"></i>
       </a>
 
+      <a href="{% url 'report_maker:text_block_upsert' report.pk 'TOC' %}"
+         class="btn btn-outline-secondary"
+         title="Sumário">
+        <i class="bi bi-list-ol"></i>
+      </a>
+
+      <a href="{% url 'report_maker:text_block_upsert' report.pk 'FINAL_CONSIDERATIONS' %}"
+         class="btn btn-outline-secondary"
+         title="Considerações finais">
+        <i class="bi bi-journal-check"></i>
+      </a>
+
       <a href="{% url 'report_maker:text_block_upsert' report.pk 'CONCLUSION' %}"
          class="btn btn-outline-secondary"
          title="Conclusão">
@@ -30,85 +48,64 @@
 
       <a href="{% url 'report_maker:exam_object_dashboard' report.pk %}"
          class="btn btn-outline-primary"
-         title="Objetos de exame">
+         title="Novo objeto de exame">
         <i class="bi bi-plus-lg"></i>
       </a>
     </div>
 
   {% else %}
-    <div class="btn-group">
+    <div class="d-flex flex-wrap gap-2 align-items-center" aria-label="Ações editoriais">
+      {# Objetos de exame #}
       <a href="{% url 'report_maker:exam_object_dashboard' report.pk %}"
          class="btn btn-sm btn-outline-primary">
         <i class="bi bi-plus-lg"></i>
         Novo objeto
       </a>
 
-      <button type="button"
-              class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split"
-              data-bs-toggle="dropdown"
-              aria-expanded="false">
-        <span class="visually-hidden">Novo texto</span>
-      </button>
+      {# Textos principais do laudo #}
+      <div class="btn-group" role="group" aria-label="Textos do laudo">
+        <a class="btn btn-sm btn-outline-secondary"
+           href="{% url 'report_maker:text_block_upsert' report.pk 'PREAMBLE' %}">
+          Preâmbulo
+        </a>
 
-      <ul class="dropdown-menu dropdown-menu-end">
-        <li>
-          <a class="dropdown-item"
-             href="{% url 'report_maker:text_block_upsert' report.pk 'PREAMBLE' %}">
-            Preâmbulo
-          </a>
-        </li>
+        <a class="btn btn-sm btn-outline-secondary"
+           href="{% url 'report_maker:text_block_upsert' report.pk 'SUMMARY' %}">
+          Resumo
+        </a>
 
-        <li>
-          <a class="dropdown-item"
-             href="{% url 'report_maker:text_block_upsert' report.pk 'SUMMARY' %}">
-            Resumo
-          </a>
-        </li>
+        <a class="btn btn-sm btn-outline-secondary"
+           href="{% url 'report_maker:text_block_upsert' report.pk 'HISTORIC' %}">
+          Histórico
+        </a>
 
-        <li>
-          <a class="dropdown-item"
-             href="{% url 'report_maker:text_block_upsert' report.pk 'HISTORIC' %}">
-            Histórico
-          </a>
-        </li>
+        <a class="btn btn-sm btn-outline-secondary"
+           href="{% url 'report_maker:text_block_upsert' report.pk 'TOC' %}">
+          Sumário
+        </a>
 
-        <li>
-          <a class="dropdown-item"
-             href="{% url 'report_maker:text_block_upsert' report.pk 'TOC' %}">
-            Sumário
-          </a>
-        </li>
+        <a class="btn btn-sm btn-outline-secondary"
+           href="{% url 'report_maker:text_block_upsert' report.pk 'FINAL_CONSIDERATIONS' %}">
+          Considerações finais
+        </a>
 
-        {% if editorial_groups %}
-          <li><hr class="dropdown-divider"></li>
+        <a class="btn btn-sm btn-outline-secondary"
+           href="{% url 'report_maker:text_block_upsert' report.pk 'CONCLUSION' %}">
+          Conclusão
+        </a>
+      </div>
 
-          {# Texto comum por grupo (somente se houver >= 2 objetos no grupo) #}
+      {# Texto comum por grupo (somente se houver >= 2 objetos no grupo) #}
+      {% if editorial_groups %}
+        <div class="btn-group" role="group" aria-label="Textos comuns por grupo">
           {% for g in editorial_groups %}
-            <li>
-              <a class="dropdown-item"
-                 href="{% url 'report_maker:text_block_upsert' report.pk 'OBJECT_GROUP_INTRO' %}?group_key={{ g.key }}">
-                {{ g.label }} – texto comum do grupo
-              </a>
-            </li>
+            <a class="btn btn-sm btn-outline-secondary"
+               href="{% url 'report_maker:text_block_upsert' report.pk 'OBJECT_GROUP_INTRO' %}?group_key={{ g.key }}">
+              {{ g.label }} – texto comum
+            </a>
           {% endfor %}
-        {% endif %}
-
-        <li><hr class="dropdown-divider"></li>
-
-        <li>
-          <a class="dropdown-item"
-             href="{% url 'report_maker:text_block_upsert' report.pk 'FINAL_CONSIDERATIONS' %}">
-            Considerações finais
-          </a>
-        </li>
-
-        <li>
-          <a class="dropdown-item"
-             href="{% url 'report_maker:text_block_upsert' report.pk 'CONCLUSION' %}">
-            Conclusão
-          </a>
-        </li>
-      </ul>
+        </div>
+      {% endif %}
     </div>
   {% endif %}
 
