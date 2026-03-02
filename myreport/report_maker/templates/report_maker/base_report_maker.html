@@ -37,22 +37,32 @@
     // 2️⃣ Impede que botão receba foco ao clicar
     document.addEventListener("mousedown", function (e) {
       const btn = e.target.closest(".markdown-toolbar button");
-      if (btn) {
-        e.preventDefault();
-      }
+      if (btn) e.preventDefault();
     });
 
-    // 3️⃣ Foca automaticamente na primeira textarea visível
-    const firstTextarea = document.querySelector(
-      "textarea:not([disabled]):not([readonly])"
+    // 3️⃣ Foca automaticamente no primeiro campo de texto (input/textarea) visível
+    const candidates = document.querySelectorAll(
+      "input[type='text']:not([disabled]):not([readonly]), " +
+      "input[type='search']:not([disabled]):not([readonly]), " +
+      "textarea:not([disabled]):not([readonly]), " +
+      "[contenteditable='true']"
     );
 
-    if (firstTextarea) {
-      firstTextarea.focus();
+    let firstField = null;
+    for (const el of candidates) {
+      const style = window.getComputedStyle(el);
+      const visible = style.display !== "none" && style.visibility !== "hidden" && el.offsetParent !== null;
+      if (visible) { firstField = el; break; }
+    }
 
-      // Opcional: posiciona cursor no final do texto
-      const length = firstTextarea.value.length;
-      firstTextarea.setSelectionRange(length, length);
+    if (firstField) {
+      firstField.focus();
+
+      // Se for input/textarea, posiciona cursor no fim
+      if (typeof firstField.value === "string" && firstField.setSelectionRange) {
+        const len = firstField.value.length;
+        firstField.setSelectionRange(len, len);
+      }
     }
 
   });

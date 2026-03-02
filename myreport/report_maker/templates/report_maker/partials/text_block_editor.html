@@ -35,6 +35,7 @@
     {% if enable_ai %}
       <button type="button"
               class="btn btn-sm btn-outline-primary"
+              tabindex="-1"
               data-ai-generate
               data-ai-kind="{{ ai_kind|default:field_name|default:'generic' }}"
               data-ai-target="{{ field_name }}"
