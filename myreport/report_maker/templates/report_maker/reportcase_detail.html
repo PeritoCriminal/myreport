@@ -163,8 +163,7 @@ Laudo {{ report.report_number }}
         <div class="flex-grow-1">
           <div class="d-flex justify-content-between align-items-start">
             <div class="fw-semibold">
-              {% comment - Opcional, mostrar o grupo ao qual pertence o
-                 objeto concreto %}
+              {% comment %}
               {{ obj.order }} - {{ obj.title|default:'Objeto sem título' }} - Classe {{ obj.group_key|default:'Nulo'}}
               {% endcomment %}
               {{ obj.order }} - {{ obj.title|default:'Objeto sem título' }}

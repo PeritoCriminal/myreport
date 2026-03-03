@@ -765,7 +765,7 @@ class ReportCase(models.Model):
         org_parts = ["no Instituto de Criminalística"]
 
         if inst:
-            org_parts.append(f"da {inst}")
+            org_parts = [f"no Instituto de Criminalística da {inst}"]
 
         if nuc:
             org_parts.append(f"no {nuc}")
