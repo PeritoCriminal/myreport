@@ -31,10 +31,10 @@ class GenericLocationExamObjectOwnedQuerySetMixin:
 
 
 class GenericLocationExamObjectCreateView(
-    CanEditReportsRequiredMixin,   # ✅ permissão de editar laudos (nível usuário)
-    CanEditReportRequiredMixin,    # ✅ permissão de editar este laudo (nível ReportCase: can_edit)
+    CanEditReportsRequiredMixin,
+    CanEditReportRequiredMixin,
     ReportCaseContextMixin,
-    ExamObjectImagesContextMixin,  # opcional
+    ExamObjectImagesContextMixin,
     CreateView,
 ):
     model = GenericLocationExamObject
@@ -43,13 +43,21 @@ class GenericLocationExamObjectCreateView(
     context_object_name = "obj"
     mode = "create"
 
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.setdefault("title", "Descrição e Exame do Local")
+        return initial
+
     def form_valid(self, form):
         self.get_report_case()
         form.instance.report_case = self.report_case
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse("report_maker:reportcase_detail", kwargs={"pk": self.report_case.pk})
+        return reverse(
+            "report_maker:reportcase_detail",
+            kwargs={"pk": self.report_case.pk},
+        )
 
 
 class GenericLocationExamObjectUpdateView(

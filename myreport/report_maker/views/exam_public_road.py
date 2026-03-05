@@ -44,6 +44,11 @@ class PublicRoadExamObjectCreateView(
     context_object_name = "obj"
     mode = "create"
 
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.setdefault("title", "Descrição e Exame do Local")
+        return initial
+
     def form_valid(self, form):
         self.get_report_case()
         form.instance.report_case = self.report_case

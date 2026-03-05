@@ -1,3 +1,5 @@
+{# myreport/accounts/templates/accounts/_user_form_base.html #}
+
 {% extends 'base.html' %}
 {% load static %}
 
@@ -17,7 +19,6 @@
       {% csrf_token %}
       {{ form.non_field_errors }}
 
-      <!-- Username -->
       <div class="mb-3">
         <label class="form-label">{{ form.username.label }}</label>
         {{ form.username }}
@@ -27,28 +28,24 @@
         {% endblock %}
       </div>
 
-      <!-- Display name -->
       <div class="mb-3">
         <label class="form-label">{{ form.display_name.label }}</label>
         {{ form.display_name }}
         {{ form.display_name.errors }}
       </div>
 
-      <!-- Name for report -->
       <div class="mb-3">
         <label class="form-label">{{ form.report_signature_name.label }}</label>
         {{ form.report_signature_name }}
         {{ form.report_signature_name.errors }}
       </div>
 
-      <!-- Email -->
       <div class="mb-3">
         <label class="form-label">{{ form.email.label }}</label>
         {{ form.email }}
         {{ form.email.errors }}
       </div>
 
-      <!-- Role -->
       <div class="mb-3">
         <label class="form-label">{{ form.role.label }}</label>
         {{ form.role }}
@@ -57,24 +54,11 @@
 
       <hr class="my-4" />
 
-      <!-- Profile image -->
       <div class="mb-3">
         <label class="form-label">{{ form.profile_image.label }}</label>
-
-        <!-- Preview (circular) -->
-
-        {% comment %}Esse trecho pode ser eliminado uma vez que o camvas vai exibir a imagem.<div class="mt-2">
-          <img id="profilePreview" class="rounded-circle border shadow-sm" style="width:120px; height:120px; object-fit:cover; display:none;" alt="Pré-visualização da foto de perfil" />
-        </div>
-
-        {% endcomment %}
         {{ form.profile_image }}
         {{ form.profile_image.errors }}
       </div>
-
-      <!-- Profile editor -->
-      {# O editor já deve estar com o canvas aberto e exibindo a imagem que está salva no bd assim que a página é carregada. #}
-      {# Caso o usuário não tenha imagem de perfil ainda, isso pode ocorrer durante o cadastro, tem uma imagem padrão em accounts/static/img/profile_generic_image.png #}
 
       <div id="profile-editor"
         class="img-editor-wrap mb-4"
@@ -98,7 +82,6 @@
                 <button type="button" id="btnProfileZoomOut" class="btn btn-outline-secondary btn-sm">−</button>
                 <button type="button" id="btnProfileCenter" class="btn btn-outline-secondary btn-sm">Centralizar</button>
                 <button type="button" id="btnProfileReset" class="btn btn-outline-secondary btn-sm">Reset</button>
-                {# O btn aplicar deve estar desabilitado se nenhuma alteração foi realizada no canvas, e é abilitado quando da alteração e depois desabilitado após o click #}
                 <button type="button" id="btnProfileApply" class="btn btn-primary btn-sm">Aplicar</button>
               </div>
 
@@ -108,16 +91,12 @@
         </div>
       </div>
 
-      <!-- Background image -->
       <div class="mb-3">
         <label class="form-label">{{ form.background_image.label }}</label>
         {{ form.background_image }}
         {{ form.background_image.errors }}
       </div>
 
-      <!-- Background editor -->
-      {# O editor já deve estar com o canvas aberto e exibindo a imagem que está salva no bd assim que a página é carregada. #}
-      {# Caso o usuário não tenha imagem de perfil ainda, isso pode ocorrer durante o cadastro, tem uma imagem padrão em accounts/static/img/background_image.jpg #}
       <div id="bg-editor"
         class="img-editor-wrap mb-4"
         data-initial-src="{% if form.instance.background_image %}
@@ -140,7 +119,6 @@
                 <button type="button" id="btnBgZoomOut" class="btn btn-outline-secondary btn-sm">−</button>
                 <button type="button" id="btnBgCenter" class="btn btn-outline-secondary btn-sm">Centralizar</button>
                 <button type="button" id="btnBgReset" class="btn btn-outline-secondary btn-sm">Reset</button>
-                {# O btn aplicar deve estar desabilitado se nenhuma alteração foi realizada no canvas, e é abilitado quando da alteração e depois desabilitado após o click #}
                 <button type="button" id="btnBgApply" class="btn btn-primary btn-sm">Aplicar</button>
               </div>
 
@@ -170,100 +148,97 @@
         function clamp(v, a, b) {
           return Math.max(a, Math.min(b, v))
         }
-      
+
         function dist(t1, t2) {
           const dx = t1.clientX - t2.clientX
           const dy = t1.clientY - t2.clientY
           return Math.hypot(dx, dy)
         }
-      
+
         function createEditor(cfg) {
           const input = document.getElementById(cfg.inputId)
           const wrap = document.getElementById(cfg.wrapId)
           const canvas = document.getElementById(cfg.canvasId)
           const ctx = canvas.getContext('2d')
-      
+
           const btnZoomIn = document.getElementById(cfg.btnZoomInId)
           const btnZoomOut = document.getElementById(cfg.btnZoomOutId)
           const btnCenter = document.getElementById(cfg.btnCenterId)
           const btnReset = document.getElementById(cfg.btnResetId)
           const btnApply = document.getElementById(cfg.btnApplyId)
-      
+
           if (!input || !wrap || !canvas) return
-      
+
           let img = new Image()
           let loaded = false
-      
+
           let scale = 1
           let minScale = 1
           const maxScale = cfg.maxScale ?? 6
-      
+
           let ox = 0,
             oy = 0
-      
+
           let dragging = false
           let startX = 0,
             startY = 0
           let startOX = 0,
             startOY = 0
-      
-          // pinch
+
           let pinching = false
           let pinchStartDist = 0
           let pinchStartScale = 1
-      
-          // dirty state (habilitar/desabilitar aplicar)
+
           let dirty = false
           function setDirty(v) {
             dirty = !!v
             if (btnApply) btnApply.disabled = !dirty
           }
-      
+
           function fitToCanvas() {
             const sx = canvas.width / img.width
             const sy = canvas.height / img.height
             minScale = Math.max(sx, sy)
             scale = minScale
-      
+
             const w = img.width * scale
             const h = img.height * scale
-      
+
             ox = (canvas.width - w) / 2
             oy = (canvas.height - h) / 2
           }
-      
+
           function bound() {
             const w = img.width * scale
             const h = img.height * scale
-      
+
             const minX = canvas.width - w
             const minY = canvas.height - h
-      
+
             if (w <= canvas.width) ox = (canvas.width - w) / 2
             else ox = clamp(ox, minX, 0)
-      
+
             if (h <= canvas.height) oy = (canvas.height - h) / 2
             else oy = clamp(oy, minY, 0)
           }
-      
+
           function draw() {
             if (!loaded) return
-      
+
             ctx.clearRect(0, 0, canvas.width, canvas.height)
             ctx.imageSmoothingEnabled = true
-      
+
             const w = img.width * scale
             const h = img.height * scale
             ctx.drawImage(img, ox, oy, w, h)
-      
-            // moldura
+
             ctx.save()
             ctx.strokeStyle = 'rgba(0,0,0,.35)'
             ctx.lineWidth = 2
             ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2)
             ctx.restore()
           }
-      
+
           function center(markDirty = true) {
             if (!loaded) return
             const w = img.width * scale
@@ -274,7 +249,7 @@
             draw()
             if (markDirty) setDirty(true)
           }
-      
+
           function reset(markDirty = true) {
             if (!loaded) return
             fitToCanvas()
@@ -282,25 +257,25 @@
             draw()
             if (markDirty) setDirty(true)
           }
-      
+
           function zoomBy(factor, anchorX = canvas.width / 2, anchorY = canvas.height / 2, markDirty = true) {
             if (!loaded) return
-      
+
             const ix = (anchorX - ox) / scale
             const iy = (anchorY - oy) / scale
-      
+
             const next = clamp(scale * factor, minScale, maxScale)
             if (next === scale) return
-      
+
             scale = next
             ox = anchorX - ix * scale
             oy = anchorY - iy * scale
-      
+
             bound()
             draw()
             if (markDirty) setDirty(true)
           }
-      
+
           function loadFromSrc(src, { revoke = false } = {}) {
             img = new Image()
             img.onload = () => {
@@ -309,31 +284,28 @@
               fitToCanvas()
               bound()
               draw()
-              setDirty(false) // imagem atual carregada => sem alterações pendentes
+              setDirty(false)
               if (revoke) URL.revokeObjectURL(src)
             }
             img.src = src
           }
-      
+
           function loadFile(file) {
             const url = URL.createObjectURL(file)
             loadFromSrc(url, { revoke: true })
           }
-      
-          // 1) CARREGAR IMAGEM INICIAL (BD ou default) NO LOAD
+
           const initialSrc = wrap.dataset.initialSrc
           if (initialSrc) {
             loadFromSrc(initialSrc, { revoke: false })
           }
-      
-          // 2) QUANDO TROCAR O INPUT, CARREGA NOVA IMAGEM E ABRE EDITOR
+
           input.addEventListener('change', (e) => {
             const file = e.target.files && e.target.files[0]
             if (!file) return
             loadFile(file)
           })
-      
-          // zoom no wheel / trackpad (desktop)
+
           canvas.addEventListener(
             'wheel',
             (e) => {
@@ -347,8 +319,7 @@
             },
             { passive: false }
           )
-      
-          // pan (mouse)
+
           canvas.addEventListener('mousedown', (e) => {
             if (!loaded) return
             dragging = true
@@ -358,7 +329,7 @@
             startOY = oy
             e.preventDefault()
           })
-      
+
           window.addEventListener('mousemove', (e) => {
             if (!dragging) return
             ox = startOX + (e.clientX - startX)
@@ -367,17 +338,16 @@
             draw()
             setDirty(true)
           })
-      
+
           window.addEventListener('mouseup', () => {
             dragging = false
           })
-      
-          // touch: pan + pinch
+
           canvas.addEventListener(
             'touchstart',
             (e) => {
               if (!loaded) return
-      
+
               if (e.touches.length === 1) {
                 dragging = true
                 pinching = false
@@ -388,7 +358,7 @@
                 e.preventDefault()
                 return
               }
-      
+
               if (e.touches.length === 2) {
                 dragging = false
                 pinching = true
@@ -399,12 +369,12 @@
             },
             { passive: false }
           )
-      
+
           canvas.addEventListener(
             'touchmove',
             (e) => {
               if (!loaded) return
-      
+
               if (dragging && e.touches.length === 1) {
                 ox = startOX + (e.touches[0].clientX - startX)
                 oy = startOY + (e.touches[0].clientY - startY)
@@ -414,30 +384,30 @@
                 e.preventDefault()
                 return
               }
-      
+
               if (pinching && e.touches.length === 2) {
                 const d = dist(e.touches[0], e.touches[1])
                 if (!pinchStartDist) return
-      
+
                 const factor = d / pinchStartDist
                 const next = clamp(pinchStartScale * factor, minScale, maxScale)
                 if (next === scale) return
-      
+
                 const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2
                 const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2
                 const rect = canvas.getBoundingClientRect()
                 const ax = ((cx - rect.left) / rect.width) * canvas.width
                 const ay = ((cy - rect.top) / rect.height) * canvas.height
-      
+
                 const rel = next / scale
                 zoomBy(rel, ax, ay, true)
-      
+
                 e.preventDefault()
               }
             },
             { passive: false }
           )
-      
+
           canvas.addEventListener(
             'touchend',
             () => {
@@ -447,38 +417,35 @@
             },
             { passive: false }
           )
-      
-          // botões
+
           btnZoomIn && btnZoomIn.addEventListener('click', () => zoomBy(cfg.zoomStep ?? 1.12, undefined, undefined, true))
           btnZoomOut && btnZoomOut.addEventListener('click', () => zoomBy(1 / (cfg.zoomStep ?? 1.12), undefined, undefined, true))
           btnCenter && btnCenter.addEventListener('click', () => center(true))
           btnReset && btnReset.addEventListener('click', () => reset(true))
-      
-          // iniciar aplicar desabilitado
+
           if (btnApply) btnApply.disabled = true
-      
+
           btnApply &&
             btnApply.addEventListener('click', async () => {
               if (!loaded) return
               if (!dirty) return
-      
+
               const blob = await new Promise((resolve) => canvas.toBlob(resolve, cfg.mimeType ?? 'image/jpeg', cfg.quality ?? 0.9))
               if (!blob) return
-      
+
               const originalName = input.files && input.files[0] && input.files[0].name ? input.files[0].name : cfg.defaultName ?? 'image.jpg'
               const base = originalName.replace(/\.[^/.]+$/, '')
               const finalName = (cfg.suffix ? base + cfg.suffix : base + '_crop') + (cfg.ext ?? '.jpg')
-      
+
               const newFile = new File([blob], finalName, { type: blob.type })
               const dt = new DataTransfer()
               dt.items.add(newFile)
               input.files = dt.files
-      
-              setDirty(false) // aplicado => volta a desabilitar
+
+              setDirty(false)
             })
         }
-      
-        // Perfil
+
         createEditor({
           inputId: 'id_profile_image',
           wrapId: 'profile-editor',
@@ -494,8 +461,7 @@
           zoomStep: 1.12,
           maxScale: 6
         })
-      
-        // Fundo
+
         createEditor({
           inputId: 'id_background_image',
           wrapId: 'bg-editor',
@@ -514,88 +480,82 @@
       })()
 
       ;(function () {
-      const instSel = document.getElementById('id_institution')
-      const nucSel  = document.getElementById('id_nucleus')
-      const teamSel = document.getElementById('id_team')
+        const instSel = document.getElementById('id_institution')
+        const nucSel  = document.getElementById('id_nucleus')
+        const teamSel = document.getElementById('id_team')
 
-      if (!instSel || !nucSel || !teamSel) return
+        if (!instSel || !nucSel || !teamSel) return
 
-      function setOptions(select, items, placeholder) {
-        select.innerHTML = ''
-        const opt0 = document.createElement('option')
-        opt0.value = ''
-        opt0.textContent = placeholder
-        select.appendChild(opt0)
+        function setOptions(select, items, placeholder) {
+          select.innerHTML = ''
+          const opt0 = document.createElement('option')
+          opt0.value = ''
+          opt0.textContent = placeholder
+          select.appendChild(opt0)
 
-        for (const it of items) {
-          const opt = document.createElement('option')
-          opt.value = it.id
-          opt.textContent = it.name
-          select.appendChild(opt)
-        }
-      }
-
-      async function loadNuclei(institutionId, keepSelectedId = null) {
-        if (!institutionId) {
-          setOptions(nucSel, [], '— selecione —')
-          setOptions(teamSel, [], '— selecione —')
-          return
-        }
-        const url = "{% url 'accounts:ajax_nuclei' %}" + "?institution=" + encodeURIComponent(institutionId)
-        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        const data = await res.json()
-
-        setOptions(nucSel, data.results || [], '— selecione —')
-
-        if (keepSelectedId) {
-          nucSel.value = keepSelectedId
+          for (const it of items) {
+            const opt = document.createElement('option')
+            opt.value = it.id
+            opt.textContent = it.name
+            select.appendChild(opt)
+          }
         }
 
-        // ao carregar núcleos, se não tiver núcleo selecionado, zera teams
-        if (!nucSel.value) {
-          setOptions(teamSel, [], '— selecione —')
+        async function loadNuclei(institutionId, keepSelectedId = null) {
+          if (!institutionId) {
+            setOptions(nucSel, [], '— selecione —')
+            setOptions(teamSel, [], '— selecione —')
+            return
+          }
+
+          const url = "{% url 'accounts:ajax_nuclei' %}" + "?institution=" + encodeURIComponent(institutionId)
+          const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          const data = await res.json()
+
+          setOptions(nucSel, data.results || [], '— selecione —')
+
+          if (keepSelectedId) {
+            nucSel.value = keepSelectedId
+          }
+
+          if (!nucSel.value) {
+            setOptions(teamSel, [], '— selecione —')
+          }
         }
-      }
 
-      async function loadTeams(nucleusId, keepSelectedId = null) {
-        if (!nucleusId) {
-          setOptions(teamSel, [], '— selecione —')
-          return
+        async function loadTeams(nucleusId, keepSelectedId = null) {
+          if (!nucleusId) {
+            setOptions(teamSel, [], '— selecione —')
+            return
+          }
+
+          const url = "{% url 'accounts:ajax_teams' %}" + "?nucleus=" + encodeURIComponent(nucleusId)
+          const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          const data = await res.json()
+
+          setOptions(teamSel, data.results || [], '— selecione —')
+
+          if (keepSelectedId) {
+            teamSel.value = keepSelectedId
+          }
         }
-        const url = "{% url 'accounts:ajax_teams' %}" + "?nucleus=" + encodeURIComponent(nucleusId)
-        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        const data = await res.json()
 
-        setOptions(teamSel, data.results || [], '— selecione —')
+        instSel.addEventListener('change', async () => {
+          await loadNuclei(instSel.value)
+        })
 
-        if (keepSelectedId) {
-          teamSel.value = keepSelectedId
-        }
-      }
+        nucSel.addEventListener('change', async () => {
+          await loadTeams(nucSel.value)
+        })
 
-      // eventos
-      instSel.addEventListener('change', async () => {
-        await loadNuclei(instSel.value)
-      })
+        const initialInstitution = instSel.value
+        const initialNucleus = nucSel.value
+        const initialTeam = teamSel.value
 
-      nucSel.addEventListener('change', async () => {
-        await loadTeams(nucSel.value)
-      })
-
-      // inicialização (para edição: mantém valores já setados pelo Django)
-      const initialInstitution = instSel.value
-      const initialNucleus = nucSel.value
-      const initialTeam = teamSel.value
-
-      // recarrega lista de núcleos e, depois, de equipes preservando seleção atual
-      loadNuclei(initialInstitution, initialNucleus).then(() => {
-        loadTeams(nucSel.value, initialTeam)
-      })
-    })()
-
-
-
-
+        loadNuclei(initialInstitution, initialNucleus).then(() => {
+          loadTeams(nucSel.value, initialTeam)
+        })
+      })()
     </script>
   {% endblock %}
 {% endblock %}

@@ -24,6 +24,14 @@ class GenericLocationExamObject(
     ao exame, para composição do laudo.
     """
 
+    # Esse model herda 'title' de ExamObject. Como setar o varlor "Descrição e Exame do Local" como default apenas para esse model? 
+    DEFAULT_TITLE = "Descrição e Exame do Local"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.title:
+            self.title = self.DEFAULT_TITLE
+
     GROUP_KEY = ExamObjectGroup.LOCATIONS
 
     edit_url_name = "report_maker:generic_location_update"
