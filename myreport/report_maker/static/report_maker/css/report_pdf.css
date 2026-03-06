@@ -216,7 +216,7 @@ h3 { font-size: 11pt; font-weight: 600; margin: 14pt 0 6pt 0; }
   max-height: 18cm;  /* Limite de altura para não "estourar" a folha A4 */
   object-fit: contain;
   border: 1px solid #222;
-  margin: 0 auto;
+  margin: 30pt 0pt 0pt 0pt;
 }
 
 .report-figure figcaption {
