@@ -64,6 +64,9 @@
               <button id="btn-arrow" type="button" class="btn btn-outline-secondary" title="Seta" disabled>
                 <i class="bi bi-arrow-up-right"></i>
               </button>
+              <button id="btn-label" type="button" class="btn btn-outline-secondary" title="Marcador de texto" disabled>
+                <i class="bi bi-chat-square-text"></i>
+              </button>
               <input
                 type="color"
                 id="select-arrow-color"
@@ -71,7 +74,7 @@
                 style="width: 45px; height: 31px;"
                 value="#ff0000"
                 disabled
-                title="Cor da seta"
+                title="Cor da seta e do marcador"
               >
             </div>
 
@@ -166,6 +169,7 @@
       const btnReset = document.getElementById('btn-reset-editor')
       const btnCrop = document.getElementById('btn-crop')
       const btnArrow = document.getElementById('btn-arrow')
+      const btnLabel = document.getElementById('btn-label')
       const selectArrowColor = document.getElementById('select-arrow-color')
       const selectWidth = document.getElementById('select-width-cm')
 
@@ -247,8 +251,8 @@
         const targetWidthPx = getTargetPx()
         const isVertical = (currentRotation / 90) % 2 !== 0
 
-        let logicalW = isVertical ? imagemTrabalho.height : imagemTrabalho.width
-        let logicalH = isVertical ? imagemTrabalho.width : imagemTrabalho.height
+        const logicalW = isVertical ? imagemTrabalho.height : imagemTrabalho.width
+        const logicalH = isVertical ? imagemTrabalho.width : imagemTrabalho.height
 
         const baseScale = targetWidthPx / logicalW
 
@@ -276,7 +280,7 @@
         const isVertical = (currentRotation / 90) % 2 !== 0
 
         ;[
-          btnRotate, btnReset, btnCrop, btnArrow,
+          btnRotate, btnReset, btnCrop, btnArrow, btnLabel,
           btnZoomIn, btnZoomOut, btnZoomReset,
           sliderBrightness, sliderContrast,
           selectArrowColor
@@ -317,7 +321,7 @@
 
         ctx.restore()
 
-        if (tool === 'crop' || tool === 'arrow') {
+        if (tool === 'crop' || tool === 'arrow' || tool === 'label') {
           canvas.style.cursor = 'crosshair'
         } else {
           canvas.style.cursor = currentZoom > 1.01 ? 'grab' : 'default'
@@ -335,6 +339,7 @@
 
         btnCrop.classList.toggle('active', tool === 'crop')
         btnArrow.classList.toggle('active', tool === 'arrow')
+        btnLabel.classList.toggle('active', tool === 'label')
 
         if (imagemTrabalho) renderImageToCanvas(imagemTrabalho)
       }
@@ -398,6 +403,104 @@
         drawArrow(arrowStart, arrowEnd, color, width)
       }
 
+      function roundRectPath(context, x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2)
+        context.beginPath()
+        context.moveTo(x + r, y)
+        context.lineTo(x + width - r, y)
+        context.quadraticCurveTo(x + width, y, x + width, y + r)
+        context.lineTo(x + width, y + height - r)
+        context.quadraticCurveTo(x + width, y + height, x + width - r, y + height)
+        context.lineTo(x + r, y + height)
+        context.quadraticCurveTo(x, y + height, x, y + height - r)
+        context.lineTo(x, y + r)
+        context.quadraticCurveTo(x, y, x + r, y)
+        context.closePath()
+      }
+
+      function wrapText(context, text, maxWidth) {
+        const paragraphs = String(text).split('\n')
+        const lines = []
+
+        paragraphs.forEach((paragraph) => {
+          const words = paragraph.trim().split(/\s+/).filter(Boolean)
+
+          if (!words.length) {
+            lines.push('')
+            return
+          }
+
+          let currentLine = words[0]
+
+          for (let i = 1; i < words.length; i += 1) {
+            const testLine = `${currentLine} ${words[i]}`
+            if (context.measureText(testLine).width <= maxWidth) {
+              currentLine = testLine
+            } else {
+              lines.push(currentLine)
+              currentLine = words[i]
+            }
+          }
+
+          lines.push(currentLine)
+        })
+
+        return lines
+      }
+
+      function drawLabelBox(anchor, text) {
+        const color = selectArrowColor ? selectArrowColor.value : '#ff0000'
+        const fontSize = Math.max(18, Math.round(canvas.width / 34))
+        const paddingX = Math.max(12, Math.round(canvas.width / 55))
+        const paddingY = Math.max(10, Math.round(canvas.width / 65))
+        const lineHeight = Math.round(fontSize * 1.25)
+        const radius = Math.max(8, Math.round(canvas.width / 90))
+        const maxBoxWidth = Math.round(canvas.width * 0.42)
+        const minBoxWidth = Math.max(
+          Math.round(fontSize + paddingX * 2),
+          Math.round(canvas.width * 0.04)
+        )
+
+        ctx.save()
+        ctx.font = `${fontSize}px Arial`
+        ctx.textBaseline = 'top'
+
+        const lines = wrapText(ctx, text, maxBoxWidth - paddingX * 2)
+        const textWidth = Math.max(...lines.map((line) => ctx.measureText(line || ' ').width))
+        const boxWidth = Math.min(maxBoxWidth, Math.max(minBoxWidth, Math.round(textWidth + paddingX * 2)))
+        const boxHeight = Math.max(lineHeight + paddingY * 2, lines.length * lineHeight + paddingY * 2)
+
+        let x = anchor.x
+        let y = anchor.y
+
+        if (x + boxWidth > canvas.width - 8) {
+          x = canvas.width - boxWidth - 8
+        }
+        if (y + boxHeight > canvas.height - 8) {
+          y = canvas.height - boxHeight - 8
+        }
+        if (x < 8) x = 8
+        if (y < 8) y = 8
+
+        roundRectPath(ctx, x, y, boxWidth, boxHeight, radius)
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.7)'
+        ctx.fill()
+
+        ctx.lineWidth = Math.max(2, Math.round(canvas.width / 300))
+        ctx.strokeStyle = color
+        ctx.stroke()
+
+        ctx.fillStyle = '#111'
+        ctx.font = `${fontSize}px Arial`
+        ctx.textBaseline = 'top'
+
+        lines.forEach((line, index) => {
+          ctx.fillText(line, x + paddingX, y + paddingY + index * lineHeight)
+        })
+
+        ctx.restore()
+      }
+
       function commitCanvasAsNewBase(cb) {
         const newImg = new Image()
         newImg.onload = () => {
@@ -432,6 +535,11 @@
         toggleTool(tool === 'arrow' ? 'none' : 'arrow')
       })
 
+      btnLabel.addEventListener('click', () => {
+        if (!imagemTrabalho) return
+        toggleTool(tool === 'label' ? 'none' : 'label')
+      })
+
       canvas.addEventListener('mousedown', (e) => {
         e.preventDefault()
         if (!imagemTrabalho) return
@@ -452,6 +560,34 @@
           arrowStart = { x: clamp(p.x, 0, canvas.width), y: clamp(p.y, 0, canvas.height) }
           arrowEnd = { ...arrowStart }
           drawArrowOverlay()
+          return
+        }
+
+        if (tool === 'label') {
+          const p = canvasPointFromMouseEvent(e)
+          const text = window.prompt('Digite o texto do marcador:')
+
+          if (text === null) {
+            return
+          }
+
+          const normalizedText = text.trim()
+          if (!normalizedText) {
+            return
+          }
+
+          renderImageToCanvas(imagemTrabalho)
+          drawLabelBox(
+            {
+              x: clamp(p.x, 0, canvas.width),
+              y: clamp(p.y, 0, canvas.height)
+            },
+            normalizedText
+          )
+
+          commitCanvasAsNewBase(() => {
+            toggleTool('none')
+          })
           return
         }
 
@@ -625,6 +761,7 @@
           arrowEnd = null
           btnCrop.classList.remove('active')
           btnArrow.classList.remove('active')
+          btnLabel.classList.remove('active')
 
           imagemTrabalho = imagemOriginal
           currentRotation = 0
