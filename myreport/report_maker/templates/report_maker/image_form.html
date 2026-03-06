@@ -31,35 +31,76 @@
       <input type="hidden" name="width_override" id="id_width_override" />
       <input type="hidden" name="next" value="{{ request.GET.next }}" />
 
-      <div class="image-editor card shadow-sm" data-editor data-mode="{{ mode|default:'create' }}" data-initial-image-url="{{ initial_image_url|default:'' }}">
+      <div
+        class="image-editor card shadow-sm"
+        data-editor
+        data-mode="{{ mode|default:'create' }}"
+        data-initial-image-url="{{ initial_image_url|default:'' }}"
+      >
         <div class="card-header py-2">
           <div class="d-flex flex-wrap align-items-center gap-3">
-            {# Grupo: Arquivo e Rotação #}
             <div class="btn-group btn-group-sm">
-              <button id="btn-upload-trigger" type="button" class="btn btn-outline-secondary" title="Selecionar imagem"><i class="bi bi-folder2-open"></i></button>
-              <button id="btn-rotate" type="button" class="btn btn-outline-secondary" title="Rotacionar 90°" disabled><i class="bi bi-arrow-clockwise"></i></button>
+              <button id="btn-upload-trigger" type="button" class="btn btn-outline-secondary" title="Selecionar imagem">
+                <i class="bi bi-folder2-open"></i>
+              </button>
+              <button id="btn-rotate" type="button" class="btn btn-outline-secondary" title="Rotacionar 90°" disabled>
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
             </div>
 
-            {# Grupo: Zoom #}
             <div class="btn-group btn-group-sm" role="group">
-              <button id="btn-zoom-out" type="button" class="btn btn-outline-secondary" title="Zoom -" disabled><i class="bi bi-zoom-out"></i></button>
-              <button id="btn-zoom-reset" type="button" class="btn btn-outline-secondary" title="Reset zoom" disabled><i class="bi bi-aspect-ratio"></i></button>
-              <button id="btn-zoom-in" type="button" class="btn btn-outline-secondary" title="Zoom +" disabled><i class="bi bi-zoom-in"></i></button>
-              <button id="btn-crop" type="button" class="btn btn-outline-secondary" title="Recortar" disabled><i class="bi bi-crop"></i></button>
-              <button id="btn-arrow" type="button" class="btn btn-outline-secondary" title="Seta" disabled><i class="bi bi-arrow-up-right"></i></button>
-              <input type="color" id="select-arrow-color" class="form-control form-control-sm p-1" style="width: 45px; height: 31px;" value="#ff0000" disabled title="Cor da seta">
+              <button id="btn-zoom-out" type="button" class="btn btn-outline-secondary" title="Zoom -" disabled>
+                <i class="bi bi-zoom-out"></i>
+              </button>
+              <button id="btn-zoom-reset" type="button" class="btn btn-outline-secondary" title="Reset zoom" disabled>
+                <i class="bi bi-aspect-ratio"></i>
+              </button>
+              <button id="btn-zoom-in" type="button" class="btn btn-outline-secondary" title="Zoom +" disabled>
+                <i class="bi bi-zoom-in"></i>
+              </button>
+              <button id="btn-crop" type="button" class="btn btn-outline-secondary" title="Recortar" disabled>
+                <i class="bi bi-crop"></i>
+              </button>
+              <button id="btn-arrow" type="button" class="btn btn-outline-secondary" title="Seta" disabled>
+                <i class="bi bi-arrow-up-right"></i>
+              </button>
+              <input
+                type="color"
+                id="select-arrow-color"
+                class="form-control form-control-sm p-1"
+                style="width: 45px; height: 31px;"
+                value="#ff0000"
+                disabled
+                title="Cor da seta"
+              >
             </div>
 
-            {# Grupo: Ajustes de Imagem #}
             <div class="d-flex align-items-center gap-2 border-start ps-3">
               <label class="small text-muted" title="Brilho"><i class="bi bi-brightness-high"></i></label>
-              <input type="range" id="input-brightness" class="form-range" min="0" max="200" value="100" style="width: 80px;" disabled />
+              <input
+                type="range"
+                id="input-brightness"
+                class="form-range"
+                min="0"
+                max="200"
+                value="100"
+                style="width: 80px;"
+                disabled
+              />
 
               <label class="small text-muted ms-2" title="Contraste"><i class="bi bi-circle-half"></i></label>
-              <input type="range" id="input-contrast" class="form-range" min="0" max="200" value="100" style="width: 80px;" disabled />
+              <input
+                type="range"
+                id="input-contrast"
+                class="form-range"
+                min="0"
+                max="200"
+                value="100"
+                style="width: 80px;"
+                disabled
+              />
             </div>
 
-            {# Grupo: Ajuste nas dimenões do canvas, afeta tamanho real da imagem #}
             <div class="d-flex align-items-center gap-2 border-start ps-3">
               <label class="small text-muted">Largura (cm):</label>
               <select id="select-width-cm" class="form-select form-select-sm" style="width: 70px;">
@@ -74,22 +115,25 @@
               </select>
             </div>
 
-            {# Grupo: Reset Geral #}
             <div class="btn-group btn-group-sm ms-auto">
-              <button id="btn-reset-editor" type="button" class="btn btn-outline-secondary" disabled title="Resetar tudo"><i class="bi bi-arrow-repeat"></i></button>
+              <button id="btn-reset-editor" type="button" class="btn btn-outline-secondary" disabled title="Resetar tudo">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
             </div>
           </div>
         </div>
 
         <div class="card-body">
-          {# Input oculto do Django #}
           <div class="mb-3 d-none" data-file-row>{{ form.image }}</div>
 
           <div class="mx-auto" data-stage-wrap style="max-width: 800px; width: 100%;">
-            {# Régua pericial #}
             {% include 'report_maker/partials/scale14.html' %}
 
-            <div class="border rounded-3 bg-body-tertiary" data-stage style="overflow:hidden; margin:0 auto; min-height: 250px; display: flex; align-items: center; justify-content: center;">
+            <div
+              class="border rounded-3 bg-body-tertiary"
+              data-stage
+              style="overflow:hidden; margin:0 auto; min-height: 250px; display: flex; align-items: center; justify-content: center;"
+            >
               <canvas id="main-canvas" style="display: block; max-width: 100%; height: auto;"></canvas>
             </div>
 
@@ -103,7 +147,9 @@
 
         <div class="card-footer d-flex gap-2 justify-content-end">
           <a href="{{ cancel_url }}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
-          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> Salvar</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-check-lg"></i> Salvar
+          </button>
         </div>
       </div>
     </form>
@@ -135,31 +181,29 @@
       const sliderBrightness = document.getElementById('input-brightness')
       const sliderContrast = document.getElementById('input-contrast')
 
-      // Constante de densidade: 14cm = 1600px -> ~114.28 px/cm
       const PX_PER_CM = 1600 / 14
-      let imagemOriginal = null
 
-      // Estados
+      let imagemOriginal = null
+      let imagemTrabalho = null
+
       let currentRotation = 0
       let currentZoom = 1.0
       let offsetX = 0
       let offsetY = 0
       let isDragging = false
-      let startX, startY
+      let startX
+      let startY
 
-      // Ferramentas
-      let tool = 'none' // 'none' | 'crop' | 'arrow'
+      let tool = 'none'
 
-      // Estados do crop
       let cropDragging = false
       let cropStartX = 0
       let cropStartY = 0
-      let cropRect = null // { x, y, w, h }
+      let cropRect = null
 
-      // Estados da seta
       let arrowDragging = false
-      let arrowStart = null // {x,y}
-      let arrowEnd = null   // {x,y}
+      let arrowStart = null
+      let arrowEnd = null
 
       function clamp(v, min, max) {
         return Math.max(min, Math.min(max, v))
@@ -179,7 +223,6 @@
       }
 
       function getClosestWidthCm(pixelWidth) {
-        // Nossos pontos de parada em pixels (cm * 114.2857)
         const targets = [
           { cm: 4, px: 4 * PX_PER_CM },
           { cm: 6, px: 6 * PX_PER_CM },
@@ -191,7 +234,6 @@
           { cm: 14, px: 14 * PX_PER_CM }
         ]
 
-        // Encontra o alvo cuja diferença de pixels seja a menor
         const closest = targets.reduce((prev, curr) => {
           return Math.abs(curr.px - pixelWidth) < Math.abs(prev.px - pixelWidth) ? curr : prev
         })
@@ -200,28 +242,24 @@
       }
 
       function applyConstraints() {
-        if (!imagemOriginal) return
+        if (!imagemTrabalho) return
 
         const targetWidthPx = getTargetPx()
         const isVertical = (currentRotation / 90) % 2 !== 0
 
-        // Dimensões lógicas da imagem após a rotação ser aplicada
-        let logicalW = isVertical ? imagemOriginal.height : imagemOriginal.width
-        let logicalH = isVertical ? imagemOriginal.width : imagemOriginal.height
+        let logicalW = isVertical ? imagemTrabalho.height : imagemTrabalho.width
+        let logicalH = isVertical ? imagemTrabalho.width : imagemTrabalho.height
 
-        // Escala base para que a largura lógica preencha a largura do canvas (CM selecionados)
-        let baseScale = targetWidthPx / logicalW
+        const baseScale = targetWidthPx / logicalW
 
         let imgW = logicalW * baseScale * currentZoom
         let imgH = logicalH * baseScale * currentZoom
 
-        // 1. Bloqueia zoom que deixe espaços vazios nas laterais do canvas
         if (imgW < canvas.width) {
           currentZoom = canvas.width / (logicalW * baseScale)
           imgW = canvas.width
         }
 
-        // 2. Bloqueia o Pan (arrasto) para não mostrar o fundo do canvas
         const maxOffsetX = Math.max(0, (imgW - canvas.width) / 2)
         const maxOffsetY = Math.max(0, (imgH - canvas.height) / 2)
 
@@ -231,31 +269,29 @@
 
       function renderImageToCanvas(img) {
         if (!img) return
-        imagemOriginal = img
+
+        imagemTrabalho = img
 
         const targetWidthPx = getTargetPx()
         const isVertical = (currentRotation / 90) % 2 !== 0
 
-        // Ativa controles
         ;[
           btnRotate, btnReset, btnCrop, btnArrow,
           btnZoomIn, btnZoomOut, btnZoomReset,
           sliderBrightness, sliderContrast,
           selectArrowColor
-        ].forEach((el) => (el.disabled = false))
+        ].forEach((el) => {
+          el.disabled = false
+        })
 
-        // DIMENSÕES DINÂMICAS: Recalcula a altura do canvas baseada na rotação
-        let logicalW = isVertical ? img.height : img.width
-        let logicalH = isVertical ? img.width : img.height
+        const logicalW = isVertical ? img.height : img.width
+        const logicalH = isVertical ? img.width : img.height
 
-        // O Canvas assume a largura proporcional aos CM e altura proporcional à imagem rotacionada
         canvas.width = targetWidthPx
         canvas.height = logicalH * (targetWidthPx / logicalW)
 
-        // Ajusta o tamanho do container no ecrã (proporção visual) — mantém seu efeito “menor que a régua”
         canvas.parentElement.style.width = targetWidthPx / 2 + 'px'
 
-        // --- FUNDO BRANCO ---
         ctx.save()
         ctx.fillStyle = '#ffffff'
         ctx.fillRect(0, 0, canvas.width, canvas.height)
@@ -264,19 +300,13 @@
         applyConstraints()
 
         ctx.save()
-
-        // Aplica os filtros de imagem
         ctx.filter = `brightness(${sliderBrightness.value}%) contrast(${sliderContrast.value}%)`
-
-        // Aplica Pan e Rotação no centro
         ctx.translate(canvas.width / 2 + offsetX, canvas.height / 2 + offsetY)
         ctx.rotate((currentRotation * Math.PI) / 180)
         ctx.scale(currentZoom, currentZoom)
 
-        // A escala de desenho usa as dimensões ORIGINAIS da imagem
         const drawScale = targetWidthPx / logicalW
 
-        // Desenha a imagem centralizada
         ctx.drawImage(
           img,
           (-img.width * drawScale) / 2,
@@ -287,16 +317,16 @@
 
         ctx.restore()
 
-        // cursor
-        if (tool === 'crop') canvas.style.cursor = 'crosshair'
-        else if (tool === 'arrow') canvas.style.cursor = 'crosshair'
-        else canvas.style.cursor = currentZoom > 1.01 ? 'grab' : 'default'
+        if (tool === 'crop' || tool === 'arrow') {
+          canvas.style.cursor = 'crosshair'
+        } else {
+          canvas.style.cursor = currentZoom > 1.01 ? 'grab' : 'default'
+        }
       }
 
       function toggleTool(nextTool) {
         tool = nextTool
 
-        // reseta estados das ferramentas
         cropDragging = false
         cropRect = null
         arrowDragging = false
@@ -306,13 +336,13 @@
         btnCrop.classList.toggle('active', tool === 'crop')
         btnArrow.classList.toggle('active', tool === 'arrow')
 
-        if (imagemOriginal) renderImageToCanvas(imagemOriginal)
+        if (imagemTrabalho) renderImageToCanvas(imagemTrabalho)
       }
 
-      // --- Overlay Crop (pontilhado) ---
       function drawCropOverlay() {
-        if (!cropRect) return
-        renderImageToCanvas(imagemOriginal)
+        if (!cropRect || !imagemTrabalho) return
+
+        renderImageToCanvas(imagemTrabalho)
 
         ctx.save()
         ctx.setLineDash([10, 6])
@@ -322,13 +352,10 @@
         ctx.restore()
       }
 
-      // --- Desenho da seta (preview e commit) ---
       function drawArrow(p1, p2, color, width) {
         const dx = p2.x - p1.x
         const dy = p2.y - p1.y
         const angle = Math.atan2(dy, dx)
-
-        // tamanho da cabeça (proporcional)
         const headLen = Math.max(18, Math.round(width * 4.5))
 
         ctx.save()
@@ -339,13 +366,11 @@
         ctx.lineJoin = 'round'
         ctx.setLineDash([])
 
-        // haste
         ctx.beginPath()
         ctx.moveTo(p1.x, p1.y)
         ctx.lineTo(p2.x, p2.y)
         ctx.stroke()
 
-        // cabeça (triângulo)
         const a1 = angle - Math.PI / 7
         const a2 = angle + Math.PI / 7
         const x1 = p2.x - headLen * Math.cos(a1)
@@ -364,53 +389,53 @@
       }
 
       function drawArrowOverlay() {
-        if (!arrowStart || !arrowEnd) return
-        renderImageToCanvas(imagemOriginal)
+        if (!arrowStart || !arrowEnd || !imagemTrabalho) return
+
+        renderImageToCanvas(imagemTrabalho)
 
         const color = selectArrowColor ? selectArrowColor.value : '#111'
-        const width = Math.max(4, Math.round(canvas.width / 350)) // espessura simples e responsiva
+        const width = Math.max(4, Math.round(canvas.width / 350))
         drawArrow(arrowStart, arrowEnd, color, width)
       }
 
       function commitCanvasAsNewBase(cb) {
         const newImg = new Image()
         newImg.onload = () => {
-          imagemOriginal = newImg
+          imagemTrabalho = newImg
           currentRotation = 0
           currentZoom = 1.0
           offsetX = 0
           offsetY = 0
+
           if (typeof cb === 'function') cb()
-          renderImageToCanvas(imagemOriginal)
+
+          renderImageToCanvas(imagemTrabalho)
         }
         newImg.src = canvas.toDataURL('image/jpeg', 0.92)
       }
 
-      // --- Largura (cm) ---
       selectWidth.addEventListener('change', () => {
+        if (!imagemTrabalho) return
         currentZoom = 1.0
         offsetX = 0
         offsetY = 0
-        renderImageToCanvas(imagemOriginal)
+        renderImageToCanvas(imagemTrabalho)
       })
 
-      // --- Botões Crop/Arrow ---
       btnCrop.addEventListener('click', () => {
-        if (!imagemOriginal) return
+        if (!imagemTrabalho) return
         toggleTool(tool === 'crop' ? 'none' : 'crop')
       })
 
       btnArrow.addEventListener('click', () => {
-        if (!imagemOriginal) return
+        if (!imagemTrabalho) return
         toggleTool(tool === 'arrow' ? 'none' : 'arrow')
       })
 
-      // --- Mouse down (Crop OU Arrow OU Pan) ---
       canvas.addEventListener('mousedown', (e) => {
         e.preventDefault()
-        if (!imagemOriginal) return
+        if (!imagemTrabalho) return
 
-        // CROP
         if (tool === 'crop') {
           cropDragging = true
           const p = canvasPointFromMouseEvent(e)
@@ -421,7 +446,6 @@
           return
         }
 
-        // ARROW
         if (tool === 'arrow') {
           arrowDragging = true
           const p = canvasPointFromMouseEvent(e)
@@ -431,10 +455,11 @@
           return
         }
 
-        // PAN (se nenhuma ferramenta ativa)
         if (currentZoom <= 1.01) return
+
         isDragging = true
         canvas.style.cursor = 'grabbing'
+
         const rect = canvas.getBoundingClientRect()
         const scaleX = canvas.width / rect.width
         const scaleY = canvas.height / rect.height
@@ -442,11 +467,9 @@
         startY = e.clientY * scaleY - offsetY
       })
 
-      // --- Mouse move (Crop OU Arrow OU Pan) ---
       window.addEventListener('mousemove', (e) => {
-        if (!imagemOriginal) return
+        if (!imagemTrabalho) return
 
-        // CROP drag
         if (tool === 'crop' && cropDragging) {
           const p = canvasPointFromMouseEvent(e)
           const endX = clamp(p.x, 0, canvas.width)
@@ -462,7 +485,6 @@
           return
         }
 
-        // ARROW drag
         if (tool === 'arrow' && arrowDragging) {
           const p = canvasPointFromMouseEvent(e)
           arrowEnd = { x: clamp(p.x, 0, canvas.width), y: clamp(p.y, 0, canvas.height) }
@@ -470,25 +492,23 @@
           return
         }
 
-        // PAN
         if (!isDragging) return
+
         const rect = canvas.getBoundingClientRect()
         const scaleX = canvas.width / rect.width
         const scaleY = canvas.height / rect.height
         offsetX = e.clientX * scaleX - startX
         offsetY = e.clientY * scaleY - startY
-        renderImageToCanvas(imagemOriginal)
+        renderImageToCanvas(imagemTrabalho)
       })
 
-      // --- Mouse up (finaliza Crop OU Arrow OU Pan) ---
       window.addEventListener('mouseup', () => {
-        // Finaliza CROP
         if (tool === 'crop' && cropDragging) {
           cropDragging = false
 
           if (!cropRect || cropRect.w < 5 || cropRect.h < 5) {
             cropRect = null
-            renderImageToCanvas(imagemOriginal)
+            renderImageToCanvas(imagemTrabalho)
             return
           }
 
@@ -499,11 +519,9 @@
 
           const imgData = ctx.getImageData(x, y, w, h)
 
-          // destrutivo: resize do canvas para o recorte
           canvas.width = w
           canvas.height = h
 
-          // fundo branco
           ctx.save()
           ctx.fillStyle = '#ffffff'
           ctx.fillRect(0, 0, w, h)
@@ -511,7 +529,6 @@
 
           ctx.putImageData(imgData, 0, 0)
 
-          // Congela como nova imagem-base
           commitCanvasAsNewBase(() => {
             const suggestedCm = getClosestWidthCm(canvas.width)
             selectWidth.value = suggestedCm.toString()
@@ -522,29 +539,26 @@
           return
         }
 
-        // Finaliza ARROW
         if (tool === 'arrow' && arrowDragging) {
           arrowDragging = false
 
           if (!arrowStart || !arrowEnd) {
-            renderImageToCanvas(imagemOriginal)
+            renderImageToCanvas(imagemTrabalho)
             return
           }
 
           const dx = Math.abs(arrowEnd.x - arrowStart.x)
           const dy = Math.abs(arrowEnd.y - arrowStart.y)
+
           if (dx < 3 && dy < 3) {
-            // clique quase parado = cancela
             arrowStart = null
             arrowEnd = null
-            renderImageToCanvas(imagemOriginal)
+            renderImageToCanvas(imagemTrabalho)
             return
           }
 
-          // “commit” destrutivo: desenha no canvas atual (já está com a imagem renderizada)
-          drawArrowOverlay() // garante que o frame atual está correto
+          drawArrowOverlay()
 
-          // congela como nova base (zera pan/zoom/rotação porque já “virou pixels”)
           commitCanvasAsNewBase(() => {
             toggleTool('none')
           })
@@ -554,72 +568,106 @@
           return
         }
 
-        // Finaliza PAN
         isDragging = false
+
+        if (imagemTrabalho) {
+          canvas.style.cursor = currentZoom > 1.01 ? 'grab' : 'default'
+        }
       })
 
-      // --- Zoom ---
       btnZoomIn.addEventListener('click', () => {
+        if (!imagemTrabalho) return
         currentZoom += 0.2
         applyConstraints()
-        renderImageToCanvas(imagemOriginal)
+        renderImageToCanvas(imagemTrabalho)
       })
+
       btnZoomOut.addEventListener('click', () => {
+        if (!imagemTrabalho) return
         currentZoom -= 0.2
-        renderImageToCanvas(imagemOriginal)
+        applyConstraints()
+        renderImageToCanvas(imagemTrabalho)
       })
+
       btnZoomReset.addEventListener('click', () => {
+        if (!imagemTrabalho) return
         currentZoom = 1.0
         offsetX = 0
         offsetY = 0
-        renderImageToCanvas(imagemOriginal)
+        renderImageToCanvas(imagemTrabalho)
       })
 
-      // --- Rotação e Filtros ---
       btnRotate.addEventListener('click', () => {
+        if (!imagemTrabalho) return
         currentRotation = (currentRotation + 90) % 360
         currentZoom = 1.0
         offsetX = 0
         offsetY = 0
-        renderImageToCanvas(imagemOriginal)
+        renderImageToCanvas(imagemTrabalho)
       })
+
       ;[sliderBrightness, sliderContrast].forEach((s) => {
-        s.addEventListener('input', () => renderImageToCanvas(imagemOriginal))
+        s.addEventListener('input', () => {
+          if (!imagemTrabalho) return
+          renderImageToCanvas(imagemTrabalho)
+        })
       })
 
       btnTrigger.addEventListener('click', () => fileInput.click())
 
       btnReset.addEventListener('click', function () {
         if (imagemOriginal && confirm('Descartar tudo?')) {
-          toggleTool('none')
+          tool = 'none'
+          cropDragging = false
+          cropRect = null
+          arrowDragging = false
+          arrowStart = null
+          arrowEnd = null
+          btnCrop.classList.remove('active')
+          btnArrow.classList.remove('active')
+
+          imagemTrabalho = imagemOriginal
           currentRotation = 0
           currentZoom = 1.0
           offsetX = 0
           offsetY = 0
-          selectWidth.value = '14'
+
+          const suggestedCm = getClosestWidthCm(imagemOriginal.width)
+          selectWidth.value = suggestedCm.toString()
+
           sliderBrightness.value = 100
           sliderContrast.value = 100
-          if (selectArrowColor) selectArrowColor.value = '#ff0000'
-          renderImageToCanvas(imagemOriginal)
+
+          if (selectArrowColor) {
+            selectArrowColor.value = '#ff0000'
+          }
+
+          renderImageToCanvas(imagemTrabalho)
         }
       })
 
       fileInput.addEventListener('change', function (e) {
         const file = e.target.files[0]
         if (!file) return
+
         const reader = new FileReader()
         reader.onload = (ev) => {
           const img = new Image()
           img.onload = () => {
+            imagemOriginal = img
+            imagemTrabalho = img
+
             toggleTool('none')
             currentRotation = 0
             offsetX = 0
             offsetY = 0
+            sliderBrightness.value = 100
+            sliderContrast.value = 100
 
             const suggestedCm = getClosestWidthCm(img.width)
             selectWidth.value = suggestedCm.toString()
 
-            const novoWidthPx = Math.round(suggestedCm * 114.2857)
+            const novoWidthPx = Math.round(suggestedCm * PX_PER_CM)
             canvas.width = novoWidthPx
 
             currentZoom = canvas.width / img.width
@@ -631,16 +679,17 @@
         reader.readAsDataURL(file)
       })
 
-      
-      // Carregamento inicial da imagem (Modo Edição)
       const initialUrl = editorEl.dataset.initialImageUrl
       if (initialUrl) {
         const img = new Image()
         img.crossOrigin = 'anonymous'
         img.onload = () => {
+          imagemOriginal = img
+          imagemTrabalho = img
+
           {% if object and object.original_width %}
             const savedPx = {{ object.original_width }}
-            const targetCm = Math.round(savedPx / 114.2857)
+            const targetCm = Math.round(savedPx / PX_PER_CM)
             if ([4, 6, 8, 10, 11, 12, 13, 14].includes(targetCm)) {
               selectWidth.value = targetCm.toString()
             }
@@ -651,15 +700,17 @@
           currentZoom = 1.0
           offsetX = 0
           offsetY = 0
+          sliderBrightness.value = 100
+          sliderContrast.value = 100
 
           renderImageToCanvas(img)
         }
         img.src = initialUrl
       }
 
-      // Envio do formulário (Processamento do Canvas para Blob)
       form.addEventListener('submit', function (e) {
-        if (!imagemOriginal) return
+        if (!imagemTrabalho) return
+
         e.preventDefault()
 
         document.getElementById('id_width_override').value = getTargetPx()
@@ -670,7 +721,6 @@
             const dataTransfer = new DataTransfer()
             dataTransfer.items.add(file)
             fileInput.files = dataTransfer.files
-
             form.submit()
           },
           'image/jpeg',
@@ -680,4 +730,3 @@
     })
   </script>
 {% endblock %}
-
