@@ -64,7 +64,9 @@
               <label class="small text-muted">Largura (cm):</label>
               <select id="select-width-cm" class="form-select form-select-sm" style="width: 70px;">
                 <option value="14">14</option>
+                <option value="13">13</option>
                 <option value="12">12</option>
+                <option value="11">11</option>
                 <option value="10">10</option>
                 <option value="8">8</option>
                 <option value="6">6</option>
@@ -179,9 +181,14 @@
       function getClosestWidthCm(pixelWidth) {
         // Nossos pontos de parada em pixels (cm * 114.2857)
         const targets = [
-          { cm: 4, px: 457 },
-          { cm: 10, px: 1143 },
-          { cm: 14, px: 1600 }
+          { cm: 4, px: 4 * PX_PER_CM },
+          { cm: 6, px: 6 * PX_PER_CM },
+          { cm: 8, px: 8 * PX_PER_CM },
+          { cm: 10, px: 10 * PX_PER_CM },
+          { cm: 11, px: 11 * PX_PER_CM },
+          { cm: 12, px: 12 * PX_PER_CM },
+          { cm: 13, px: 13 * PX_PER_CM },
+          { cm: 14, px: 14 * PX_PER_CM }
         ]
 
         // Encontra o alvo cuja diferença de pixels seja a menor
@@ -624,6 +631,7 @@
         reader.readAsDataURL(file)
       })
 
+      
       // Carregamento inicial da imagem (Modo Edição)
       const initialUrl = editorEl.dataset.initialImageUrl
       if (initialUrl) {
@@ -633,7 +641,7 @@
           {% if object and object.original_width %}
             const savedPx = {{ object.original_width }}
             const targetCm = Math.round(savedPx / 114.2857)
-            if ([4, 10, 14].includes(targetCm)) {
+            if ([4, 6, 8, 10, 11, 12, 13, 14].includes(targetCm)) {
               selectWidth.value = targetCm.toString()
             }
           {% endif %}
