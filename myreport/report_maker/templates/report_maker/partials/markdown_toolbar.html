@@ -16,43 +16,44 @@ O comportamento (JS) será responsável por aplicar a sintaxe no textarea ativo.
     <button type="button" class="btn btn-outline-secondary" data-md="strike" title="Riscado">
       <s>S</s>
     </button>
+
+    <div class="btn-group btn-group-sm me-2" role="group" aria-label="Listas">
+      <button type="button" class="btn btn-outline-secondary" data-md="ul" title="Lista">
+        • Lista
+      </button>
+      <button type="button" class="btn btn-outline-secondary" data-md="ol" title="Lista numerada">
+        1.
+      </button>
+    </div>
+
+    <div class="btn-group btn-group-sm me-2" role="group" aria-label="Estrutura">
+      <button type="button" class="btn btn-outline-secondary" data-md="h2" title="Título">
+        H
+      </button>
+    </div>
+
     <button type="button" class="btn btn-outline-secondary" data-md="math" title="Fórmula">
       fx
     </button>
-    <button type="button" class="btn btn-outline-secondary" data-md="math-block" title="Fórmula em bloco">
-      ∑
-    </button>
-  </div>
-
-  <div class="btn-group btn-group-sm me-2" role="group" aria-label="Listas">
-    <button type="button" class="btn btn-outline-secondary" data-md="ul" title="Lista">
-      • Lista
-    </button>
-    <button type="button" class="btn btn-outline-secondary" data-md="ol" title="Lista numerada">
-      1.
-    </button>
-  </div>
-
-  <div class="btn-group btn-group-sm me-2" role="group" aria-label="Estrutura">
-    <button type="button" class="btn btn-outline-secondary" data-md="h2" title="Título">
-      H
-    </button>
-
-    {% comment %}
 
 
-    <button type="button" class="btn btn-outline-secondary" data-md="quote" title="Citação">
-      “ ”
-    </button>
-    <button type="button" class="btn btn-outline-secondary" data-md="code" title="Código">
-      <code>{ }</code>
-    </button>
-  </div>
+  {% comment %}
+  <button type="button" class="btn btn-outline-secondary" data-md="math-block" title="Fórmula em bloco">
+    ∑
+  </button>
 
-  <div class="btn-group btn-group-sm" role="group" aria-label="Outros">
-    <button type="button" class="btn btn-outline-secondary" data-md="hr" title="Separador">
-      ―
-    </button>
-    {% endcomment %}
-  </div>
+  <button type="button" class="btn btn-outline-secondary" data-md="quote" title="Citação">
+    “ ”
+  </button>
+  <button type="button" class="btn btn-outline-secondary" data-md="code" title="Código">
+    <code>{ }</code>
+  </button>
+</div>
+
+<div class="btn-group btn-group-sm" role="group" aria-label="Outros">
+  <button type="button" class="btn btn-outline-secondary" data-md="hr" title="Separador">
+    ―
+  </button>
+  {% endcomment %}
+</div>
 </div>
