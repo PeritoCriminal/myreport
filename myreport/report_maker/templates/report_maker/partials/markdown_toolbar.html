@@ -1,7 +1,8 @@
+{# myreport/report_maker/templates/report_maker/partials/markdown_toolbar.html #}
 {% comment %}
-  Toolbar genérica para edição em Markdown.
-  Espera que exista um textarea logo abaixo no mesmo container (.text-block-editor).
-  O comportamento (JS) será responsável por aplicar a sintaxe no textarea ativo.
+Toolbar genérica para edição em Markdown.
+Espera que exista um textarea logo abaixo no mesmo container (.text-block-editor).
+O comportamento (JS) será responsável por aplicar a sintaxe no textarea ativo.
 {% endcomment %}
 
 <div class="btn-toolbar mb-2 markdown-toolbar" role="toolbar" aria-label="Markdown toolbar">
@@ -14,6 +15,12 @@
     </button>
     <button type="button" class="btn btn-outline-secondary" data-md="strike" title="Riscado">
       <s>S</s>
+    </button>
+    <button type="button" class="btn btn-outline-secondary" data-md="math" title="Fórmula">
+      fx
+    </button>
+    <button type="button" class="btn btn-outline-secondary" data-md="math-block" title="Fórmula em bloco">
+      ∑
     </button>
   </div>
 
@@ -32,8 +39,8 @@
     </button>
 
     {% comment %}
-      
-    
+
+
     <button type="button" class="btn btn-outline-secondary" data-md="quote" title="Citação">
       “ ”
     </button>
@@ -46,6 +53,6 @@
     <button type="button" class="btn btn-outline-secondary" data-md="hr" title="Separador">
       ―
     </button>
-    {% endcomment %} 
+    {% endcomment %}
   </div>
 </div>
