@@ -38,57 +38,6 @@
       start + text.length;
   }
 
-  function insertMathInline(textarea) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const value = textarea.value;
-    const selected = value.slice(start, end);
-
-    if (selected) {
-      wrapSelection(textarea, "$", "$");
-      return;
-    }
-
-    const placeholder = "\\alpha";
-    const replacement = `$${placeholder}$`;
-
-    textarea.value =
-      value.slice(0, start) + replacement + value.slice(end);
-
-    textarea.focus();
-    textarea.selectionStart = start + 1;
-    textarea.selectionEnd = start + 1 + placeholder.length;
-  }
-
-  function insertMathBlock(textarea) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const value = textarea.value;
-    const selected = value.slice(start, end);
-
-    if (selected) {
-      const replacement = `\n$$\n${selected}\n$$\n`;
-
-      textarea.value =
-        value.slice(0, start) + replacement + value.slice(end);
-
-      textarea.focus();
-      textarea.selectionStart = start + 4;
-      textarea.selectionEnd = start + 4 + selected.length;
-      return;
-    }
-
-    const placeholder = "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}";
-    const replacement = `\n$$\n${placeholder}\n$$\n`;
-
-    textarea.value =
-      value.slice(0, start) + replacement + value.slice(end);
-
-    textarea.focus();
-    textarea.selectionStart = start + 4;
-    textarea.selectionEnd = start + 4 + placeholder.length;
-  }
-
   function handleAction(action, textarea) {
     switch (action) {
       case "bold":
@@ -104,11 +53,7 @@
         break;
 
       case "math":
-        insertMathInline(textarea);
-        break;
-
-      case "math-block":
-        insertMathBlock(textarea);
+        wrapSelection(textarea, "$", "$");
         break;
 
       case "h2":
