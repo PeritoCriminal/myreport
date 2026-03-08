@@ -1,7 +1,7 @@
 {% comment %}
-  Toolbar genérica para edição em Markdown.
-  Espera que exista um textarea logo abaixo no mesmo container (.text-block-editor).
-  O comportamento (JS) será responsável por aplicar a sintaxe no textarea ativo.
+Toolbar genérica para edição em Markdown.
+Espera que exista um textarea logo abaixo no mesmo container (.text-block-editor).
+O comportamento (JS) será responsável por aplicar a sintaxe no textarea ativo.
 {% endcomment %}
 
 <div class="btn-toolbar mb-2 markdown-toolbar" role="toolbar" aria-label="Markdown toolbar">
@@ -31,9 +31,14 @@
       H
     </button>
 
+    <div class="btn-group btn-group-sm me-2" role="group" aria-label="Listas"></div>
+    <button type="button" class="btn btn-outline-secondary" data-md="math" title="Fórmula">
+      fx
+    </button>
+
     {% comment %}
-      
-    
+
+
     <button type="button" class="btn btn-outline-secondary" data-md="quote" title="Citação">
       “ ”
     </button>
@@ -46,6 +51,6 @@
     <button type="button" class="btn btn-outline-secondary" data-md="hr" title="Separador">
       ―
     </button>
-    {% endcomment %} 
+    {% endcomment %}
   </div>
 </div>

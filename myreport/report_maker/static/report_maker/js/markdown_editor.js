@@ -1,12 +1,4 @@
-/*
- * Markdown editor helper
- *
- * Regras:
- * - Cada toolbar deve estar dentro de .text-block-editor
- * - O textarea alvo é o primeiro <textarea> dentro desse container
- * - Botões usam data-md para indicar a ação
- */
-
+/* myreport/report_maker/static/report_maker/js/markdown_editor.js */
 (function () {
   "use strict";
 
@@ -58,6 +50,10 @@
 
       case "strike":
         wrapSelection(textarea, "~~", "~~");
+        break;
+
+      case "math":
+        wrapSelection(textarea, "$", "$");
         break;
 
       case "h2":
