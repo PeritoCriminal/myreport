@@ -1,4 +1,4 @@
-/* myreport/report_maker/static/report_maker/js/markdown_editor.js */
+/* path: myreport/report_maker/static/report_maker/js/markdown_editor.js */
 (function () {
   "use strict";
 
@@ -14,12 +14,10 @@
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const value = textarea.value;
-
     const selected = value.slice(start, end);
     const replacement = `${before}${selected}${after}`;
 
-    textarea.value =
-      value.slice(0, start) + replacement + value.slice(end);
+    textarea.value = value.slice(0, start) + replacement + value.slice(end);
 
     textarea.focus();
     textarea.selectionStart = start + before.length;
@@ -28,14 +26,14 @@
 
   function insertAtCursor(textarea, text) {
     const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
     const value = textarea.value;
 
-    textarea.value =
-      value.slice(0, start) + text + value.slice(start);
+    textarea.value = value.slice(0, start) + text + value.slice(end);
 
     textarea.focus();
-    textarea.selectionStart = textarea.selectionEnd =
-      start + text.length;
+    textarea.selectionStart = start + text.length;
+    textarea.selectionEnd = start + text.length;
   }
 
   function handleAction(action, textarea) {
@@ -82,6 +80,7 @@
 
       default:
         console.warn("Markdown action desconhecida:", action);
+        break;
     }
   }
 

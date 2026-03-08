@@ -12,9 +12,6 @@
     <link rel="stylesheet" href="{% static 'report_maker/css/report_preview.css' %}" />
     <link rel="stylesheet" href="{% static 'report_maker/css/report_print.css' %}" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
-
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
   </head>
 
   <body>
@@ -169,6 +166,9 @@
     </main>
 
     {% block scripts %}
+      <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+      <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
       <script>
         document.addEventListener('DOMContentLoaded', () => {
           if (window.renderMathInElement) {

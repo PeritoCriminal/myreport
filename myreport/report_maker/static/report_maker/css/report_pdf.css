@@ -262,3 +262,11 @@ h3 { font-size: 11pt; font-weight: 600; margin: 14pt 0 6pt 0; }
 .page-break { break-before: page; }
 
 a { word-break: break-all; overflow-wrap: anywhere; }
+
+.katex {
+  font-size: 1em;
+}
+
+.katex-display {
+  margin: 0.75em 0;
+}

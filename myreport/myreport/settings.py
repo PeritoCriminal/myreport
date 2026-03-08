@@ -4,15 +4,21 @@ from pathlib import Path
 import os
 
 # ---------------------------------------------------------------------
-# Integrações externas / Serviços de terceiros
-# ---------------------------------------------------------------------
-# OpenAI (IA para geração de texto técnico)
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-
-# ---------------------------------------------------------------------
 # Base
 # ---------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# ---------------------------------------------------------------------
+# Para exibir equações matemáticas no pdf
+# ---------------------------------------------------------------------
+KATEX_CLI_BIN = str(BASE_DIR / "node_modules" / ".bin" / "katex.cmd")
+
+# ---------------------------------------------------------------------
+# Integrações externas / Serviços de terceiros
+# ---------------------------------------------------------------------
+
+# OpenAI (IA para geração de texto técnico)
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 SECRET_KEY = 'django-insecure-6f7-s-0=2hwe%pyd+al81e3f13a)ub2c2my%tr$*o7)o)p$byq'
 
