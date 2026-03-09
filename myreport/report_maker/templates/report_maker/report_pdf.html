@@ -1,5 +1,4 @@
-{# report_maker/templates/report_maker/report_pdf.html #}
-
+{# path: myreport/report_maker/templates/report_maker/report_pdf.html #}
 {% load static %}
 {% load markdown_extras %}
 
@@ -9,7 +8,9 @@
     <meta charset="utf-8" />
     <title>Laudo nº {{ report.report_number }}</title>
 
+    <link rel="stylesheet" href="{% static 'report_maker/css/vendor/katex.min.css' %}">
     <link rel="stylesheet" href="{% static 'report_maker/css/report_pdf.css' %}" />
+    {# <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" /> #}
   </head>
 
   <body>
@@ -57,7 +58,7 @@
       </table>
     </header>
 
-    {% comment %}RODAPÉ (running){% endcomment %}
+    {% comment %}Rodapé (running){% endcomment %}
     <footer class="footer-running">
       <div class="footer-meta">Laudo {{ report.report_number }} | Boletim {{ report.police_report }} - {{ report.police_station }}</div>
       <div class="footer-page">
@@ -65,18 +66,15 @@
       </div>
     </footer>
 
-    {% comment %}CONTEÚDO{% endcomment %}
+    {% comment %}Conteúdo{% endcomment %}
     <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
 
-    {# Preâmbulo #}
     {% if preamble %}
       <section class="report-section preamble">{{ preamble|linebreaks }}</section>
     {% endif %}
 
-    {# Conteúdo (outline único, já numerado) #}
     {% if outline %}
       {% for g in outline %}
-        {# Cabeçalho de grupo apenas quando existir label #}
         {% if g.number and g.group_label %}
           <section class="report-section group-block">
             <h2 class="section-heading">{{ g.number }} {{ g.group_label }}</h2>
@@ -87,12 +85,10 @@
           </section>
         {% endif %}
 
-        {# Objetos do grupo #}
         {% for o in g.objects %}
           <section class="report-section object-block">
             <h2 class="section-heading">{{ o.number }} {{ o.title }}</h2>
 
-            {# Seções #}
             {% for s in o.sections %}
               {% if s.number and s.label %}
                 <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
@@ -122,11 +118,10 @@
               {% elif s.fmt == 'kv' %}
                 <div class="mb-2">{{ s.text|linebreaksbr }}</div>
               {% else %}
-                {{ s.text|render_markdown }}
+                <div class="mb-2">{{ s.text|render_markdown }}</div>
               {% endif %}
             {% endfor %}
 
-            {# Figuras contínuas #}
             {% if o.images %}
               <div class="figure-grid">
                 {% for it in o.images %}
@@ -150,7 +145,6 @@
       </section>
     {% endif %}
 
-    {# Considerações finais / Observações finais (antes da Conclusão) #}
     {% if final_considerations_blocks %}
       <section class="report-section">
         <h2 class="section-heading">{{ final_considerations_num }} Considerações finais</h2>
@@ -161,7 +155,6 @@
       </section>
     {% endif %}
 
-    {# Conclusão (último T1) #}
     {% if conclusion_blocks %}
       <section class="report-section">
         <h2 class="section-heading">{{ conclusion_num }} Conclusão</h2>
@@ -171,7 +164,9 @@
         {% endfor %}
       </section>
     {% endif %}
+
     <div class="mb-3">{{ report.report_closing }}</div>
+
     <div class="report-signature mt-5 text-end">
       <div>
         <strong>{{ report.report_signature_block.name }}</strong>
