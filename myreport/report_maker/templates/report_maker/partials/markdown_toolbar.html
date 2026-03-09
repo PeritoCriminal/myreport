@@ -35,22 +35,26 @@ O comportamento (JS) será responsável por aplicar a sintaxe no textarea ativo.
     <button type="button" class="btn btn-outline-secondary" data-md="math" title="Fórmula">
       fx
     </button>
+    <a href="{% url 'report_maker:markdown_help' %}" class="btn btn-sm btn-outline-secondary" target="_blank"
+      rel="noopener">
+      Ajuda Markdown
+    </a>
 
 
-  {% comment %}
-  
-  <button type="button" class="btn btn-outline-secondary" data-md="quote" title="Citação">
-    “ ”
-  </button>
-  <button type="button" class="btn btn-outline-secondary" data-md="code" title="Código">
-    <code>{ }</code>
-  </button>
-</div>
+    {% comment %}
 
-<div class="btn-group btn-group-sm" role="group" aria-label="Outros">
-  <button type="button" class="btn btn-outline-secondary" data-md="hr" title="Separador">
-    ―
-  </button>
-  {% endcomment %}
-</div>
+    <button type="button" class="btn btn-outline-secondary" data-md="quote" title="Citação">
+      “ ”
+    </button>
+    <button type="button" class="btn btn-outline-secondary" data-md="code" title="Código">
+      <code>{ }</code>
+    </button>
+  </div>
+
+  <div class="btn-group btn-group-sm" role="group" aria-label="Outros">
+    <button type="button" class="btn btn-outline-secondary" data-md="hr" title="Separador">
+      ―
+    </button>
+    {% endcomment %}
+  </div>
 </div>

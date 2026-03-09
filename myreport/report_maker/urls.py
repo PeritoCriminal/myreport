@@ -3,6 +3,8 @@ from django.urls import path
 
 from report_maker.views.ai_textblock import ai_textblock_generate
 
+from .views.help_markdown import MarkdownHelpView
+
 from report_maker.views.report_case import (
     ReportCaseListView,
     ReportCaseCreateView,
@@ -86,6 +88,9 @@ urlpatterns = [
 
     # PDF do laudo (artefato DERIVADO; pode ser gerado a qualquer momento)
     path("reports/<uuid:pk>/pdf/", reportPDFGenerator, name="report_pdf"),
+
+    # Página de ajuda para uso de markdown
+    path("help/markdown/", MarkdownHelpView.as_view(), name="markdown_help"),
 
     # ─────────────────────────────────────
     # Textos do laudo (ReportTextBlock)
