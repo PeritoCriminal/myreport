@@ -1,48 +1,48 @@
 /* ==========================================================================
    Report Maker — PDF (WeasyPrint)
    Arquivo: static/report_maker/css/report_pdf.css
-   Objetivo: Cabeçalho/rodapé, tipografia técnica e controle de quebras
+   Objetivo: Cabeçalho/rodapé institucional, tipografia pericial e KaTeX
    ========================================================================== */
 
-/* ===========================
-   PÁGINA (A4) + HEADER/FOOTER
-   =========================== */
-
+/* ==========================================
+   CONFIGURAÇÃO DE PÁGINA (A4)
+   ========================================== */
 @page {
-  size: A4;
-  margin: 5cm 2cm 4cm 3cm; /* sup dir inf esq */
+    size: A4;
+    /* Margens: Superior (p/ header), Direita, Inferior (p/ footer), Esquerda */
+    margin: 5cm 2cm 4cm 3cm;
 
-  @top-center {
-    content: element(doc_header);
-  }
-
-  @bottom-right {
-    content: element(doc_footer);
-  }
+    @top-center { content: element(doc_header); }
+    @bottom-right { content: element(doc_footer); }
 }
 
-/* Registra elementos repetidos */
+/* Registro de elementos repetitivos (Running Elements) */
 .header-running { position: running(doc_header); }
 .footer-running { position: running(doc_footer); }
 
-/* ===========================
-   BASE & TIPOGRAFIA
-   =========================== */
-
+/* ==========================================
+   BASE & TIPOGRAFIA TÉCNICA
+   ========================================== */
 html, body {
-  margin: 0;
-  padding: 0;
-  background: #fff;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 12pt;
-  line-height: 1.5;
-  color: #000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12pt;
+    line-height: 1.5;
 }
 
-/* Evita quebras órfãs em elementos estruturais */
+/* Controle de Órfãs, Viúvas e Quebras Indesejadas */
+p, li {
+    widows: 4;
+    orphans: 4;
+    text-align: justify;
+}
+
 h1, h2, h3, 
 .section-heading, 
 .object-subtitle, 
@@ -50,215 +50,193 @@ h1, h2, h3,
 .report-header,
 .geo-block,
 .report-signature {
-  break-inside: avoid;
+    break-inside: avoid;
 }
 
-/* Controle de Órfãs/Viúvas */
-p, li {
-  widows: 4;
-  orphans: 4;
+h1, h2, h3, .section-heading, .object-subtitle {
+    break-after: avoid;
+    font-weight: 700;
+    text-transform: uppercase;
 }
 
-/* ===========================
+/* ==========================================
    CABEÇALHO INSTITUCIONAL
-   =========================== */
-
+   ========================================== */
 .header-running {
-  padding: 0 0 8pt 0;
-  margin-top: 50pt;
+    padding-bottom: 8pt;
+    /* Ajuste para alinhar dentro da margem superior de 5cm */
+    margin-top: 50pt; 
 }
 
 .report-header {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .rh-img {
-  width: 18mm;
-  vertical-align: middle;
-  text-align: center;
+    width: 18mm;
+    vertical-align: middle;
+    text-align: center;
 }
 
 .rh-center {
-  vertical-align: middle;
-  text-align: center;
-  padding: 0 6mm;
+    vertical-align: middle;
+    text-align: center;
+    padding: 0 6mm;
 }
 
 .rh-emblem {
-  display: inline-block;
-  width: 16mm;
-  height: 16mm;
-  object-fit: contain;
+    width: 16mm;
+    height: 16mm;
+    object-fit: contain;
 }
 
 .rh-line {
-  margin: 0;
-  padding: 0;
-  line-height: 1.1;
+    margin: 0;
+    padding: 0;
+    line-height: 1.1;
 }
 
+/* Hierarquia do Cabeçalho */
 .rh-1, .rh-2, .rh-3 { font-weight: 700; text-transform: uppercase; }
 .rh-1 { font-size: 10pt; letter-spacing: 0.2pt; }
 .rh-2 { font-size: 10pt; margin-top: 2pt; }
 .rh-3 { font-size: 9.5pt; margin-top: 2pt; }
-.rh-4 { font-size: 9pt; font-style: italic; margin-top: 2pt; }
-.rh-5 { font-size: 9pt; margin-top: 2pt; }
+.rh-4 { font-size: 9pt; font-style: italic; margin-top: 2pt; font-weight: normal; text-transform: none; }
+.rh-5 { font-size: 9pt; margin-top: 2pt; font-weight: normal; text-transform: none; }
 
 .report-number {
-  margin: 8pt 0 18pt 0;
-  font-size: 13pt;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3pt;
-  text-align: center;
+    margin: 12pt 0 18pt 0;
+    font-size: 13pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-align: center;
 }
 
-/* ===========================
-   RODAPÉ
-   =========================== */
-
+/* ==========================================
+   RODAPÉ E NUMERAÇÃO
+   ========================================== */
 .footer-running {
-  padding: 6pt 0 0 0;
-  border-top: 1px solid #000;
-  font-size: 10pt;
+    padding-top: 6pt;
+    border-top: 1px solid #000;
+    font-size: 10pt;
 }
 
-.footer-running .footer-meta,
-.footer-running .footer-page {
-  display: block;
-  text-align: right;
-  line-height: 1.15;
+.footer-meta, .footer-page {
+    display: block;
+    text-align: right;
+    line-height: 1.2;
 }
 
-.footer-running .page-count::before {
-  content: "Página " counter(page) " de " counter(pages);
+.page-count::before {
+    content: "Página " counter(page) " de " counter(pages);
 }
 
-/* ===========================
-   CONTEÚDO E LISTAS TÉCNICAS
-   =========================== */
-
+/* ==========================================
+   CONTEÚDO, LISTAS E FÓRMULAS
+   ========================================== */
 p {
-  text-align: justify;
-  margin: 0 0 12pt 0;
-  white-space: pre-line;
+    margin: 0 0 12pt 0;
+    white-space: pre-line;
 }
 
-/* Listas Customizadas (Estilo Laudo) */
-ul {
-  margin: 0 0 12pt 0;
-  padding: 0;
-  list-style-type: none; /* Remove bolinhas */
+ul, ol {
+    list-style-position: inside;
+    margin: 0 0 12pt 20pt;
+    padding: 0;
 }
 
+
+li {
+    margin-bottom: 4pt;
+}
+
+/* Lista técnica com travessão */
+ul { list-style-type: none; }
 ul li {
-  position: relative;
-  padding-left: 15pt;
-  margin-bottom: 4pt;
-  text-align: justify;
+    position: relative;
+    padding-left: 15pt;
 }
-
 ul li::before {
-  content: "–"; /* Traço técnico (en-dash) */
-  position: absolute;
-  left: 0;
-  font-weight: bold;
+    content: "–";
+    position: absolute;
+    left: 0;
+    font-weight: 700;
 }
 
-ol {
-  margin: 0 0 12pt 20pt;
-  padding: 0;
+/* Alinhamento de Fórmulas KaTeX Isoladas */
+p > .katex:first-child:last-child,
+p > .math-error:first-child:last-child {
+    display: block;
+    margin: 10pt 0 10pt 20pt;
 }
 
-/* ===========================
-   TÍTULOS
-   =========================== */
+/* ==========================================
+   TÍTULOS DE SEÇÃO
+   ========================================== */
+h1 { font-size: 14pt; margin: 26pt 0 10pt 0; }
+h2, .section-heading { font-size: 12pt; margin: 20pt 0 8pt 0; }
+h3, .object-subtitle { font-size: 11pt; margin: 14pt 0 6pt 0; }
 
-h1, h2, h3, .section-heading, .object-subtitle {
-  break-after: avoid;
-}
-
-.section-heading {
-  font-size: 12pt;
-  font-weight: 700;
-  margin: 16pt 0 8pt 0;
-  text-transform: uppercase;
-}
-
-.object-subtitle {
-  font-size: 11pt;
-  font-weight: 700;
-  margin: 12pt 0 4pt 0;
-}
-
-h1 { font-size: 14pt; font-weight: 600; margin: 26pt 0 10pt 0; text-transform: uppercase; }
-h2 { font-size: 12pt; font-weight: 600; margin: 20pt 0 8pt 0; }
-h3 { font-size: 11pt; font-weight: 600; margin: 14pt 0 6pt 0; }
-
-/* ===========================
-   FIGURAS E GEO
-   =========================== */
-
+/* ==========================================
+   FIGURAS E ELEMENTOS GEO
+   ========================================== */
 .report-figure {
-  display: block;
-  /* A largura agora é controlada pelo style="..." no HTML */
-  margin-bottom: 18pt;
-  page-break-inside: avoid; /* Evita que a imagem e a legenda fiquem em páginas diferentes */
+    margin: 18pt 0;
+    text-align: center;
 }
 
 .report-figure img {
-  display: block;
-  width: 100%;       /* Ocupa 100% da largura do <figure> pai */
-  height: auto;
-  max-width: 100%;   /* Garante que não ultrapasse o pai */
-  max-height: 18cm;  /* Limite de altura para não "estourar" a folha A4 */
-  object-fit: contain;
-  border: 1px solid #222;
-  margin: 30pt 0pt 0pt 0pt;
+    max-width: 100%;
+    max-height: 18cm;
+    height: auto;
+    object-fit: contain;
+    border: 1px solid #222;
+    margin-top: 10pt;
 }
 
 .report-figure figcaption {
-  margin-top: 5pt;
-  font-size: 11pt;
-  font-style: italic;
-  text-align: center;
-  line-height: 1.2;
+    margin-top: 6pt;
+    font-size: 11pt;
+    font-style: italic;
+    line-height: 1.2;
 }
 
 .geo-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
 }
 
 .geo-qr {
-  width: 34mm;
-  padding-right: 8pt;
-  vertical-align: middle;
-  text-align: center;
+    width: 34mm;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .geo-qr-img {
-  width: 30mm;
-  height: 30mm;
-  object-fit: contain;
+    width: 30mm;
+    height: 30mm;
 }
 
-.geo-link-title { font-weight: 700; margin: 0 0 2pt 0; }
-.geo-link-url { text-decoration: underline; overflow-wrap: anywhere; word-break: break-word; }
+.geo-link-url {
+    text-decoration: underline;
+    word-break: break-all;
+}
 
-/* ===========================
-   FINALIZAÇÃO
-   =========================== */
-
+/* ==========================================
+   UTILITÁRIOS E ASSINATURA
+   ========================================== */
 .report-signature {
-  margin-top: 36pt;
-  text-align: right;
-  line-height: 1.4;
+    margin-top: 48pt;
+    text-align: right;
+    line-height: 1.4;
 }
 
 .page-break { break-before: page; }
 
-a { word-break: break-all; overflow-wrap: anywhere; }
+a { 
+    color: #000;
+    text-decoration: none;
+    word-break: break-all; 
+}
