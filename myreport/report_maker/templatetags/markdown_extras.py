@@ -11,48 +11,78 @@ import bleach
 from django import template
 from django.conf import settings
 from django.utils.safestring import mark_safe
+from bleach.css_sanitizer import CSSSanitizer
 
 
 register = template.Library()
 
-# Tags permitidas para o conteúdo textual
+
+# Propriedades CSS necessárias para preservar o layout gerado pelo KaTeX
+_ALLOWED_CSS_PROPERTIES = [
+    "display",
+    "height",
+    "width",
+    "top",
+    "bottom",
+    "vertical-align",
+    "margin-top",
+    "margin-left",
+    "margin-right",
+    "margin-bottom",
+    "position",
+    "border-color",
+    "float",
+    "color",
+    "background-color",
+]
+
+
+# Conjunto de tags HTML permitidas após sanitização
 _ALLOWED_TAGS = [
     "p", "br",
-    "strong", "em", "s", "code", "pre",
+    "strong", "em", "s",
+    "code", "pre",
     "blockquote",
     "ul", "ol", "li",
     "h1", "h2", "h3",
     "hr",
     "span",
+
+    # MathML utilizado pelo KaTeX
+    "math", "semantics", "mrow", "mi", "mn", "mo", "mtext",
+    "annotation", "msub", "msup", "mover", "munder",
+    "msubsup", "mtable", "mtr", "mtd", "mspace", "menclose",
 ]
 
-# Tags específicas do KaTeX/MathML para garantir que subscritos e sobrescritos funcionem
-_MATH_TAGS = [
-    "math", "semantics", "mrow", "mi", "mn", "mo", "mtext", 
-    "annotation", "msub", "msup", "mover", "munder", 
-    "msubsup", "mtable", "mtr", "mtd", "mspace"
-]
 
-_ALLOWED_TAGS.extend(_MATH_TAGS)
-
-# Atributos permitidos (essencial permitir 'style' em spans para o layout do KaTeX)
+# Atributos necessários para preservar classes e estilos de layout do KaTeX
 _ALLOWED_ATTRS = {
-    "code": ["class"],
-    "pre": ["class"],
-    "span": ["class", "aria-hidden", "style", "dir"],
+    "*": ["class", "style", "id"],
+    "span": ["aria-hidden", "dir"],
     "math": ["xmlns", "display"],
     "annotation": ["encoding"],
+    "code": ["class"],
 }
+
 
 _ALLOWED_PROTOCOLS = ["http", "https", "mailto"]
 
-# Detecta expressões matemáticas inline: $...$
-_INLINE_MATH_RE = re.compile(r"(?<!\\)\$(.+?)(?<!\\)\$", re.DOTALL)
+
+# Sanitizador CSS utilizado pelo bleach
+_CSS_SANITIZER = CSSSanitizer(
+    allowed_css_properties=_ALLOWED_CSS_PROPERTIES
+)
+
+
+# Expressões matemáticas inline delimitadas por $...$
+_INLINE_MATH_RE = re.compile(r"(?<!\\)\$([^\$]+?)(?<!\\)\$")
 
 
 def _render_katex_inline(tex: str) -> str:
     """
-    Renderiza expressão TeX inline usando a CLI do KaTeX.
+    Renderiza expressão TeX inline utilizando a CLI do KaTeX.
+    O HTML retornado contém a estrutura necessária para renderização
+    consistente em HTML e em PDF (WeasyPrint).
     """
     try:
         result = subprocess.run(
@@ -62,39 +92,36 @@ def _render_katex_inline(tex: str) -> str:
             text=True,
             check=True,
             encoding="utf-8",
-            errors="replace",
         )
         return result.stdout.strip()
 
     except Exception:
-        # fallback seguro caso KaTeX falhe ou binário não encontrado
-        escaped = html.escape(tex)
-        return f'<span class="math-inline-error">${escaped}$</span>'
+        return f'<span class="math-error">${html.escape(tex)}$</span>'
 
 
 @register.filter
 def render_markdown(value: str) -> str:
     """
-    Converte Markdown para HTML, isolando fórmulas matemáticas para evitar
-    conflitos de caracteres como '_' e '^', e sanitiza o resultado.
+    Converte Markdown para HTML preservando expressões matemáticas inline.
+    As fórmulas são renderizadas previamente via KaTeX CLI e reinseridas
+    após a conversão Markdown.
     """
     text = (value or "").strip()
     if not text:
         return ""
 
-    # 1. MASCARAR: Extrair fórmulas e substituir por placeholders
-    # Isso evita que o Markdown tente converter x_2 em itálico.
     math_map = {}
+
     def mask_math(match):
-        placeholder = f"MATH-PH-{uuid.uuid4()}"
-        tex = match.group(1).strip()
-        # Renderiza via CLI e armazena o HTML resultante
-        math_map[placeholder] = _render_katex_inline(tex)
+        placeholder = f"KATEXPH{uuid.uuid4().hex}"
+        tex_content = match.group(1).strip()
+        math_map[placeholder] = _render_katex_inline(tex_content)
         return placeholder
 
+    # Substitui expressões matemáticas por placeholders
     text_masked = _INLINE_MATH_RE.sub(mask_math, text)
 
-    # 2. MARKDOWN: Converter o texto que agora contém apenas os placeholders
+    # Conversão Markdown
     html_out = md.markdown(
         text_masked,
         extensions=[
@@ -105,15 +132,16 @@ def render_markdown(value: str) -> str:
         output_format="html5",
     )
 
-    # 3. REINSERIR: Substituir os placeholders pelo HTML renderizado do KaTeX
+    # Reinsere HTML gerado pelo KaTeX
     for placeholder, rendered_math in math_map.items():
         html_out = html_out.replace(placeholder, rendered_math)
 
-    # 4. SANITIZAR: Limpar o HTML mantendo as tags necessárias para a matemática
+    # Sanitização final do HTML
     clean = bleach.clean(
         html_out,
         tags=_ALLOWED_TAGS,
         attributes=_ALLOWED_ATTRS,
+        css_sanitizer=_CSS_SANITIZER,
         protocols=_ALLOWED_PROTOCOLS,
         strip=True,
     )
