@@ -29,7 +29,7 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         )
 
     # ─────────────────────────────────────────────────────────────
-    # Header builders (mantidos conforme sua lógica original)
+    # Header builders
     # ─────────────────────────────────────────────────────────────
     def _build_header_from_user(self) -> dict:
         user = self.request.user
@@ -110,14 +110,14 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         glossary_p = getattr(placements, "GLOSSARY", None)
         if glossary_p: add_to_prepend("Glossário", glossary_p)
         
-        add_to_prepend("Sumário", placements.TOC)
+        add_to_prepend("Sumário", placements.TOC) 
         
         historic_p = getattr(placements, "HISTORIC", None)
         if historic_p:
             add_to_prepend("Histórico", historic_p)
 
         # -- Metadados (Objetivo, etc)
-        meta_blocks = list(report.get_render_blocks() or [])
+        meta_blocks = list(report.get_render_blocks() or []) 
         prepend_blocks.extend(meta_blocks)
 
         # -- Append: Considerações Finais e Conclusão

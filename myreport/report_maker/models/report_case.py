@@ -375,29 +375,45 @@ class ReportCase(models.Model):
         Blocos iniciais do laudo (sem numeração).
         A view/builder decide numeração (T1/T2/T3...).
         """
+
+        def kv_to_markdown(items):
+            lines = []
+            for it in items:
+                label = it.get("label")
+                value = it.get("value")
+                if value:
+                    lines.append(f"- **{label}:** {value}")
+            return "\n".join(lines)
+
+        req_items = [
+            {"label": "Autoridade requisitante", "value": self.requesting_authority},
+            {"label": "Inquérito policial", "value": self.police_inquiry},
+            {"label": "Distrito policial", "value": self.police_station},
+            {"label": "Boletim de ocorrência", "value": self.police_report},
+            {"label": "Tipificação penal / Ocorrência", "value": self.criminal_typification},
+            {"label": "Data e hora da ocorrência", "value": self.occurrence_datetime},
+        ]
+
+        att_items = [
+            {"label": "Protocolo de atendimento", "value": self.protocol},
+            {"label": "Data e hora do exame pericial", "value": self.examination_datetime},
+            {"label": "Perito", "value": self.report_identity_name},
+            {"label": "Fotografia", "value": self.photography_by},
+            {"label": "Croqui", "value": self.sketch_by},
+        ]
+
         return [
             {
-                "kind": "kv_section",
+                "kind": "text_section",
                 "label": "Dados da Requisição",
-                "items": [
-                    {"label": "Autoridade requisitante", "value": self.requesting_authority},
-                    {"label": "Inquérito policial", "value": self.police_inquiry},
-                    {"label": "Distrito policial", "value": self.police_station},
-                    {"label": "Boletim de ocorrência", "value": self.police_report},
-                    {"label": "Tipificação penal / Ocorrência", "value": self.criminal_typification},
-                    {"label": "Data e hora da ocorrência", "value": self.occurrence_datetime},
-                ],
+                "value": kv_to_markdown(req_items),
+                "fmt": "markdown",
             },
             {
-                "kind": "kv_section",
+                "kind": "text_section",
                 "label": "Dados do Atendimento",
-                "items": [
-                    {"label": "Protocolo de atendimento", "value": self.protocol},
-                    {"label": "Data e hora do exame pericial", "value": self.examination_datetime},
-                    {"label": "Perito", "value": self.report_identity_name},
-                    {"label": "Fotografia", "value": self.photography_by},
-                    {"label": "Croqui", "value": self.sketch_by},
-                ],
+                "value": kv_to_markdown(att_items),
+                "fmt": "markdown",
             },
             {
                 "kind": "text_section",
