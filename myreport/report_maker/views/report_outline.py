@@ -1,4 +1,4 @@
-# myreport/report_maker/views/report_outline.py
+# myreport/report_maker/views/report_outline.py  out_section
 from __future__ import annotations
 
 import base64
@@ -95,21 +95,40 @@ def _expand_markdown_headings(
     resolved: list[tuple[str, str, str, str, str | None, str | None]],
 ) -> list[tuple[str, str, str, str, str | None, str | None]]:
     expanded: list[tuple[str, str, str, str, str | None, str | None]] = []
+
     for kind, label, text, fmt, maps_url, qr_data_uri in resolved:
-        if fmt != "md":
+        fmt_normalized = (fmt or "").strip().lower()
+        raw_text = text or ""
+
+        if fmt_normalized == "markdown":
+            fmt_normalized = "md"
+
+        is_markdown_like = fmt_normalized == "md" or (
+            fmt_normalized == "text" and bool(re.search(r"(?m)^\s*##\s+\S+", raw_text))
+        )
+
+        if not is_markdown_like:
             expanded.append((kind, label, text, fmt, maps_url, qr_data_uri))
             continue
-        md_sections = _split_markdown_h2_sections(text)
+
+        md_sections = _split_markdown_h2_sections(raw_text)
         if not md_sections:
-            expanded.append((kind, label, text, fmt, maps_url, qr_data_uri))
+            expanded.append((kind, label, text, fmt_normalized, maps_url, qr_data_uri))
             continue
+
         for idx, (md_label, md_text) in enumerate(md_sections):
-            if not md_text.strip(): continue
-            if md_label:
-                expanded.append(("markdown_heading", md_label, md_text, fmt, maps_url, qr_data_uri))
+            if not md_text.strip():
                 continue
+
+            if md_label:
+                expanded.append(
+                    ("markdown_heading", md_label, md_text, fmt_normalized, maps_url, qr_data_uri)
+                )
+                continue
+
             fallback_label = label if idx == 0 else ""
-            expanded.append((kind, fallback_label, md_text, fmt, maps_url, qr_data_uri))
+            expanded.append((kind, fallback_label, md_text, fmt_normalized, maps_url, qr_data_uri))
+
     return expanded
 
 
@@ -130,11 +149,12 @@ def build_report_outline(
     n_top = start_at
 
     def _add_virtual_groups(block_list: list[dict], current_n: int) -> int:
-        """Helper para converter dicionários de blocos em OutlineGroups numerados."""
+        """Converte blocos virtuais em OutlineGroups numerados, com suporte a headings Markdown."""
         for b in block_list:
             kind = (b.get("kind") or "").strip()
             label = (b.get("label") or "").strip()
-            if not label: continue
+            if not label:
+                continue
 
             text = ""
             fmt = (b.get("fmt") or "text").strip()
@@ -143,18 +163,81 @@ def build_report_outline(
                 items = b.get("items") or []
                 lines = []
                 for it in items:
-                    if not isinstance(it, dict): continue
+                    if not isinstance(it, dict):
+                        continue
                     k = (it.get("label") or "").strip()
                     v = it.get("value")
-                    if v is None: continue
+                    if v is None:
+                        continue
                     v_str = v.strftime("%d/%m/%Y %H:%M") if hasattr(v, "strftime") else str(v).strip()
-                    if v_str: lines.append(f"{k}: {v_str}" if k else v_str)
+                    if v_str:
+                        lines.append(f"{k}: {v_str}" if k else v_str)
                 text = "\n".join(lines).strip()
+
             elif kind == "text_section":
                 text = (b.get("value") or "").strip()
 
-            if (label == "Objetivo" or not text):
-                if not text: continue
+            if label == "Objetivo" or not text:
+                if not text:
+                    continue
+
+            resolved = _expand_markdown_headings([(kind, label, text, fmt, None, None)])
+
+            out_sections: list[OutlineSection] = []
+
+            if not resolved:
+                out_sections.append(
+                    OutlineSection(number="", label="", text=text, fmt=fmt)
+                )
+            else:
+                base_number = str(current_n)
+                child_index = 0
+                first_section_consumed = False
+
+                for sec_kind, sec_label, sec_text, sec_fmt, maps_url, qr_data_uri in resolved:
+                    has_label = bool((sec_label or "").strip())
+
+                    if not first_section_consumed:
+                        first_section_consumed = True
+                        out_sections.append(
+                            OutlineSection(
+                                number="",
+                                label="",
+                                text=sec_text,
+                                fmt=sec_fmt,
+                                kind=sec_kind,
+                                maps_url=maps_url,
+                                qr_data_uri=qr_data_uri,
+                            )
+                        )
+                        continue
+
+                    if sec_kind == "markdown_heading" and has_label:
+                        child_index += 1
+                        out_sections.append(
+                            OutlineSection(
+                                number=_with_dash(f"{base_number}.{child_index}"),
+                                label=sec_label,
+                                text=sec_text,
+                                fmt=sec_fmt,
+                                kind=sec_kind,
+                                maps_url=maps_url,
+                                qr_data_uri=qr_data_uri,
+                            )
+                        )
+                        continue
+
+                    out_sections.append(
+                        OutlineSection(
+                            number="",
+                            label=sec_label if has_label else "",
+                            text=sec_text,
+                            fmt=sec_fmt,
+                            kind=sec_kind,
+                            maps_url=maps_url,
+                            qr_data_uri=qr_data_uri,
+                        )
+                    )
 
             outline.append(
                 OutlineGroup(
@@ -167,12 +250,13 @@ def build_report_outline(
                             number=_with_dash(f"{current_n}"),
                             obj=report,
                             title=label,
-                            sections=[OutlineSection(number="", label="", text=text, fmt=fmt)],
+                            sections=out_sections,
                         )
                     ],
                 )
             )
             current_n += 1
+
         return current_n
 
     # 1. Blocos iniciais (Resumo, Histórico, Metadados...)
@@ -241,15 +325,77 @@ def build_report_outline(
 
             resolved = _expand_markdown_headings(resolved)
             out_sections = []
-            if len(resolved) == 1:
-                kind, label, text, fmt, maps_url, qr_data_uri = resolved[0]
-                keep_label = kind in {"geo_location", "markdown_heading"} and bool(label)
-                out_sections.append(OutlineSection("", label if keep_label else "", text, fmt, kind, maps_url, qr_data_uri))
-            else:
-                for n_sec, (kind, label, text, fmt, maps_url, qr_data_uri) in enumerate(resolved, 1):
-                    sec_num = _with_dash(f"{n_top}.{n_obj}.{n_sec}" if use_header else f"{n_top}.{n_sec}") if label else ""
-                    out_sections.append(OutlineSection(sec_num, label, text, fmt, kind, maps_url, qr_data_uri))
 
+            base_section_index = 0
+            current_parent_number = ""
+            current_parent_label = ""
+            markdown_child_index = 0
+
+            for kind, label, text, fmt, maps_url, qr_data_uri in resolved:
+                has_label = bool((label or "").strip())
+
+                if kind == "markdown_heading":
+                    if current_parent_number and has_label:
+                        markdown_child_index += 1
+                        child_number = _with_dash(f"{current_parent_number.rstrip('.')}.{markdown_child_index}")
+                        out_sections.append(
+                            OutlineSection(
+                                child_number,
+                                label,
+                                text,
+                                fmt,
+                                kind,
+                                maps_url,
+                                qr_data_uri,
+                            )
+                        )
+                    else:
+                        base_section_index += 1
+                        parent_number = f"{n_top}.{n_obj}.{base_section_index}" if use_header else f"{n_top}.{base_section_index}"
+                        current_parent_number = parent_number
+                        current_parent_label = label
+                        markdown_child_index = 0
+                        out_sections.append(
+                            OutlineSection(
+                                _with_dash(parent_number) if has_label else "",
+                                label if has_label else "",
+                                text,
+                                fmt,
+                                kind,
+                                maps_url,
+                                qr_data_uri,
+                            )
+                        )
+                    continue
+
+                if has_label:
+                    base_section_index += 1
+                    current_parent_number = f"{n_top}.{n_obj}.{base_section_index}" if use_header else f"{n_top}.{base_section_index}"
+                    current_parent_label = label
+                    markdown_child_index = 0
+                    out_sections.append(
+                        OutlineSection(
+                            _with_dash(current_parent_number),
+                            label,
+                            text,
+                            fmt,
+                            kind,
+                            maps_url,
+                            qr_data_uri,
+                        )
+                    )
+                else:
+                    out_sections.append(
+                        OutlineSection(
+                            "",
+                            "",
+                            text,
+                            fmt,
+                            kind,
+                            maps_url,
+                            qr_data_uri,
+                        )
+                    )
             out_objs.append(OutlineObject(obj_number, obj, title_value, out_sections))
             if not use_header: n_top += 1
 
