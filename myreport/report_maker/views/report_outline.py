@@ -123,8 +123,8 @@ def build_report_outline(
     append_blocks: list[dict] | None = None,
 ) -> tuple[list[OutlineGroup], int]:
     """
-    Constrói a OUTLINE editorial. Agora aceita append_blocks para garantir
-    que Considerações Finais e Conclusão sigam a numeração T1.
+    Constrói a outline editorial do laudo, incluindo blocos virtuais iniciais
+    e finais, objetos de exame agrupados e numeração hierárquica para exibição.
     """
     outline: list[OutlineGroup] = []
     n_top = start_at

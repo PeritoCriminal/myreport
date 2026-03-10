@@ -144,26 +144,6 @@
       </section>
     {% endif %}
 
-    {% if final_considerations_blocks %}
-      <section class="report-section">
-        <h2 class="section-heading">{{ final_considerations_num }} Considerações finais</h2>
-
-        {% for block in final_considerations_blocks %}
-          <div class="mb-3">{{ block.body|render_markdown }}</div>
-        {% endfor %}
-      </section>
-    {% endif %}
-
-    {% if conclusion_blocks %}
-      <section class="report-section">
-        <h2 class="section-heading">{{ conclusion_num }} Conclusão</h2>
-
-        {% for block in conclusion_blocks %}
-          <div class="mb-3">{{ block.body|render_markdown }}</div>
-        {% endfor %}
-      </section>
-    {% endif %}
-
     <div class="mb-3">{{ report.report_closing }}</div>
 
     <div class="report-signature mt-5 text-end">
