@@ -15,37 +15,12 @@ from report_maker.views.report_outline import build_report_outline
 
 
 class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
-    """
-    Renderização “showpage” do laudo (HTML em formato de documento).
-
-    Controle de acesso:
-    - usuário autenticado;
-    - apenas o autor do laudo (filtrado em get_queryset).
-
-    Regras de cabeçalho:
-    - Se o laudo estiver editável (report.can_edit == True), o cabeçalho é montado a partir do
-      contexto ATUAL do usuário (vínculo institucional/Equipe/Núcleo).
-    - Se o laudo estiver concluído/bloqueado, o cabeçalho é montado a partir dos snapshots
-      armazenados no próprio ReportCase, garantindo consistência histórica.
-
-    Conteúdo:
-    - Textos do laudo vêm de ReportTextBlock, agrupados por placement.
-    - O preâmbulo prioriza o bloco PREAMBLE do usuário; se vazio, usa report.preamble.
-    - A outline do laudo é construída por build_report_outline(), com blocos iniciais (Resumo,
-      Glossário, Sumário e metadados) e, depois, os objetos de exame.
-    - Imagens são carregadas em lote (por ContentType do objeto concreto) e numeradas como
-      Figuras contínuas (Figura 1, Figura 2, ...).
-    """
     model = ReportCase
     template_name = "report_maker/reportcase_showpage.html"
     context_object_name = "report"
     pk_url_kwarg = "pk"
 
     def get_queryset(self):
-        """
-        Restringe a leitura ao autor do laudo e carrega relações úteis
-        para evitar N+1 no template.
-        """
         return (
             super()
             .get_queryset()
@@ -54,317 +29,160 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         )
 
     # ─────────────────────────────────────────────────────────────
-    # Header builders
+    # Header builders (mantidos conforme sua lógica original)
     # ─────────────────────────────────────────────────────────────
     def _build_header_from_user(self) -> dict:
-        """
-        Monta o cabeçalho institucional a partir do vínculo ATUAL do usuário.
-
-        Usado apenas quando o laudo está editável (report.can_edit == True), pois o laudo
-        ainda “acompanha” o contexto vigente do perito.
-        """
         user = self.request.user
-
-        team = user.team
-        nucleus = user.nucleus
-        inst = user.institution
-
-        name = (getattr(inst, "name", "") or "") if inst else ""
-        acronym = (getattr(inst, "acronym", "") or "") if inst else ""
-
-        if inst and hasattr(inst, "get_kind_display"):
-            kind_display = inst.get_kind_display()
-        else:
-            kind_display = str(getattr(inst, "kind", "") or "") if inst else ""
-
-        hon_title = (getattr(inst, "honoree_title", "") or "") if inst else ""
-        hon_name = (getattr(inst, "honoree_name", "") or "") if inst else ""
-
-        if hon_title and hon_name:
-            honoree_line = f"{hon_title} {hon_name}"
-        else:
-            honoree_line = hon_name or ""
-
-        # ─────────────────────────────────────────────
-        # Unit line (evita repetir núcleo/equipe)
-        # ─────────────────────────────────────────────
+        team, nucleus, inst = user.team, user.nucleus, user.institution
+        name = getattr(inst, "name", "") or ""
+        acronym = getattr(inst, "acronym", "") or ""
+        kind_display = inst.get_kind_display() if inst and hasattr(inst, "get_kind_display") else str(getattr(inst, "kind", "") or "")
+        hon_title, hon_name = getattr(inst, "honoree_title", "") or "", getattr(inst, "honoree_name", "") or ""
+        honoree_line = f"{hon_title} {hon_name}" if hon_title and hon_name else (hon_name or "")
+        
         nucleus_txt = (getattr(nucleus, "name", "") or "").strip() if nucleus else ""
         team_txt = (getattr(team, "name", "") or "").strip() if team else ""
-
-        team_is_redundant = False
-        if team and getattr(team, "is_nucleus_team", False):
-            team_is_redundant = True
-        elif nucleus_txt and team_txt and nucleus_txt.casefold() == team_txt.casefold():
-            team_is_redundant = True
-
-        unit_parts = []
-        if nucleus_txt:
-            unit_parts.append(nucleus_txt)
-        if team_txt and not team_is_redundant:
-            unit_parts.append(team_txt)
-
-        unit_line = " - ".join(unit_parts)
+        team_is_redundant = (team and getattr(team, "is_nucleus_team", False)) or (nucleus_txt.casefold() == team_txt.casefold())
+        
+        unit_parts = [nucleus_txt] if nucleus_txt else []
+        if team_txt and not team_is_redundant: unit_parts.append(team_txt)
 
         return {
             "name": name or None,
             "acronym": acronym or None,
             "kind_display": kind_display or None,
             "honoree_line": honoree_line or None,
-            "unit_line": unit_line or None,
+            "unit_line": " - ".join(unit_parts) or None,
             "emblem_primary": getattr(inst, "emblem_primary", None) if inst else None,
             "emblem_secondary": getattr(inst, "emblem_secondary", None) if inst else None,
         }
 
-
     def _build_header_from_snapshots(self, report: ReportCase) -> dict:
-        """
-        Monta o cabeçalho institucional usando snapshots persistidos no ReportCase.
-
-        Usado quando o laudo está concluído/bloqueado. Isso garante que:
-        - o cabeçalho não muda se o usuário trocar de equipe/núcleo/instituição;
-        - o documento mantém coerência histórica.
-        """
-        inst = report.institution  # fallback opcional só para emblemas
-
-        name = (report.institution_name_snapshot or "").strip()
-        acronym = (report.institution_acronym_snapshot or "").strip()
-        kind_display = (report.institution_kind_snapshot or "").strip()
-
-        hon_title = (report.honoree_title_snapshot or "").strip()
-        hon_name = (report.honoree_name_snapshot or "").strip()
-
-        if hon_title and hon_name:
-            honoree_line = f"{hon_title} {hon_name}"
-        else:
-            honoree_line = hon_name or ""
-
-        # ─────────────────────────────────────────────
-        # Unit line (snapshot-safe) — evita repetir núcleo/equipe
-        # ─────────────────────────────────────────────
-        nucleus_txt = (report.nucleus_display or "").strip()
-        team_txt = (report.team_display or "").strip()
-
-        team_is_redundant = False
-        if report.team and getattr(report.team, "is_nucleus_team", False):
-            team_is_redundant = True
-        elif nucleus_txt and team_txt and nucleus_txt.casefold() == team_txt.casefold():
-            team_is_redundant = True
-
-        unit_parts = []
-        if nucleus_txt:
-            unit_parts.append(nucleus_txt)
-        if team_txt and not team_is_redundant:
-            unit_parts.append(team_txt)
-
-        unit_line = " - ".join(unit_parts)
-
-        emblem_primary = report.emblem_primary_snapshot or (inst.emblem_primary if inst else None)
-        emblem_secondary = report.emblem_secondary_snapshot or (inst.emblem_secondary if inst else None)
+        inst = report.institution
+        hon_title, hon_name = (report.honoree_title_snapshot or "").strip(), (report.honoree_name_snapshot or "").strip()
+        honoree_line = f"{hon_title} {hon_name}" if hon_title and hon_name else (hon_name or "")
+        
+        nucleus_txt, team_txt = (report.nucleus_display or "").strip(), (report.team_display or "").strip()
+        team_is_redundant = (report.team and getattr(report.team, "is_nucleus_team", False)) or (nucleus_txt.casefold() == team_txt.casefold())
+        
+        unit_parts = [nucleus_txt] if nucleus_txt else []
+        if team_txt and not team_is_redundant: unit_parts.append(team_txt)
 
         return {
-            "name": name or None,
-            "acronym": acronym or None,
-            "kind_display": kind_display or None,
+            "name": (report.institution_name_snapshot or "").strip() or None,
+            "acronym": (report.institution_acronym_snapshot or "").strip() or None,
+            "kind_display": (report.institution_kind_snapshot or "").strip() or None,
             "honoree_line": honoree_line or None,
-            "unit_line": unit_line or None,
-            "emblem_primary": emblem_primary,
-            "emblem_secondary": emblem_secondary,
+            "unit_line": " - ".join(unit_parts) or None,
+            "emblem_primary": report.emblem_primary_snapshot or (inst.emblem_primary if inst else None),
+            "emblem_secondary": report.emblem_secondary_snapshot or (inst.emblem_secondary if inst else None),
         }
 
     # ─────────────────────────────────────────────────────────────
     # Context
     # ─────────────────────────────────────────────────────────────
     def get_context_data(self, **kwargs):
-        """
-        Monta o context completo do laudo (cabeçalho + blocos + outline + figuras).
-
-        O template espera:
-        - header, preamble
-        - outline (lista de grupos com objetos já enriquecidos com imagens + rótulos de figura)
-        - numerações para Observações Finais e Conclusão (quando existirem)
-        """
         ctx = super().get_context_data(**kwargs)
         report: ReportCase = ctx["report"]
 
-        # Header: regra combinada (atual x snapshot)
+        # 1. Cabeçalho e Preâmbulo (Essencial para o topo do laudo)
         can_edit = bool(getattr(report, "can_edit", False))
         header = self._build_header_from_user() if can_edit else self._build_header_from_snapshots(report)
 
-        # Textos do laudo (inclui intros de grupo)
         text_blocks_qs = report.text_blocks.all().order_by("placement", "position", "created_at")
-        ctx["text_blocks"] = text_blocks_qs
-
-        by_placement = defaultdict(list)
-        for tb in text_blocks_qs:
-            by_placement[tb.placement].append(tb)
-        ctx["text_blocks_by_placement"] = dict(by_placement)
-
-        # Preâmbulo: usuário > sistema
-        preamble_text = (
-            text_blocks_qs
-            .filter(placement=ReportTextBlock.Placement.PREAMBLE)
-            .values_list("body", flat=True)
-            .first()
-        )
+        
+        preamble_text = text_blocks_qs.filter(placement=ReportTextBlock.Placement.PREAMBLE).values_list("body", flat=True).first()
         preamble = (preamble_text or "").strip() or report.preamble
 
-        # Objetos base (ordem do laudo) -> concretos via property .concrete
-        base_objects = list(report.exam_objects.all().order_by("order", "created_at"))
-        concrete_objects = [o.concrete for o in base_objects]
+        # 2. Preparação dos Blocos da Outline (Prepend / Append)
+        prepend_blocks = []
+        append_blocks = []
 
-        # ─────────────────────────────────────────────
-        # Blocos iniciais (ANTES do conteúdo) — ordem editorial fixa:
-        # Resumo, Glossário, Sumário, Metadados (requisição/atendimento/objetivo etc.)
-        # ─────────────────────────────────────────────
+        # -- Prepend: Resumo, Glossário, Sumário, Histórico
+        placements = ReportTextBlock.Placement
+        def add_to_prepend(label, placement_enum):
+            txt = text_blocks_qs.filter(placement=placement_enum).values_list("body", flat=True).first()
+            if (txt or "").strip():
+                prepend_blocks.append({"kind": "text_section", "label": label, "value": txt, "fmt": "md"})
+
+        add_to_prepend("Resumo", placements.SUMMARY)
+        
+        glossary_p = getattr(placements, "GLOSSARY", None)
+        if glossary_p: add_to_prepend("Glossário", glossary_p)
+        
+        add_to_prepend("Sumário", placements.TOC)
+        
+        history_p = getattr(placements, "HISTORY", None)
+        if history_p: add_to_prepend("Histórico", history_p)
+
+        # -- Metadados (Objetivo, etc)
         meta_blocks = list(report.get_render_blocks() or [])
-        prepend_blocks: list[dict] = []
-
-        # Resumo
-        summary_text = (
-            text_blocks_qs
-            .filter(placement=ReportTextBlock.Placement.SUMMARY)
-            .values_list("body", flat=True)
-            .first()
-        )
-        if (summary_text or "").strip():
-            prepend_blocks.append({
-                "kind": "text_section",
-                "label": "Resumo",
-                "value": summary_text,
-                "fmt": "md",
-            })
-
-        # Glossário (se existir no enum; se não existir, ignora)
-        glossary_placement = getattr(ReportTextBlock.Placement, "GLOSSARY", None)
-        if glossary_placement:
-            glossary_text = (
-                text_blocks_qs
-                .filter(placement=glossary_placement)
-                .values_list("body", flat=True)
-                .first()
-            )
-            if (glossary_text or "").strip():
-                prepend_blocks.append({
-                    "kind": "text_section",
-                    "label": "Glossário",
-                    "value": glossary_text,
-                    "fmt": "md",
-                })
-
-        # Sumário (manual)
-        toc_text = (
-            text_blocks_qs
-            .filter(placement=ReportTextBlock.Placement.TOC)
-            .values_list("body", flat=True)
-            .first()
-        )
-        if (toc_text or "").strip():
-            prepend_blocks.append({
-                "kind": "text_section",
-                "label": "Sumário",
-                "value": toc_text,
-                "fmt": "md",
-            })
-
-        # Metadados (requisição/atendimento/objetivo etc.) vêm depois
         prepend_blocks.extend(meta_blocks)
 
-        # Outline principal
+        # -- Append: Considerações Finais e Conclusão
+        cf_txt = "\n\n".join(text_blocks_qs.filter(placement=placements.FINAL_CONSIDERATIONS).values_list("body", flat=True))
+        if cf_txt.strip():
+            append_blocks.append({"kind": "text_section", "label": "Considerações Finais", "value": cf_txt, "fmt": "md"})
+
+        c_txt = "\n\n".join(text_blocks_qs.filter(placement=placements.CONCLUSION).values_list("body", flat=True))
+        if c_txt.strip():
+            append_blocks.append({"kind": "text_section", "label": "Conclusão", "value": c_txt, "fmt": "md"})
+
+        # 3. Construção da Outline
+        base_objects = list(report.exam_objects.all().order_by("order", "created_at"))
         outline, next_top = build_report_outline(
             report=report,
             exam_objects_qs=base_objects,
             text_blocks_qs=text_blocks_qs,
             start_at=1,
             prepend_blocks=prepend_blocks,
+            append_blocks=append_blocks,
         )
 
-        # Numeração de Observações Finais e Conclusão (se existirem)
-        final_considerations_blocks = list(
-            text_blocks_qs.filter(placement=ReportTextBlock.Placement.FINAL_CONSIDERATIONS)
-        )
-        final_considerations_num = next_top if final_considerations_blocks else None
-        next_after_final = next_top + (1 if final_considerations_blocks else 0)
-
-        conclusion_blocks = list(
-            text_blocks_qs.filter(placement=ReportTextBlock.Placement.CONCLUSION)
-        )
-        conclusion_num = next_after_final if conclusion_blocks else None
-
-        # ─────────────────────────────────────────────
-        # Imagens em lote por ContentType do CONCRETO
-        # ─────────────────────────────────────────────
+        # 4. Imagens e Figuras (Mantido conforme original)
+        concrete_objects = [o.concrete for o in base_objects]
         models_set = {o.__class__ for o in concrete_objects}
         ct_map = ContentType.objects.get_for_models(*models_set) if models_set else {}
-
-        ids_by_ct = defaultdict(list)  # {ct_id: [uuid...]}
+        
+        ids_by_ct = defaultdict(list)
         for o in concrete_objects:
             ct = ct_map.get(o.__class__)
-            if not ct:
-                continue
-            ids_by_ct[ct.id].append(o.pk)
+            if ct: ids_by_ct[ct.id].append(o.pk)
 
         q = Q()
-        for ct_id, ids in ids_by_ct.items():
-            q |= Q(content_type_id=ct_id, object_id__in=ids)
+        for ct_id, ids in ids_by_ct.items(): q |= Q(content_type_id=ct_id, object_id__in=ids)
 
-        images_by_key = defaultdict(list)  # {(ct_id, obj_id): [ObjectImage]}
+        images_by_key = defaultdict(list)
         if q:
-            imgs = (
-                ObjectImage.objects
-                .filter(q)
-                .order_by("index", "id")
-                .select_related("content_type")
-            )
-            for img in imgs:
-                images_by_key[(img.content_type_id, img.object_id)].append(img)
+            imgs = ObjectImage.objects.filter(q).order_by("index", "id").select_related("content_type")
+            for img in imgs: images_by_key[(img.content_type_id, img.object_id)].append(img)
 
-        # ─────────────────────────────────────────────
-        # Monta outline "UI" com figuras contínuas
-        # ─────────────────────────────────────────────
         figure_counter = 1
-        outline_ui: list[dict] = []
-
+        outline_ui = []
         for g in outline:
             g_dict = asdict(g)
-            g_objects_ui: list[dict] = []
-
+            g_objs_ui = []
             for o in g.objects:
                 o_dict = asdict(o)
-                obj = o.obj  # instância concreta (ou ReportCase no grupo virtual)
-
-                if isinstance(obj, ReportCase):
-                    ct_id = None
-                else:
-                    ct = ct_map.get(obj.__class__)
-                    ct_id = ct.id if ct else None
-
+                obj = o.obj
+                ct_id = None if isinstance(obj, ReportCase) else getattr(ct_map.get(obj.__class__), "id", None)
+                
                 images_ui = []
                 if ct_id:
                     for img in images_by_key.get((ct_id, obj.pk), []):
-                        images_ui.append({
-                            "img": img,
-                            "figure_label": f"Figura {figure_counter}",
-                        })
+                        images_ui.append({"img": img, "figure_label": f"Figura {figure_counter}"})
                         figure_counter += 1
-
                 o_dict["images"] = images_ui
-                g_objects_ui.append(o_dict)
-
-            g_dict["objects"] = g_objects_ui
+                g_objs_ui.append(o_dict)
+            g_dict["objects"] = g_objs_ui
             outline_ui.append(g_dict)
 
-        # Context final
+        # 5. Update final do contexto
         ctx.update({
-            "report_number": report.report_number,
             "header": header,
             "preamble": preamble,
             "outline": outline_ui,
             "next_top": next_top,
-            "final_considerations_num": final_considerations_num,
-            "final_considerations_blocks": final_considerations_blocks,
-            "conclusion_num": conclusion_num,
-            "conclusion_blocks": conclusion_blocks,
-            "figure_counter_end": figure_counter,
+            "report_number": report.report_number,
         })
-
         return ctx
