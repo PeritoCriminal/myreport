@@ -1,4 +1,4 @@
-# myreport/report_maker/views/report_outline.py  out_section
+# myreport/report_maker/views/report_outline.py
 from __future__ import annotations
 
 import base64
@@ -15,6 +15,22 @@ def _with_dash(number: str) -> str:
     """Formata o prefixo numérico para exibição."""
     number = (number or "").strip()
     return f"{number}." if number else ""
+
+
+def _join_number(*parts: object) -> str:
+    """Compõe uma numeração hierárquica a partir de partes não vazias."""
+    return ".".join(
+        str(part).strip(". ")
+        for part in parts
+        if str(part).strip(". ")
+    )
+
+
+def _numbered(*parts: object, enabled: bool = True) -> str:
+    """Retorna a numeração formatada para exibição."""
+    if not enabled:
+        return ""
+    return _with_dash(_join_number(*parts))
 
 
 def _split_markdown_h2_sections(md_text: str) -> list[tuple[str, str]]:
@@ -216,7 +232,7 @@ def build_report_outline(
                         child_index += 1
                         out_sections.append(
                             OutlineSection(
-                                number=_with_dash(f"{base_number}.{child_index}"),
+                                number=_numbered(base_number, child_index),
                                 label=sec_label,
                                 text=sec_text,
                                 fmt=sec_fmt,
@@ -247,7 +263,7 @@ def build_report_outline(
                     intro_text="",
                     objects=[
                         OutlineObject(
-                            number=_with_dash(f"{current_n}"),
+                            number=_numbered(current_n),
                             obj=report,
                             title=label,
                             sections=out_sections,
@@ -259,11 +275,9 @@ def build_report_outline(
 
         return current_n
 
-    # 1. Blocos iniciais (Resumo, Histórico, Metadados...)
     if prepend_blocks:
         n_top = _add_virtual_groups(prepend_blocks, n_top)
 
-    # 2. Processamento de Objetos (Mantido original)
     UNGROUPED = "__UNGROUPED__"
     GROUP_ORDER = [
         ExamObjectGroup.LOCATIONS,
@@ -275,8 +289,10 @@ def build_report_outline(
     GROUP_RANK = {g.value: i for i, g in enumerate(GROUP_ORDER)}
 
     def _group_sort_key(gk: str) -> tuple[int, str]:
-        if gk == UNGROUPED: return (9_500, "")
-        if gk in GROUP_RANK: return (GROUP_RANK[gk], gk)
+        if gk == UNGROUPED:
+            return (9_500, "")
+        if gk in GROUP_RANK:
+            return (GROUP_RANK[gk], gk)
         return (9_000, gk)
 
     objects = [o.concrete for o in exam_objects_qs]
@@ -286,26 +302,34 @@ def build_report_outline(
         grouped.setdefault(gk, []).append(obj)
 
     intro_by_group = _get_group_intro_map(text_blocks_qs)
-    
+
     for group_key in sorted(grouped.keys(), key=_group_sort_key):
         group_objs = grouped[group_key]
-        use_header = group_key != UNGROUPED and (bool(intro_by_group.get(group_key)) or len(group_objs) >= 2)
-        
+        use_header = group_key != UNGROUPED and (
+            bool(intro_by_group.get(group_key)) or len(group_objs) >= 2
+        )
+
         group_label = ExamObjectGroup(group_key).label if group_key in ExamObjectGroup.values else ""
-        group_number = _with_dash(f"{n_top}") if use_header else ""
-        
+        group_number = _numbered(n_top) if use_header else ""
+
         out_objs = []
         for n_obj, obj in enumerate(group_objs, 1):
             title_field = obj.get_object_title_field() if hasattr(obj, "get_object_title_field") else "title"
             title_value = (getattr(obj, title_field, "") or "").strip() or str(obj)
-            obj_number = _with_dash(f"{n_top}.{n_obj}" if use_header else f"{n_top}")
+            obj_number = _numbered(n_top, n_obj) if use_header else _numbered(n_top)
 
             blocks = obj.get_render_blocks() if hasattr(obj, "get_render_blocks") else []
             resolved = []
             for b in blocks:
-                if not isinstance(b, dict): continue
-                kind, label, fmt = b.get("kind", "").strip(), b.get("label", "").strip(), b.get("fmt", "text").strip()
-                text, maps_url, qr_data_uri = "", None, None
+                if not isinstance(b, dict):
+                    continue
+
+                kind = b.get("kind", "").strip()
+                label = b.get("label", "").strip()
+                fmt = b.get("fmt", "text").strip()
+                text = ""
+                maps_url = None
+                qr_data_uri = None
 
                 if kind == "geo_location":
                     text = (getattr(obj, b.get("field", "geo_location"), "") or "").strip()
@@ -314,21 +338,23 @@ def build_report_outline(
                         if callable(parser):
                             data = parser(text) or {}
                             maps_url = data.get("maps_url")
-                            if data.get("qrcode_png"): qr_data_uri = _png_bytes_to_data_uri(data["qrcode_png"])
+                            if data.get("qrcode_png"):
+                                qr_data_uri = _png_bytes_to_data_uri(data["qrcode_png"])
                 elif kind == "section_field":
                     text = (getattr(obj, b.get("field", ""), "") or "").strip()
                 elif kind == "render_section":
                     getter = getattr(obj, "get_section_value", None)
-                    if callable(getter): text = (getter(b.get("key")) or "").strip()
+                    if callable(getter):
+                        text = (getter(b.get("key")) or "").strip()
 
-                if text: resolved.append((kind, label, text, fmt, maps_url, qr_data_uri))
+                if text:
+                    resolved.append((kind, label, text, fmt, maps_url, qr_data_uri))
 
             resolved = _expand_markdown_headings(resolved)
-            out_sections = []
+            out_sections: list[OutlineSection] = []
 
             base_section_index = 0
             current_parent_number = ""
-            current_parent_label = ""
             markdown_child_index = 0
 
             for kind, label, text, fmt, maps_url, qr_data_uri in resolved:
@@ -337,10 +363,9 @@ def build_report_outline(
                 if kind == "markdown_heading":
                     if current_parent_number and has_label:
                         markdown_child_index += 1
-                        child_number = _with_dash(f"{current_parent_number.rstrip('.')}.{markdown_child_index}")
                         out_sections.append(
                             OutlineSection(
-                                child_number,
+                                _numbered(current_parent_number, markdown_child_index),
                                 label,
                                 text,
                                 fmt,
@@ -351,13 +376,15 @@ def build_report_outline(
                         )
                     else:
                         base_section_index += 1
-                        parent_number = f"{n_top}.{n_obj}.{base_section_index}" if use_header else f"{n_top}.{base_section_index}"
-                        current_parent_number = parent_number
-                        current_parent_label = label
+                        current_parent_number = (
+                            _join_number(n_top, n_obj, base_section_index)
+                            if use_header
+                            else _join_number(n_top, base_section_index)
+                        )
                         markdown_child_index = 0
                         out_sections.append(
                             OutlineSection(
-                                _with_dash(parent_number) if has_label else "",
+                                _numbered(current_parent_number, enabled=has_label),
                                 label if has_label else "",
                                 text,
                                 fmt,
@@ -370,12 +397,15 @@ def build_report_outline(
 
                 if has_label:
                     base_section_index += 1
-                    current_parent_number = f"{n_top}.{n_obj}.{base_section_index}" if use_header else f"{n_top}.{base_section_index}"
-                    current_parent_label = label
+                    current_parent_number = (
+                        _join_number(n_top, n_obj, base_section_index)
+                        if use_header
+                        else _join_number(n_top, base_section_index)
+                    )
                     markdown_child_index = 0
                     out_sections.append(
                         OutlineSection(
-                            _with_dash(current_parent_number),
+                            _numbered(current_parent_number),
                             label,
                             text,
                             fmt,
@@ -396,13 +426,23 @@ def build_report_outline(
                             qr_data_uri,
                         )
                     )
+
             out_objs.append(OutlineObject(obj_number, obj, title_value, out_sections))
-            if not use_header: n_top += 1
+            if not use_header:
+                n_top += 1
 
-        outline.append(OutlineGroup(group_number, str(group_key), group_label, intro_by_group.get(group_key, ""), out_objs))
-        if use_header: n_top += 1
+        outline.append(
+            OutlineGroup(
+                group_number,
+                str(group_key),
+                group_label,
+                intro_by_group.get(group_key, ""),
+                out_objs,
+            )
+        )
+        if use_header:
+            n_top += 1
 
-    # 3. Blocos finais (Considerações Finais, Conclusão...)
     if append_blocks:
         n_top = _add_virtual_groups(append_blocks, n_top)
 
