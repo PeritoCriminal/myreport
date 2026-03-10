@@ -14,7 +14,7 @@ from report_maker.models.exam_base import ExamObjectGroup
 def _with_dash(number: str) -> str:
     """Formata o prefixo numérico para exibição."""
     number = (number or "").strip()
-    return f"{number} -" if number else ""
+    return f"{number}." if number else ""
 
 
 def _split_markdown_h2_sections(md_text: str) -> list[tuple[str, str]]:

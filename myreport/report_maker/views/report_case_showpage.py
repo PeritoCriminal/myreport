@@ -1,4 +1,4 @@
-# myreport/report_maker/views/report_case_showpage.py
+# myreport/report_maker/views/report_case_showpage.py HISTORY
 from __future__ import annotations
 
 from collections import defaultdict
@@ -112,8 +112,9 @@ class ReportCaseShowPageView(LoginRequiredMixin, DetailView):
         
         add_to_prepend("Sumário", placements.TOC)
         
-        history_p = getattr(placements, "HISTORY", None)
-        if history_p: add_to_prepend("Histórico", history_p)
+        historic_p = getattr(placements, "HISTORIC", None)
+        if historic_p:
+            add_to_prepend("Histórico", historic_p)
 
         # -- Metadados (Objetivo, etc)
         meta_blocks = list(report.get_render_blocks() or [])
