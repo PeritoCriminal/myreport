@@ -53,7 +53,7 @@
         break;
 
       case "math":
-        wrapSelection(textarea, "$", "$");
+        wrapSelection(textarea, "{math$ ", " $}");
         break;
 
       case "h2":
