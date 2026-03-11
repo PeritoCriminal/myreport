@@ -79,10 +79,14 @@
           Histórico
         </a>
 
+        {% comment %}
+        {# Esse parte está comentada para deixar esse btn invisível por enquanto. #}
+        {# O sumário será gerado automaticamente conforme condição lógica #}
         <a class="btn btn-sm btn-outline-secondary"
            href="{% url 'report_maker:text_block_upsert' report.pk 'TOC' %}">
           Sumário
         </a>
+        {% endcomment %}
 
         <a class="btn btn-sm btn-outline-secondary"
            href="{% url 'report_maker:text_block_upsert' report.pk 'FINAL_CONSIDERATIONS' %}">
