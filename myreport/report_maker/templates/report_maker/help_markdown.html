@@ -1,221 +1,146 @@
 {# path: myreport/report_maker/templates/report_maker/help_markdown.html #}
-{% extends "base.html" %}
-{% load static %}
 
-{% block title %}{{ page_title }}{% endblock %}
+{% extends "report_maker/base_report_maker.html" %}
+{% load markdown_extras %}
 
-{% block content %}
-  <div class="container py-4" style="max-width: 980px;">
-    <div class="mb-4">
-      <h1 class="h3 mb-2">{{ page_title }}</h1>
-      <p class="text-muted mb-0">
-        Esta página apresenta os recursos básicos do editor. Os exemplos podem ser copiados e colados diretamente nos campos de texto do sistema.
-      </p>
-    </div>
+{% block title %}
+Ajuda Markdown
+{% endblock %}
 
-    <div class="alert alert-light border mb-4">
-      <div class="fw-semibold mb-2">Como funciona</div>
-      <p class="mb-2">
-        O editor aceita marcações simples para formatar o texto. Você pode digitar manualmente ou usar os botões da barra de ferramentas.
-      </p>
-      <p class="mb-0">
-        Para fórmulas matemáticas, use sempre a expressão entre <code>$...$</code>.
-      </p>
-    </div>
+{% block page_header %}
+  {% include 'headerbars/report_maker.html' %}
+{% endblock %}
 
-    <section class="mb-5">
-      <h2 class="h4 mb-3">1. Negrito</h2>
-      <p>
-        Use dois asteriscos antes e depois do trecho.
-      </p>
+{% block report_maker_content %}
 
-      <div class="card mb-3">
-        <div class="card-header">Exemplo para copiar</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>**Trecho em negrito**</code></pre>
-        </div>
-      </div>
+<div class="container mt-4" style="max-width: 1100px;">
 
-      <div class="card">
-        <div class="card-header">Resultado esperado</div>
-        <div class="card-body">
-          <strong>Trecho em negrito</strong>
-        </div>
-      </div>
-    </section>
+  <div class="mb-4">
+    <h4 class="mb-2">Ajuda de formatação</h4>
 
-    <section class="mb-5">
-      <h2 class="h4 mb-3">2. Itálico</h2>
-      <p>
-        Use um asterisco antes e depois do trecho.
-      </p>
+    <p class="mb-2">
+      Na caixa de texto do laudo é possível formatar conteúdos utilizando
+      Markdown. É possível aplicar negrito, itálico, listas com marcadores,
+      listas numeradas, combinar estilos e também inserir fórmulas
+      matemáticas.
+    </p>
 
-      <div class="card mb-3">
-        <div class="card-header">Exemplo para copiar</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>*Trecho em itálico*</code></pre>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Resultado esperado</div>
-        <div class="card-body">
-          <em>Trecho em itálico</em>
-        </div>
-      </div>
-    </section>
-
-    <section class="mb-5">
-      <h2 class="h4 mb-3">3. Lista com marcadores</h2>
-      <p>
-        Inicie cada linha com <code>-</code>.
-      </p>
-
-      <div class="card mb-3">
-        <div class="card-header">Exemplo para copiar</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>- marca de frenagem
-- dano no para-choque
-- posição final do veículo</code></pre>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Resultado esperado</div>
-        <div class="card-body">
-          <ul class="mb-0">
-            <li>marca de frenagem</li>
-            <li>dano no para-choque</li>
-            <li>posição final do veículo</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section class="mb-5">
-      <h2 class="h4 mb-3">4. Lista numerada</h2>
-      <p>
-        Inicie cada linha com <code>1.</code>, <code>2.</code>, <code>3.</code> e assim por diante.
-      </p>
-
-      <div class="card mb-3">
-        <div class="card-header">Exemplo para copiar</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>1. observar o vestígio
-2. medir o comprimento
-3. aplicar a fórmula</code></pre>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Resultado esperado</div>
-        <div class="card-body">
-          <ol class="mb-0">
-            <li>observar o vestígio</li>
-            <li>medir o comprimento</li>
-            <li>aplicar a fórmula</li>
-          </ol>
-        </div>
-      </div>
-    </section>
-
-    <section class="mb-5">
-      <h2 class="h4 mb-3">5. Fórmulas matemáticas inline</h2>
-      <p>
-        Para escrever fórmulas, coloque a expressão entre <code>$</code> e <code>$</code>.
-      </p>
-
-      <div class="alert alert-warning">
-        Use apenas fórmulas inline, no formato <code>$...$</code>.
-      </div>
-
-      <div class="card mb-3">
-        <div class="card-header">Exemplo simples</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>A energia cinética é dada por $E_c = \frac{1}{2}mv^2$.</code></pre>
-        </div>
-      </div>
-
-      <div class="card mb-3">
-        <div class="card-header">Exemplo com potência</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>$x^2 = y^3$</code></pre>
-        </div>
-      </div>
-
-      <div class="card mb-3">
-        <div class="card-header">Exemplo com índice</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>$v_0^2 = v^2 - 2a\Delta s$</code></pre>
-        </div>
-      </div>
-
-      <div class="card mb-3">
-        <div class="card-header">Exemplo com raiz</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>$x = \sqrt{a^2 + b^2}$</code></pre>
-        </div>
-      </div>
-
-      <div class="card mb-3">
-        <div class="card-header">Exemplo com fração</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>$v = \frac{d}{t}$</code></pre>
-        </div>
-      </div>
-    </section>
-
-    <section class="mb-5">
-      <h2 class="h4 mb-3">6. Exemplo aplicado: velocidade a partir de marca de frenagem</h2>
-      <p>
-        A fórmula abaixo pode ser usada em situações em que se deseja expressar a velocidade estimada em função da marca de frenagem, conforme o modelo adotado no texto técnico.
-      </p>
-
-      <div class="card mb-3">
-        <div class="card-header">Fórmula para copiar</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>$v = \sqrt{2 \mu g d}$</code></pre>
-        </div>
-      </div>
-
-      <div class="card mb-3">
-        <div class="card-header">Frase completa para copiar</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>A velocidade estimada pode ser expressa por $v = \sqrt{2 \mu g d}$, em que $\mu$ representa o coeficiente de atrito, $g$ a aceleração da gravidade e $d$ o comprimento da marca de frenagem.</code></pre>
-        </div>
-      </div>
-    </section>
-
-    <section class="mb-5">
-      <h2 class="h4 mb-3">7. Exemplo aplicado: equação de Torricelli</h2>
-      <p>
-        Outro exemplo útil em textos técnicos envolvendo movimento é a equação de Torricelli.
-      </p>
-
-      <div class="card mb-3">
-        <div class="card-header">Fórmula para copiar</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>$v^2 = v_0^2 + 2a\Delta s$</code></pre>
-        </div>
-      </div>
-
-      <div class="card mb-3">
-        <div class="card-header">Frase completa para copiar</div>
-        <div class="card-body">
-          <pre class="mb-0"><code>A relação entre velocidade e deslocamento pode ser expressa por $v^2 = v_0^2 + 2a\Delta s$.</code></pre>
-        </div>
-      </div>
-    </section>
-
-    <section class="mb-4">
-      <h2 class="h4 mb-3">8. Observações</h2>
-      <ul class="mb-0">
-        <li>Use <code>**texto**</code> para negrito.</li>
-        <li>Use <code>*texto*</code> para itálico.</li>
-        <li>Use <code>-</code> para listas com marcadores.</li>
-        <li>Use <code>1.</code> para listas numeradas.</li>
-        <li>Use <code>$...$</code> para fórmulas matemáticas inline.</li>
-      </ul>
-    </section>
+    <p class="mb-0">
+      Abaixo seguem alguns exemplos. O texto pode ser editado na caixa à
+      esquerda. Ao clicar em <strong>Renderizar</strong>, o resultado aparece
+      na caixa à direita.
+    </p>
   </div>
+
+  <div class="accordion" id="markdownHelpAccordion">
+
+    {% for ex in examples %}
+      <div class="accordion-item">
+
+        <h2 class="accordion-header" id="heading-{{ forloop.counter }}">
+          <button
+            class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#collapse-{{ forloop.counter }}"
+            aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+            aria-controls="collapse-{{ forloop.counter }}"
+          >
+            {{ ex.title }}
+          </button>
+        </h2>
+
+        <div
+          id="collapse-{{ forloop.counter }}"
+          class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+          aria-labelledby="heading-{{ forloop.counter }}"
+          data-bs-parent="#markdownHelpAccordion"
+        >
+          <div class="accordion-body">
+
+            <div class="row g-3">
+
+              <div class="col-12 col-lg-6">
+                <label class="form-label fw-semibold">
+                  Texto puro (Markdown)
+                </label>
+
+                <textarea
+                  class="form-control markdown-input"
+                  rows="12"
+                >{{ ex.markdown }}</textarea>
+
+                <div class="mt-2">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary js-render-markdown"
+                  >
+                    Renderizar
+                  </button>
+                </div>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label class="form-label fw-semibold">
+                  Renderização
+                </label>
+
+                <div class="border rounded p-3 bg-body text-body markdown-output">
+                  {{ ex.markdown|render_markdown }}
+                </div>
+              </div>
+
+            </div>
+
+            {% if ex.note %}
+              <div class="mt-3 text-muted">
+                {{ ex.note }}
+              </div>
+            {% endif %}
+
+          </div>
+        </div>
+
+      </div>
+    {% endfor %}
+
+  </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      return parts.pop().split(";").shift();
+    }
+  }
+
+  document.querySelectorAll(".js-render-markdown").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const wrapper = button.closest(".row")
+      const textarea = wrapper.querySelector(".markdown-input")
+      const output = wrapper.querySelector(".markdown-output")
+
+      fetch("{% url 'report_maker:markdown_preview' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          "X-CSRFToken": getCookie("csrftoken")
+        },
+        body: new URLSearchParams({
+          text: textarea.value
+        })
+      })
+      .then(response => response.text())
+      .then(html => {
+        output.innerHTML = html
+      })
+    })
+  })
+})
+</script>
+
 {% endblock %}

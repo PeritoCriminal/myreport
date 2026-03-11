@@ -3,7 +3,7 @@ from django.urls import path
 
 from report_maker.views.ai_textblock import ai_textblock_generate
 
-from .views.help_markdown import MarkdownHelpView
+from .views.help_markdown import MarkdownHelpView, markdown_preview_view
 
 from report_maker.views.report_case import (
     ReportCaseListView,
@@ -91,6 +91,7 @@ urlpatterns = [
 
     # Página de ajuda para uso de markdown
     path("help/markdown/", MarkdownHelpView.as_view(), name="markdown_help"),
+    path("help/markdown/preview/", markdown_preview_view, name="markdown_preview"),
 
     # ─────────────────────────────────────
     # Textos do laudo (ReportTextBlock)
