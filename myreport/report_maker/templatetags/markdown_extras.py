@@ -19,35 +19,16 @@ register = template.Library()
 
 # Propriedades CSS necessárias para preservar o layout gerado pelo KaTeX
 _ALLOWED_CSS_PROPERTIES = [
-    "display",
-    "height",
-    "width",
-    "top",
-    "bottom",
-    "vertical-align",
-    "margin-top",
-    "margin-left",
-    "margin-right",
-    "margin-bottom",
-    "position",
-    "border-color",
-    "float",
-    "color",
-    "background-color",
+    "display", "height", "width", "top", "bottom", "vertical-align",
+    "margin-top", "margin-left", "margin-right", "margin-bottom",
+    "position", "border-color", "float", "color", "background-color",
 ]
 
 
 # Conjunto de tags HTML permitidas após sanitização
 _ALLOWED_TAGS = [
-    "p", "br",
-    "strong", "em", "s",
-    "code", "pre",
-    "blockquote",
-    "ul", "ol", "li",
-    "h1", "h2", "h3",
-    "hr",
-    "span",
-
+    "p", "br", "strong", "em", "s", "code", "pre", "blockquote",
+    "ul", "ol", "li", "h1", "h2", "h3", "hr", "span",
     # MathML utilizado pelo KaTeX
     "math", "semantics", "mrow", "mi", "mn", "mo", "mtext",
     "annotation", "msub", "msup", "mover", "munder",
@@ -74,16 +55,12 @@ _CSS_SANITIZER = CSSSanitizer(
 )
 
 
-# Expressões matemáticas inline delimitadas por $...$
+# Regex aprimorado para capturar fórmulas mesmo sem espaços, mas ignorando moedas escapadas
 _INLINE_MATH_RE = re.compile(r"(?<!\\)\$([^\$]+?)(?<!\\)\$")
 
 
 def _render_katex_inline(tex: str) -> str:
-    """
-    Renderiza expressão TeX inline utilizando a CLI do KaTeX.
-    O HTML retornado contém a estrutura necessária para renderização
-    consistente em HTML e em PDF (WeasyPrint).
-    """
+    """Renderiza expressão TeX inline utilizando a CLI do KaTeX."""
     try:
         result = subprocess.run(
             [str(settings.KATEX_CLI_BIN), "--no-throw-on-error"],
@@ -94,7 +71,6 @@ def _render_katex_inline(tex: str) -> str:
             encoding="utf-8",
         )
         return result.stdout.strip()
-
     except Exception:
         return f'<span class="math-error">${html.escape(tex)}$</span>'
 
@@ -102,41 +78,41 @@ def _render_katex_inline(tex: str) -> str:
 @register.filter
 def render_markdown(value: str) -> str:
     """
-    Converte Markdown para HTML preservando expressões matemáticas inline.
-    As fórmulas são renderizadas previamente via KaTeX CLI e reinseridas
-    após a conversão Markdown.
+    Converte Markdown para HTML protegendo moedas e renderizando KaTeX.
     """
     text = (value or "").strip()
     if not text:
         return ""
+
+    # 1. Proteção de Moedas: Escapa R$, U$ e $ seguido de número
+    # O regex r'(\b[RU]\$|\$\s?\d)' protege "R$", "U$" e "$ 10" ou "$10"
+    text = re.sub(r'(\b[RU]\$|\$\s?\d)', lambda m: m.group(0).replace('$', r'\$'), text)
 
     math_map = {}
 
     def mask_math(match):
         placeholder = f"KATEXPH{uuid.uuid4().hex}"
         tex_content = match.group(1).strip()
+        # Restaura cifrões internos se o usuário escapou manualmente na fórmula
+        tex_content = tex_content.replace(r'\$', '$')
         math_map[placeholder] = _render_katex_inline(tex_content)
         return placeholder
 
-    # Substitui expressões matemáticas por placeholders
+    # 2. Aplica o Regex de Matemática
     text_masked = _INLINE_MATH_RE.sub(mask_math, text)
 
-    # Conversão Markdown
+    # 3. Conversão Markdown
     html_out = md.markdown(
         text_masked,
-        extensions=[
-            "fenced_code",
-            "sane_lists",
-            "nl2br",
-        ],
+        extensions=["fenced_code", "sane_lists", "nl2br"],
         output_format="html5",
     )
 
-    # Reinsere HTML gerado pelo KaTeX
+    # 4. Reinsere KaTeX
     for placeholder, rendered_math in math_map.items():
         html_out = html_out.replace(placeholder, rendered_math)
 
-    # Sanitização final do HTML
+    # 5. Sanitização
     clean = bleach.clean(
         html_out,
         tags=_ALLOWED_TAGS,
@@ -145,5 +121,8 @@ def render_markdown(value: str) -> str:
         protocols=_ALLOWED_PROTOCOLS,
         strip=True,
     )
+
+    # 6. Restauração Final: Remove escapes de moeda para exibição limpa
+    clean = clean.replace(r'\$', '$')
 
     return mark_safe(clean)
