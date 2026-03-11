@@ -13,7 +13,8 @@
   </head>
 
   <body>
-    {% comment %}Cabeçalho{% endcomment %}
+
+    {#        CABEÇALHO    #}
     <header class="header-running">
       <table class="report-header" role="presentation">
         <tr>
@@ -57,100 +58,228 @@
       </table>
     </header>
 
-    {% comment %}Rodapé (running){% endcomment %}
+
+    {#        RODAPÉ    #}
     <footer class="footer-running">
-      <div class="footer-meta">Laudo {{ report.report_number }} | Boletim {{ report.police_report }} - {{ report.police_station }}</div>
+      <div class="footer-meta">
+        Laudo {{ report.report_number }} |
+        Boletim {{ report.police_report }} - {{ report.police_station }}
+      </div>
+
       <div class="footer-page">
         <span class="page-count"></span>
       </div>
     </footer>
 
-    {% comment %}Conteúdo{% endcomment %}
+
+    {#        IDENTIFICAÇÃO DO LAUDO    #}
     <div class="report-number">LAUDO Nº {{ report.report_number }}</div>
 
-    {% if preamble %}
-      <section class="report-section preamble">{{ preamble|linebreaks }}</section>
+    {#        SUMÁRIO    #}
+    {% if include_auto_toc and toc_items %}
+      <section class="report-section toc-block">
+        <div class="toc-title">SUMÁRIO</div>
+
+        <div class="toc-list">
+          {% for item in toc_items %}
+            <div class="toc-row toc-level-{{ item.level }}">
+              <div class="toc-left">
+                {% if item.number %}
+                  <span class="toc-number">{{ item.number }}</span>
+                {% endif %}
+                <span class="toc-label">{{ item.label }}</span>
+              </div>
+
+              <div class="toc-right">
+                {% if item.page %}
+                  {{ item.page }}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
     {% endif %}
 
+
+    {#        PREÂMBULO    #}
+    {% if preamble %}
+      <section class="report-section preamble">
+        {{ preamble|linebreaks }}
+      </section>
+    {% endif %}
+
+
+    {#        CORPO DO LAUDO    #}
     {% if outline %}
+
       {% for g in outline %}
+
         {% if g.number and g.group_label %}
           <section class="report-section group-block">
-            <h2 class="section-heading">{{ g.number }} {{ g.group_label }}</h2>
+
+            <h1 class="section-heading">
+              {{ g.number }} {{ g.group_label }}
+            </h1>
 
             {% if g.intro_text %}
-              <div class="mb-3">{{ g.intro_text|linebreaks }}</div>
+              <div class="mb-3">
+                {{ g.intro_text|linebreaks }}
+              </div>
             {% endif %}
+
           </section>
         {% endif %}
 
+
         {% for o in g.objects %}
+
           <section class="report-section object-block">
-            <h2 class="section-heading">{{ o.number }} {{ o.title }}</h2>
+
+            <h1
+              class="section-heading"
+              {% if o.anchor_id %}id="{{ o.anchor_id }}"{% endif %}
+            >
+              {{ o.number }} {{ o.title }}
+            </h1>
+
 
             {% for s in o.sections %}
+
               {% if s.number and s.label %}
-                <div class="object-subtitle">{{ s.number }} {{ s.label }}</div>
+                <h2
+                  class="object-subtitle"
+                  {% if s.anchor_id %}id="{{ s.anchor_id }}"{% endif %}
+                >
+                  {{ s.number }} {{ s.label }}
+                </h2>
               {% endif %}
 
+
               {% if s.kind == 'geo_location' %}
+
                 <div class="mb-2 geo-block">
+
                   <table class="geo-table">
                     <tr>
+
                       <td class="geo-qr">
                         {% if s.qr_data_uri %}
-                          <img src="{{ s.qr_data_uri }}" alt="QR Code Google Maps" class="geo-qr-img" />
+                          <img
+                            src="{{ s.qr_data_uri }}"
+                            alt="QR Code Google Maps"
+                            class="geo-qr-img"
+                          />
                         {% endif %}
                       </td>
 
                       <td class="geo-link">
                         {% if s.maps_url %}
-                          <div class="geo-link-title">Acesso via Google Maps:</div>
-                          <a href="{{ s.maps_url }}" target="_blank" rel="noopener" class="geo-link-url">{{ s.maps_url }}</a>
+                          <div class="geo-link-title">
+                            Acesso via Google Maps:
+                          </div>
+
+                          <a
+                            href="{{ s.maps_url }}"
+                            target="_blank"
+                            rel="noopener"
+                            class="geo-link-url"
+                          >
+                            {{ s.maps_url }}
+                          </a>
                         {% endif %}
                       </td>
+
                     </tr>
                   </table>
+
                 </div>
 
-                <div class="mb-2">Coordenadas: {{ s.text|linebreaksbr }}</div>
+                <div class="mb-2">
+                  Coordenadas: {{ s.text|linebreaksbr }}
+                </div>
+
               {% elif s.fmt == 'kv' %}
-                <div class="mb-2">{{ s.text|linebreaksbr }}</div>
+
+                <div class="mb-2">
+                  {{ s.text|linebreaksbr }}
+                </div>
+
               {% else %}
-                <div class="mb-2">{{ s.text|render_markdown }}</div>
+
+                <div class="mb-2">
+                  {{ s.text|render_markdown }}
+                </div>
+
               {% endif %}
+
             {% endfor %}
+
 
             {% if o.images %}
               <div class="figure-grid">
+
                 {% for it in o.images %}
-                  <figure class="report-figure" style="width: {{ it.img.width_cm_dot }}cm; margin-left: auto; margin-right: auto;">
-                    <img src="{{ it.img.image.url }}" alt="{{ it.figure_label }}" />
+
+                  <figure
+                    class="report-figure"
+                    style="width: {{ it.img.width_cm_dot }}cm; margin-left: auto; margin-right: auto;"
+                  >
+
+                    <img
+                      src="{{ it.img.image.url }}"
+                      alt="{{ it.figure_label }}"
+                    />
+
                     <figcaption>
-                      <strong>{{ it.figure_label }}</strong>{% if it.img.caption %}
+                      <strong>{{ it.figure_label }}</strong>
+                      {% if it.img.caption %}
                         — {{ it.img.caption }}
                       {% endif %}
                     </figcaption>
+
                   </figure>
+
                 {% endfor %}
+
               </div>
             {% endif %}
+
           </section>
+
         {% endfor %}
+
       {% endfor %}
+
     {% else %}
+
       <section class="report-section">
-        <p class="text-muted small mb-0">Nenhum objeto de exame cadastrado.</p>
+        <p class="text-muted small mb-0">
+          Nenhum objeto de exame cadastrado.
+        </p>
       </section>
+
     {% endif %}
 
-    <div class="mb-3">{{ report.report_closing }}</div>
 
+    {#        FECHAMENTO    #}
+    <div class="mb-3">
+      {{ report.report_closing }}
+    </div>
+
+
+    {#        ASSINATURA    #}
     <div class="report-signature mt-5 text-end">
+
       <div>
         <strong>{{ report.report_signature_block.name }}</strong>
       </div>
-      <div>{{ report.report_signature_block.role }}</div>
+
+      <div>
+        {{ report.report_signature_block.role }}
+      </div>
+
     </div>
+
   </body>
 </html>

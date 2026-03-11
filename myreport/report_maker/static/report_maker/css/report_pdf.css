@@ -240,3 +240,36 @@ a {
     text-decoration: none;
     word-break: break-all; 
 }
+
+/* ==========================================
+   SUMÁRIO
+   ========================================== */
+.toc-title {
+  font-weight: bold;
+  font-size: 14pt;
+  margin-bottom: 12pt;
+}
+
+.toc-row {
+  display: table;
+  width: 100%;
+  margin-bottom: 4pt;
+}
+
+.toc-left {
+  display: table-cell;
+}
+
+.toc-right {
+  display: table-cell;
+  width: 2cm;
+  text-align: right;
+}
+
+.toc-level-2 .toc-left {
+  padding-left: 12pt;
+}
+
+.toc-block {
+  break-after: page;
+}

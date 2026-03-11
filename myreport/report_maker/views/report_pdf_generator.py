@@ -1,4 +1,3 @@
-# myreport/report_maker/views/report_pdf_generator.py
 from __future__ import annotations
 
 import mimetypes
@@ -35,9 +34,6 @@ if sys.platform == "win32":
 
 
 def _build_header_from_user(request) -> dict:
-    """
-    Monta o cabeçalho institucional a partir do vínculo atual do usuário.
-    """
     user = request.user
     team = user.team
     nucleus = user.nucleus
@@ -84,9 +80,6 @@ def _build_header_from_user(request) -> dict:
 
 
 def _build_header_from_snapshots(report: ReportCase) -> dict:
-    """
-    Monta o cabeçalho institucional usando snapshots persistidos no ReportCase.
-    """
     inst = report.institution
 
     name = (report.institution_name_snapshot or "").strip()
@@ -129,9 +122,6 @@ def _build_header_from_snapshots(report: ReportCase) -> dict:
 
 
 def django_url_fetcher(url: str):
-    """
-    URL fetcher para o WeasyPrint com suporte a /media/ e /static/.
-    """
     parsed = urlparse(url)
     path = parsed.path or ""
 
@@ -161,11 +151,149 @@ def django_url_fetcher(url: str):
     return default_url_fetcher(url)
 
 
+def _collect_toc_items(outline_ui: list[dict]) -> list[dict]:
+    items: list[dict] = []
+
+    for group in outline_ui:
+        for obj in group.get("objects", []):
+            obj_number = (obj.get("number") or "").strip()
+            obj_title = (obj.get("title") or "").strip()
+            obj_anchor = obj.get("anchor_id")
+
+            if obj_title:
+                display_text = f"{obj_number} {obj_title}".strip()
+                items.append(
+                    {
+                        "anchor_id": obj_anchor,
+                        "level": 1,
+                        "number": obj_number,
+                        "label": obj_title,
+                        "display_text": display_text,
+                    }
+                )
+
+            for section in obj.get("sections", []):
+                section_number = (section.get("number") or "").strip()
+                section_label = (section.get("label") or "").strip()
+                section_anchor = section.get("anchor_id")
+
+                if section_label and section_number:
+                    display_text = f"{section_number} {section_label}".strip()
+                    items.append(
+                        {
+                            "anchor_id": section_anchor,
+                            "level": 2,
+                            "number": section_number,
+                            "label": section_label,
+                            "display_text": display_text,
+                        }
+                    )
+
+    return items
+
+
+def _flatten_bookmarks(tree, acc: dict[str, int]) -> None:
+    for label, target, children, _state in tree:
+        page_number = int(target[0]) + 1
+        bookmark_label = " ".join((label or "").split()).strip()
+        if bookmark_label:
+            acc[bookmark_label] = page_number
+        _flatten_bookmarks(children, acc)
+
+
+def _apply_toc_pages(toc_items: list[dict], bookmark_pages: dict[str, int], offset: int) -> list[dict]:
+    resolved: list[dict] = []
+
+    for item in toc_items:
+        display_text = " ".join((item.get("display_text") or "").split()).strip()
+        page = bookmark_pages.get(display_text)
+
+        resolved.append(
+            {
+                **item,
+                "page": page + offset if page is not None else None,
+            }
+        )
+
+    return resolved
+
+
+def _normalize_outline_ui(outline: list, ct_map: dict, images_by_key: dict, report: ReportCase) -> list[dict]:
+    figure_counter = 1
+    outline_ui: list[dict] = []
+
+    for g_index, group in enumerate(outline, start=1):
+        g_dict = asdict(group)
+        g_objects_ui: list[dict] = []
+
+        for o_index, outlined_obj in enumerate(group.objects, start=1):
+            o_dict = asdict(outlined_obj)
+            obj = outlined_obj.obj
+
+            o_dict["anchor_id"] = f"obj-{g_index}-{o_index}"
+
+            for s_index, section in enumerate(o_dict.get("sections", []), start=1):
+                section["anchor_id"] = f"sec-{g_index}-{o_index}-{s_index}"
+
+            if isinstance(obj, ReportCase):
+                ct_id = None
+            else:
+                ct = ct_map.get(obj.__class__)
+                ct_id = ct.id if ct else None
+
+            images_ui = []
+            if ct_id:
+                for img in images_by_key.get((ct_id, obj.pk), []):
+                    images_ui.append(
+                        {
+                            "img": img,
+                            "figure_label": f"Figura {figure_counter}",
+                        }
+                    )
+                    figure_counter += 1
+
+            o_dict["images"] = images_ui
+            g_objects_ui.append(o_dict)
+
+        g_dict["objects"] = g_objects_ui
+        outline_ui.append(g_dict)
+
+    return outline_ui
+
+
+def _render_document(*, request, report, header, preamble, outline_ui, next_top, toc_items, include_auto_toc):
+    html = render_to_string(
+        "report_maker/report_pdf.html",
+        {
+            "report": report,
+            "header": header,
+            "preamble": preamble,
+            "outline": outline_ui,
+            "next_top": next_top,
+            "is_pdf": True,
+            "include_auto_toc": include_auto_toc,
+            "toc_items": toc_items,
+        },
+        request=request,
+    )
+
+    css_path = finders.find("report_maker/css/report_pdf.css")
+    if not css_path:
+        raise FileNotFoundError("CSS do PDF não encontrado: report_maker/css/report_pdf.css")
+
+    base_url = request.build_absolute_uri("/")
+
+    html_obj = HTML(
+        string=html,
+        base_url=base_url,
+        url_fetcher=django_url_fetcher,
+    )
+    document = html_obj.render(stylesheets=[CSS(filename=css_path)])
+    return document
+
+
 @login_required
 def reportPDFGenerator(request, pk):
-    """
-    Gera o PDF do laudo via WeasyPrint.
-    """
     report = get_object_or_404(
         ReportCase.objects.select_related("author", "institution", "nucleus", "team"),
         pk=pk,
@@ -214,8 +342,6 @@ def reportPDFGenerator(request, pk):
     glossary_p = getattr(placements, "GLOSSARY", None)
     if glossary_p:
         add_to_prepend("Glossário", glossary_p)
-
-    add_to_prepend("Sumário", placements.TOC)
 
     historic_p = getattr(placements, "HISTORIC", None) or getattr(placements, "HISTORY", None)
     if historic_p:
@@ -287,77 +413,88 @@ def reportPDFGenerator(request, pk):
         for img in imgs:
             images_by_key[(img.content_type_id, img.object_id)].append(img)
 
-    figure_counter = 1
-    outline_ui: list[dict] = []
+        outline_ui = _normalize_outline_ui(outline, ct_map, images_by_key, report)
+        raw_toc_items = _collect_toc_items(outline_ui)
 
-    for group in outline:
-        g_dict = asdict(group)
-        g_objects_ui: list[dict] = []
+        first_document = _render_document(
+            request=request,
+            report=report,
+            header=header,
+            preamble=preamble,
+            outline_ui=outline_ui,
+            next_top=next_top,
+            toc_items=[],
+            include_auto_toc=False,
+        )
 
-        for outlined_obj in group.objects:
-            o_dict = asdict(outlined_obj)
-            obj = outlined_obj.obj
+        page_count = len(first_document.pages)
+        toc_title_count = len(raw_toc_items)
+        generate_toc = page_count > 20 and toc_title_count > 10
 
-            if isinstance(obj, ReportCase):
-                ct_id = None
-            else:
-                ct = ct_map.get(obj.__class__)
-                ct_id = ct.id if ct else None
+        def normalize(value: str) -> str:
+            value = value.replace("/", "_")
+            value = re.sub(r"[^a-zA-Z0-9_]", "", value)
+            return value.lower()
 
-            images_ui = []
-            if ct_id:
-                for img in images_by_key.get((ct_id, obj.pk), []):
-                    images_ui.append(
-                        {
-                            "img": img,
-                            "figure_label": f"Figura {figure_counter}",
-                        }
-                    )
-                    figure_counter += 1
+        number_part = normalize(report.report_number)
+        type_part = normalize(report.criminal_typification)
+        filename = f"{number_part}${type_part}"
 
-            o_dict["images"] = images_ui
-            g_objects_ui.append(o_dict)
+        if not generate_toc:
+            pdf_bytes = first_document.write_pdf()
+            response = HttpResponse(pdf_bytes, content_type="application/pdf")
+            response["Content-Disposition"] = f'attachment; filename="{filename}.pdf"'
+            response["X-Content-Type-Options"] = "nosniff"
+            response["Content-Length"] = str(len(pdf_bytes))
+            return response
 
-        g_dict["objects"] = g_objects_ui
-        outline_ui.append(g_dict)
+        bookmark_pages: dict[str, int] = {}
+        _flatten_bookmarks(first_document.make_bookmark_tree(), bookmark_pages)
 
-    html = render_to_string(
-        "report_maker/report_pdf.html",
-        {
-            "report": report,
-            "header": header,
-            "preamble": preamble,
-            "outline": outline_ui,
-            "next_top": next_top,
-            "is_pdf": True,
-        },
-        request=request,
-    )
+        initial_toc_offset = 1
+        toc_items_pass_2 = _apply_toc_pages(
+            raw_toc_items,
+            bookmark_pages,
+            offset=initial_toc_offset,
+        )
 
-    css_path = finders.find("report_maker/css/report_pdf.css")
-    if not css_path:
-        raise FileNotFoundError("CSS do PDF não encontrado: report_maker/css/report_pdf.css")
+        second_document = _render_document(
+            request=request,
+            report=report,
+            header=header,
+            preamble=preamble,
+            outline_ui=outline_ui,
+            next_top=next_top,
+            toc_items=toc_items_pass_2,
+            include_auto_toc=True,
+        )
 
-    base_url = request.build_absolute_uri("/")
+        toc_page_count = max(len(second_document.pages) - len(first_document.pages), 1)
 
-    pdf_bytes = HTML(
-        string=html,
-        base_url=base_url,
-        url_fetcher=django_url_fetcher,
-    ).write_pdf(stylesheets=[CSS(filename=css_path)])
+        if toc_page_count != initial_toc_offset:
+            toc_items_final = _apply_toc_pages(
+                raw_toc_items,
+                bookmark_pages,
+                offset=toc_page_count,
+            )
 
-    def normalize(value: str) -> str:
-        value = value.replace("/", "_")
-        value = re.sub(r"[^a-zA-Z0-9_]", "", value)
-        return value.lower()
+            final_document = _render_document(
+                request=request,
+                report=report,
+                header=header,
+                preamble=preamble,
+                outline_ui=outline_ui,
+                next_top=next_top,
+                toc_items=toc_items_final,
+                include_auto_toc=True,
+            )
+        else:
+            final_document = second_document
 
-    number_part = normalize(report.report_number)
-    type_part = normalize(report.criminal_typification)
+        pdf_bytes = final_document.write_pdf()
 
-    filename = f"{number_part}${type_part}"
-
-    response = HttpResponse(pdf_bytes, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{filename}.pdf"'
-    response["X-Content-Type-Options"] = "nosniff"
-    response["Content-Length"] = str(len(pdf_bytes))
-    return response
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}.pdf"'
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Content-Length"] = str(len(pdf_bytes))
+        return response
