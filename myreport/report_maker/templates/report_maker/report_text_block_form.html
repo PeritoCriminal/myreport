@@ -41,7 +41,7 @@
       </div>
     </div>
 
-    <form method="post" novalidate>
+    <form method="post" novalidate id="textblock-form">
       {% csrf_token %}
 
       {# 1. CAMPOS OCULTOS: Necessários para o ReportTextBlockForm.clean() validar com sucesso #}
@@ -80,11 +80,27 @@
           {% if object.pk %}
             <a href="{% url 'report_maker:textblock_delete' report.pk object.pk %}" class="btn btn-outline-danger">Excluir</a>
           {% endif %}
-          <button type="submit" class="btn btn-primary">Salvar texto</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-text">Salvar texto</button>
         </div>
       </div>
     </form>
   </div>
 
   {% include 'report_maker/partials/ai_textblock_modal.html' %}
+{% endblock %}
+
+{% block script %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("textblock-form");
+  const btn = document.getElementById("btn-save-text");
+
+  if (!form || !btn) return;
+
+  form.addEventListener("submit", function () {
+    btn.disabled = true;
+    btn.innerText = "Salvando...";
+  });
+});
+</script>
 {% endblock %}
