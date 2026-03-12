@@ -2,11 +2,15 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block content %}
-{# Conteúdo real das páginas do report_maker vai aqui #}
-{% block report_maker_content %}{% endblock %}
+{% block head %}
+{{ block.super }}
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+{% endblock %}
 
-{# Modal fica garantido (não será sobrescrito pelos filhos) #}
+{% block content %}
+{% block report_maker_content %}
+{% endblock %}
 {% include "report_maker/partials/ai_textblock_modal.html" %}
 {% endblock %}
 
