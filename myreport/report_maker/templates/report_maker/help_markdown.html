@@ -8,7 +8,7 @@ Ajuda Markdown
 {% endblock %}
 
 {% block page_header %}
-  {% include 'headerbars/report_maker.html' %}
+{% include 'headerbars/report_maker.html' %}
 {% endblock %}
 
 {% block report_maker_content %}
@@ -35,112 +35,194 @@ Ajuda Markdown
   <div class="accordion" id="markdownHelpAccordion">
 
     {% for ex in examples %}
-      <div class="accordion-item">
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="heading-{{ forloop.counter }}">
+        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button"
+          data-bs-toggle="collapse" data-bs-target="#collapse-{{ forloop.counter }}"
+          aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+          aria-controls="collapse-{{ forloop.counter }}">
+          {{ ex.title }}
+        </button>
+      </h2>
 
-        <h2 class="accordion-header" id="heading-{{ forloop.counter }}">
-          <button
-            class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#collapse-{{ forloop.counter }}"
-            aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
-            aria-controls="collapse-{{ forloop.counter }}"
-          >
-            {{ ex.title }}
-          </button>
-        </h2>
-
-        <div
-          id="collapse-{{ forloop.counter }}"
-          class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
-          aria-labelledby="heading-{{ forloop.counter }}"
-          data-bs-parent="#markdownHelpAccordion"
-        >
-          <div class="accordion-body">
-
-            <div class="row g-3">
-
-              <div class="col-12 col-lg-6">
-                <label class="form-label fw-semibold">
-                  Texto puro (Markdown)
-                </label>
-
-                <textarea
-                  class="form-control markdown-input"
-                  rows="12"
-                >{{ ex.markdown }}</textarea>
-
-                <div class="mt-2">
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-primary js-render-markdown"
-                  >
-                    Renderizar
-                  </button>
-                </div>
+      <div id="collapse-{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+        aria-labelledby="heading-{{ forloop.counter }}" data-bs-parent="#markdownHelpAccordion">
+        <div class="accordion-body">
+          <div class="row g-3">
+            <div class="col-12 col-lg-6">
+              <label class="form-label fw-semibold">Texto puro (Markdown)</label>
+              <textarea class="form-control markdown-input" rows="12">{{ ex.markdown }}</textarea>
+              <div class="mt-2">
+                <button type="button" class="btn btn-sm btn-outline-primary js-render-markdown">
+                  Renderizar
+                </button>
               </div>
-
-              <div class="col-12 col-lg-6">
-                <label class="form-label fw-semibold">
-                  Renderização
-                </label>
-
-                <div class="border rounded p-3 bg-body text-body markdown-output">
-                  {{ ex.markdown|render_markdown }}
-                </div>
-              </div>
-
             </div>
 
-            {% if ex.note %}
-              <div class="mt-3 text-muted">
-                {{ ex.note }}
+            <div class="col-12 col-lg-6">
+              <label class="form-label fw-semibold">Renderização</label>
+              <div class="border rounded p-3 bg-body text-body markdown-output">
+                {{ ex.markdown|render_markdown }}
               </div>
-            {% endif %}
-
+            </div>
           </div>
-        </div>
 
+          {% if ex.note %}
+          <div class="mt-3 text-muted small">
+            {{ ex.note }}
+          </div>
+          {% endif %}
+        </div>
       </div>
+    </div>
     {% endfor %}
 
-  </div>
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="heading-pratico">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+          data-bs-target="#collapse-pratico">
+          <span class="fw-bold text-primary"><i class="bi bi-calculator me-2"></i>Casos Práticos: Cálculo de Velocidade
+            (Frenagem)</span>
+        </button>
+      </h2>
+      <div id="collapse-pratico" class="accordion-collapse collapse" data-bs-parent="#markdownHelpAccordion">
+        <div class="accordion-body">
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">Distância (d) em metros</label>
+              <input type="number" step="0.1" class="form-control form-control-sm js-calc-d" placeholder="Ex: 25.5">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">Atrito Mín. (μ₁)</label>
+              <input type="number" step="0.01" class="form-control form-control-sm js-calc-mi1" placeholder="Ex: 0.60">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">Atrito Máx. (μ₂)</label>
+              <input type="number" step="0.01" class="form-control form-control-sm js-calc-mi2" placeholder="Ex: 0.75">
+            </div>
+          </div>
 
+          <div class="row">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Sugestão de texto para o laudo (com valores atribuídos):</label>
+              <textarea class="form-control js-result-text" rows="12"
+                style="font-family: monospace; font-size: 0.85rem;">
+(Preencha os valores acima para gerar o texto)
+              </textarea>
+              <div class="mt-2 text-end">
+                <button type="button" class="btn btn-sm btn-secondary js-copy-calc">
+                  <i class="bi bi-clipboard me-1"></i> Copiar Texto
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) {
-      return parts.pop().split(";").shift();
+  document.addEventListener("DOMContentLoaded", function () {
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(";").shift();
     }
-  }
 
-  document.querySelectorAll(".js-render-markdown").forEach(function (button) {
-    button.addEventListener("click", function () {
-      const wrapper = button.closest(".row")
-      const textarea = wrapper.querySelector(".markdown-input")
-      const output = wrapper.querySelector(".markdown-output")
+    // Lógica de Renderização de Preview
+    document.querySelectorAll(".js-render-markdown").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const wrapper = button.closest(".row");
+        const textarea = wrapper.querySelector(".markdown-input");
+        const output = wrapper.querySelector(".markdown-output");
 
-      fetch("{% url 'report_maker:markdown_preview' %}", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-          "X-CSRFToken": getCookie("csrftoken")
-        },
-        body: new URLSearchParams({
-          text: textarea.value
+        fetch("{% url 'report_maker:markdown_preview' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "X-CSRFToken": getCookie("csrftoken")
+          },
+          body: new URLSearchParams({ text: textarea.value })
         })
-      })
-      .then(response => response.text())
-      .then(html => {
-        output.innerHTML = html
-      })
-    })
-  })
-})
+          .then(response => response.text())
+          .then(html => { output.innerHTML = html; });
+      });
+    });
+
+    // Lógica da Calculadora Forense
+    const inputD = document.querySelector('.js-calc-d');
+    const inputMi1 = document.querySelector('.js-calc-mi1');
+    const inputMi2 = document.querySelector('.js-calc-mi2');
+    const resultArea = document.querySelector('.js-result-text');
+
+    function updateForensicText() {
+      const d = inputD.value || "d";
+      const mi1 = inputMi1.value || "\\mu_1";
+      const mi2 = inputMi2.value || "\\mu_2";
+
+      let vmin = "___";
+      let vmax = "___";
+
+      // Cálculo real
+      if (inputD.value && inputMi1.value) vmin = Math.round(3.6 * Math.sqrt(2 * inputMi1.value * 9.8 * inputD.value));
+      if (inputD.value && inputMi2.value) vmax = Math.round(3.6 * Math.sqrt(2 * inputMi2.value * 9.8 * inputD.value));
+
+      const template = `## Dinâmica e Estimativa de Velocidade
+
+Com base nos vestígios materiais encontrados (marcas de frenagem), que totalizaram uma extensão de **{d} metros**, aplicou-se a equação da conservação de energia para determinação da velocidade:
+
+{math$ v = 3,6 \\cdot \\sqrt{2 \\cdot \\mu \\cdot g \\cdot d} $}
+
+Considerando a aceleração da gravidade local como {math$ 9,8 \\text{ m/s}^2 $} e os coeficientes de atrito admitidos, tem-se:
+
+**1. Para o limite inferior ({math$ \\mu = {mi1} $}):**
+{math$ v_{min} = 3,6 \\cdot \\sqrt{2 \\cdot {mi1} \\cdot 9,8 \\cdot {d}} = {vmin} \\text{ km/h} $}
+
+**2. Para o limite superior ({math$ \\mu = {mi2} $}):**
+{math$ v_{max} = 3,6 \\cdot \\sqrt{2 \\cdot {mi2} \\cdot 9,8 \\cdot {d}} = {vmax} \\text{ km/h} $}
+
+**Conclusão:**
+Infere-se que o veículo desenvolvia velocidade situada na faixa de **{vmin} a {vmax} km/h** ao início do processo de frenagem.`;
+
+      resultArea.value = template
+        .replace(/{d}/g, d)
+        .replace(/{mi1}/g, mi1)
+        .replace(/{mi2}/g, mi2)
+        .replace(/{vmin}/g, vmin)
+        .replace(/{vmax}/g, vmax);
+    }
+
+    [inputD, inputMi1, inputMi2].forEach(el => el.addEventListener('input', updateForensicText));
+
+    // Botão Copiar e Renderização Markdown (mantidos do código anterior)
+    document.querySelector('.js-copy-calc').addEventListener('click', function () {
+      resultArea.select();
+      document.execCommand('copy');
+      const btn = this;
+      btn.innerHTML = '<i class="bi bi-check"></i> Copiado!';
+      setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard me-1"></i> Copiar Texto'; }, 2000);
+    });
+
+    document.querySelectorAll(".js-render-markdown").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const wrapper = button.closest(".row");
+        const textarea = wrapper.querySelector(".markdown-input");
+        const output = wrapper.querySelector(".markdown-output");
+        fetch("{% url 'report_maker:markdown_preview' %}", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-CSRFToken": "{{ csrf_token }}" },
+          body: new URLSearchParams({ text: textarea.value })
+        })
+          .then(response => response.text())
+          .then(html => { output.innerHTML = html; });
+      });
+    });
+  });
 </script>
 
 {% endblock %}
