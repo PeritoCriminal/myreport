@@ -172,22 +172,30 @@ Ajuda Markdown
       if (inputD.value && inputMi1.value) vmin = Math.round(3.6 * Math.sqrt(2 * inputMi1.value * 9.8 * inputD.value));
       if (inputD.value && inputMi2.value) vmax = Math.round(3.6 * Math.sqrt(2 * inputMi2.value * 9.8 * inputD.value));
 
-      const template = `## Dinâmica e Estimativa de Velocidade
+      const template = `## Estimativa de Velocidade
 
-Com base nos vestígios materiais encontrados (marcas de frenagem), que totalizaram uma extensão de **{d} metros**, aplicou-se a equação da conservação de energia para determinação da velocidade:
+Com base nas características e nas condições do local, bem como nas marcas deixadas no leito carroçável, aplicou-se a equação abaixo para estimativa da velocidade de marcha do veículo:
 
-{math$ v = 3,6 \\cdot \\sqrt{2 \\cdot \\mu \\cdot g \\cdot d} $}
+- {math$ v = 3.6 \\cdot \\sqrt{2 \\cdot \\mu \\cdot g \\cdot d} $}
 
-Considerando a aceleração da gravidade local como {math$ 9,8 \\text{ m/s}^2 $} e os coeficientes de atrito admitidos, tem-se:
+Onde:
 
-**1. Para o limite inferior ({math$ \\mu = {mi1} $}):**
-{math$ v_{min} = 3,6 \\cdot \\sqrt{2 \\cdot {mi1} \\cdot 9,8 \\cdot {d}} = {vmin} \\text{ km/h} $}
+- distância percorrida: {math$ d = {d} metros $};
 
-**2. Para o limite superior ({math$ \\mu = {mi2} $}):**
-{math$ v_{max} = 3,6 \\cdot \\sqrt{2 \\cdot {mi2} \\cdot 9,8 \\cdot {d}} = {vmax} \\text{ km/h} $}
+- coeficiente de atrito mínimo: {math$ \\mu_{min} = {mi1} $};
 
-**Conclusão:**
-Infere-se que o veículo desenvolvia velocidade situada na faixa de **{vmin} a {vmax} km/h** ao início do processo de frenagem.`;
+- coeficiente de atrito máximo: {math$ \\mu_{max} = {mi2} $};
+
+- fator de conversão (*m/s* para *km/h*): {math$ 3,6 $};
+
+- aceleração da gravidade: {math$ 9,8\\text{m/s}^2 $}.
+
+Temos:
+
+- {math$ v_{min} = 3,6 \\cdot \\sqrt{2 \\cdot {mi1} \\cdot 9,8 \\cdot {d}} = {vmin} \\text{ km/h} $}
+- {math$ v_{max} = 3,6 \\cdot \\sqrt{2 \\cdot {mi2} \\cdot 9,8 \\cdot {d}} = {vmax} \\text{ km/h} $}
+
+Infere-se, portanto, que o veículo desenvolvia velocidade situada na faixa de **{vmin} a {vmax} km/h** ao início do processo de frenagem.`;
 
       resultArea.value = template
         .replace(/{d}/g, d)
